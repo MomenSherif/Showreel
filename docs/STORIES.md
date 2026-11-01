@@ -333,7 +333,8 @@ Depends: S-015
 Acceptance:
 - [unit] Every inspector and timeline change is one undo step. A slider
   drag counts as one step.
-Status: todo
+Status: done
+Note: checked in the self-test on the window's real UndoManager. `EditorModel.apply(_:named:)` registers one named step ("Undo Trim"); drags apply once on release. Inspector controls (M4) must go through `apply` or the same pattern. Renaming the title is not undoable yet.
 
 ### S-021 Edits save automatically
 As the user, I close the editor and reopen it to find everything as I

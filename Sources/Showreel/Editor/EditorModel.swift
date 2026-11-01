@@ -109,10 +109,25 @@ final class EditorModel {
 
     // MARK: Edits (S-018, S-019)
 
-    /// Replaces the cut. The playhead stays on the same moment of the
-    /// recording when that moment is still in the video.
-    func apply(_ new: EditList) {
+    /// The window's undo manager. Every edit is one step on it (S-020).
+    @ObservationIgnored weak var undoManager: UndoManager? {
+        didSet { observeUndo() }
+    }
+    private(set) var canUndo = false
+    private(set) var canRedo = false
+    @ObservationIgnored private var undoObservers: [NSObjectProtocol] = []
+
+    /// Replaces the cut, as one undoable step called `name` ("Undo Split").
+    /// The playhead stays on the same moment of the recording when that
+    /// moment is still in the video. Drags apply once, when they end, so a
+    /// drag is one step.
+    func apply(_ new: EditList, named name: String = "Edit") {
         guard new != edits, let sources, let player else { draft = nil; return }
+        let old = edits
+        undoManager?.registerUndo(withTarget: self) { editor in
+            MainActor.assumeIsolated { editor.apply(old, named: name) }
+        }
+        undoManager?.setActionName(name)
         let source = edits.sourceTime(atEditTime: playhead.time)
         edits = new
         draft = nil
@@ -123,6 +138,25 @@ final class EditorModel {
         player.replaceCurrentItem(with: sources.item(for: new))
         seek(to: source.flatMap { new.editTime(atSourceTime: $0) } ?? min(playhead.time, duration))
         if wasPlaying { player.play() }
+        refreshUndo()
+    }
+
+    private func observeUndo() {
+        undoObservers.forEach(NotificationCenter.default.removeObserver)
+        undoObservers = []
+        guard let undoManager else { return }
+        for name in [Notification.Name.NSUndoManagerDidUndoChange, .NSUndoManagerDidRedoChange,
+                     .NSUndoManagerDidCloseUndoGroup, .NSUndoManagerCheckpoint] {
+            undoObservers.append(NotificationCenter.default.addObserver(forName: name, object: undoManager, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.refreshUndo() }
+            })
+        }
+        refreshUndo()
+    }
+
+    private func refreshUndo() {
+        canUndo = undoManager?.canUndo ?? false
+        canRedo = undoManager?.canRedo ?? false
     }
 
     enum Edge { case start, end }
@@ -140,20 +174,15 @@ final class EditorModel {
     }
 
     func commitTrim() {
-        if let draft { apply(draft) }
+        if let draft { apply(draft, named: "Trim") }
         draft = nil
     }
 
     /// Clip > Split at Playhead (S): two pieces where there was one (S-019).
-    var canSplit: Bool {
-        var probe = edits
-        return probe.split(atEditTime: playhead.time) != nil
-    }
-
     func splitAtPlayhead() {
         var new = edits
         guard new.split(atEditTime: playhead.time) != nil else { return }
-        apply(new)
+        apply(new, named: "Split")
     }
 
     /// Clip > Delete Section (⌫): removes the selected piece and closes the gap.
@@ -164,7 +193,7 @@ final class EditorModel {
         var new = edits
         guard new.delete(selectedSegment) else { return }
         self.selectedSegment = nil
-        apply(new)
+        apply(new, named: "Delete Section")
     }
 
     /// Clip > Trim Start to Playhead (⌥[).
@@ -173,7 +202,7 @@ final class EditorModel {
               let s = edits.sourceTime(atEditTime: playhead.time) else { return }
         var new = edits
         new.trimStart(segment.id, toSource: s)
-        apply(new)
+        apply(new, named: "Trim Start")
     }
 
     /// Clip > Trim End to Playhead (⌥]).
@@ -182,7 +211,7 @@ final class EditorModel {
               let s = edits.sourceTime(atEditTime: playhead.time) else { return }
         var new = edits
         new.trimEnd(segment.id, toSource: s)
-        apply(new)
+        apply(new, named: "Trim End")
     }
 
     // MARK: Seeking (S-016)

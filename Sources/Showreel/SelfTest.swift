@@ -356,6 +356,8 @@ enum SelfTest {
 
         await trim(editor)
 
+        await undo(editor)
+
         // S-017: the timeline zoom.
         editor.zoom.zoomIn()
         editor.zoom.zoomIn()
@@ -410,6 +412,49 @@ enum SelfTest {
               clip.contains("Split at Playhead") && clip.contains("Delete Section"), clip.joined(separator: ", "))
         editor.apply(EditList(sourceDuration: source))
         await editor.seeksSettled()
+    }
+
+    /// S-020: every edit is one undo step, a drag included, and redo walks back.
+    private static func undo(_ editor: EditorModel) async {
+        guard let undo = editor.undoManager else {
+            check("the Editor has the window's undo manager", false)
+            return
+        }
+        // AppKit groups undo by event. Here one group per action stands in
+        // for one key press or menu command each.
+        undo.removeAllActions()
+        undo.groupsByEvent = false
+        defer { undo.groupsByEvent = true }
+        func action(_ body: () -> Void) async {
+            undo.beginUndoGrouping()
+            body()
+            undo.endUndoGrouping()
+            await editor.seeksSettled()
+        }
+        let uncut = editor.edits
+        editor.seek(to: 1)
+        await editor.seeksSettled()
+        await action { editor.splitAtPlayhead() }
+        let split = editor.edits
+        // A trim drag sends many updates and applies once.
+        await action {
+            guard let first = editor.edits.segments.first else { return }
+            for step in 1...10 { editor.previewTrim(first.id, edge: .start, by: Double(step) * 0.02) }
+            editor.commitTrim()
+        }
+        check("the Edit menu names the step", undo.undoMenuItemTitle == "Undo Trim", undo.undoMenuItemTitle)
+        undo.undo()
+        await editor.seeksSettled()
+        check("one Undo reverts the whole trim drag", editor.edits == split)
+        undo.undo()
+        await editor.seeksSettled()
+        check("a second Undo reverts the split", editor.edits == uncut)
+        check("the toolbar's Undo is off with nothing to undo", !editor.canUndo && editor.canRedo)
+        undo.redo()
+        await editor.seeksSettled()
+        check("Redo brings the split back", editor.edits == split && editor.canUndo)
+        await action { editor.apply(uncut) }
+        undo.removeAllActions()
     }
 
     private static func check(_ name: String, _ ok: Bool, _ detail: String = "") {

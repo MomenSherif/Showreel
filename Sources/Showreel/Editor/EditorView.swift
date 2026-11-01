@@ -70,6 +70,8 @@ struct EditorView: View {
         .toolbarTitleMenu { RenameButton() }
         .focusedSceneValue(\.editor, editor)
         .task { await editor.load() }
+        .onAppear { editor.undoManager = undoManager }
+        .onChange(of: undoManager) { _, manager in editor.undoManager = manager }
         .onDisappear { editor.stop() }
         .onChange(of: project.title) { _, title in
             let clean = ProjectTitle.clean(title)
@@ -81,11 +83,11 @@ struct EditorView: View {
     private var toolbar: some ToolbarContent {
         ToolbarItemGroup(placement: .principal) {
             Button("Undo", systemImage: "arrow.uturn.backward") { undoManager?.undo() }
-                .help("Undo (⌘Z)")
-                .disabled(undoManager?.canUndo != true)
+                .help(editor.canUndo ? "Undo \(undoManager?.undoActionName ?? "") (⌘Z)" : "Undo (⌘Z)")
+                .disabled(!editor.canUndo)
             Button("Redo", systemImage: "arrow.uturn.forward") { undoManager?.redo() }
-                .help("Redo (⇧⌘Z)")
-                .disabled(undoManager?.canRedo != true)
+                .help(editor.canRedo ? "Redo \(undoManager?.redoActionName ?? "") (⇧⌘Z)" : "Redo (⇧⌘Z)")
+                .disabled(!editor.canRedo)
         }
         ToolbarItem(placement: .primaryAction) {
             Button("Export…", systemImage: "square.and.arrow.up") {}
