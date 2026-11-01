@@ -339,6 +339,8 @@ final class RecordController {
         project?.videoWidth = source.pixelSize.width
         project?.videoHeight = source.pixelSize.height
         if let last = log?.bubble.last { project?.bubbleX = last.x; project?.bubbleY = last.y }
+        project?.bubbleSize = BubbleStyle.shared.size
+        project?.bubbleShape = BubbleStyle.shared.shape.rawValue
 
         Task {
             await screen?.stop()

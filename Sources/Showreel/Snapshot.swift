@@ -13,6 +13,9 @@ import SwiftUI
 /// APP_SNAPSHOT_PAGES=library,record-panel limits the pages. Add "settings" to include Settings.
 /// Add APP_ACCENT=<id> to see the pages in another accent.
 enum Snapshot {
+    /// A panel shown only for one snapshot.
+    private static var standalone: NSWindow?
+
     static var isActive: Bool { !(ProcessInfo.processInfo.environment["APP_SNAPSHOT"] ?? "").isEmpty }
 
     /// One floating panel or extra window: how to show it, find it, and close it.
@@ -60,6 +63,17 @@ enum Snapshot {
             Surface(name: "camera-bubble", show: { CameraBubble.shared.show(session: nil, near: nil) },
                     window: { CameraBubble.shared.panel },
                     hide: { CameraBubble.shared.hide() }),
+            // A child window captures as its parent, so the controls get a panel of their own here.
+            Surface(name: "camera-bubble-controls", show: {
+                        var options = FloatingPanel.Options()
+                        options.takesKey = false
+                        let panel = FloatingPanel(size: Layout.bubbleControls, options: options, content: BubbleControlsView())
+                        panel.center()
+                        panel.present()
+                        standalone = panel
+                    },
+                    window: { standalone },
+                    hide: { standalone?.orderOut(nil); standalone = nil }),
             Surface(name: "countdown", show: {
                         recorder.snapshotState(.countdown, countdown: 3)
                         Countdown.shared.show(on: mainDisplay)

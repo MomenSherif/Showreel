@@ -23,6 +23,8 @@ enum Layout {
 
     // Camera Bubble
     static let bubbleSizes: [CGFloat] = [120, 180, 240] // Small, Medium, Large
+    /// The window that holds the bubble's hover controls (S-013).
+    static let bubbleControls = CGSize(width: 280, height: 48)
     /// Snaps to a corner or an edge midpoint within this distance.
     static let snapDistance: CGFloat = 24
 

@@ -143,7 +143,24 @@ enum SelfTest {
         let move = events.stop(at: 2).bubble.first
         check("a bubble move is logged in source coordinates with its time",
               move?.x == 0.25 && move?.y == 0.8 && (move?.t ?? 0) >= 1, "\(String(describing: move))")
+        bubbleStyle(bubble, panel: panel)
         bubble.hide()
+    }
+
+    /// S-013: size and shape change the bubble and are remembered.
+    private static func bubbleStyle(_ bubble: CameraBubble, panel: NSWindow) {
+        let style = BubbleStyle.shared
+        let saved = (style.size, style.shape)
+        defer { style.size = saved.0; style.shape = saved.1 }
+        let center = NSPoint(x: panel.frame.midX, y: panel.frame.midY)
+        style.size = 2
+        check("Large makes the bubble 240 pt", panel.frame.width == Layout.bubbleSizes[2] + 2 * CameraBubble.margin)
+        check("resizing keeps the bubble's center", abs(panel.frame.midX - center.x) < 1 && abs(panel.frame.midY - center.y) < 1)
+        check("the size is remembered", UserDefaults.standard.integer(forKey: "bubble.size") == 2)
+        style.shape = .roundedSquare
+        check("the shape is remembered", UserDefaults.standard.string(forKey: "bubble.shape") == "roundedSquare")
+        bubble.showControls()
+        check("hover shows the size and shape controls", bubble.controls?.parent === panel)
     }
 
     /// S-007: a real 2.5 s capture of the main display with a pause in the

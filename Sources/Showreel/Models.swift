@@ -28,6 +28,8 @@ final class Project {
     var bubbleY: Double = 0.80
     /// 0 Small, 1 Medium, 2 Large (`Layout.bubbleSizes`).
     var bubbleSize: Int = 1
+    /// `BubbleStyle.Shape` raw value.
+    var bubbleShape: String = "circle"
     /// True while the recording is still being written.
     var isSaving: Bool = false
 
@@ -41,7 +43,7 @@ final class Project {
 /// A plain copy of a project, so Move to Trash can be undone after the
 /// model object is gone, and Duplicate can copy every field.
 struct ProjectRecord {
-    var title, sourceKind, sourceName: String
+    var title, sourceKind, sourceName, bubbleShape: String
     var createdAt: Date
     var duration: Double
     var uuid: UUID
@@ -55,6 +57,7 @@ struct ProjectRecord {
         hasCamera = p.hasCamera; hasMicrophone = p.hasMicrophone; hasSystemAudio = p.hasSystemAudio
         videoWidth = p.videoWidth; videoHeight = p.videoHeight
         bubbleSize = p.bubbleSize; bubbleX = p.bubbleX; bubbleY = p.bubbleY
+        bubbleShape = p.bubbleShape
     }
 
     /// A model with these fields. With `newID`, a duplicate made now.
@@ -65,6 +68,7 @@ struct ProjectRecord {
         p.hasCamera = hasCamera; p.hasMicrophone = hasMicrophone; p.hasSystemAudio = hasSystemAudio
         p.videoWidth = videoWidth; p.videoHeight = videoHeight
         p.bubbleSize = bubbleSize; p.bubbleX = bubbleX; p.bubbleY = bubbleY
+        p.bubbleShape = bubbleShape
         return p
     }
 }

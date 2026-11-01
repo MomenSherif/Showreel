@@ -254,7 +254,7 @@ Depends: S-011
 Acceptance:
 - [snap] Hover controls show size and shape choices.
 - [self] The choice is remembered for the next recording.
-Status: todo
+Status: done
 
 ### S-014 Hide the bubble for a moment during recording
 As the user, I press ⌃⌥⌘C to hide or show the camera while recording.

@@ -127,7 +127,9 @@ enum PlayerBuilder {
         let instruction = BubbleInstruction(timeRange: range, screenTrack: screenTrack.trackID, cameraTrack: cameraID,
                                             bubble: log?.bubble ?? [],
                                             fallbackCenter: CGPoint(x: project.bubbleX, y: project.bubbleY),
-                                            hidden: log?.cameraHidden ?? [], diameter: diameter)
+                                            hidden: log?.cameraHidden ?? [], diameter: diameter,
+                                            cornerRatio: project.bubbleShape == BubbleStyle.Shape.roundedSquare.rawValue
+                                                ? Radius.bubbleSquareRatio : 0.5)
         var config = AVVideoComposition.Configuration()
         config.customVideoCompositorClass = BubbleCompositor.self
         config.renderSize = natural

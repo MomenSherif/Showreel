@@ -20,9 +20,12 @@ nonisolated final class BubbleInstruction: NSObject, AVVideoCompositionInstructi
     let hidden: [EventLog.Range]
     /// Bubble diameter as a fraction of the output width.
     let diameter: CGFloat
+    /// Corner radius as a fraction of the diameter: 0.5 for a circle.
+    let cornerRatio: CGFloat
 
     init(timeRange: CMTimeRange, screenTrack: CMPersistentTrackID, cameraTrack: CMPersistentTrackID?,
-         bubble: [EventLog.Point], fallbackCenter: CGPoint, hidden: [EventLog.Range], diameter: CGFloat) {
+         bubble: [EventLog.Point], fallbackCenter: CGPoint, hidden: [EventLog.Range], diameter: CGFloat,
+         cornerRatio: CGFloat = 0.5) {
         self.timeRange = timeRange
         self.screenTrack = screenTrack
         self.cameraTrack = cameraTrack
@@ -30,6 +33,7 @@ nonisolated final class BubbleInstruction: NSObject, AVVideoCompositionInstructi
         self.fallbackCenter = fallbackCenter
         self.hidden = hidden
         self.diameter = diameter
+        self.cornerRatio = cornerRatio
         requiredSourceTrackIDs = ([screenTrack] + [cameraTrack].compactMap { $0 }).map { NSNumber(value: $0) }
     }
 
@@ -76,14 +80,16 @@ nonisolated final class BubbleCompositor: NSObject, AVVideoCompositing, @uncheck
         let t = request.compositionTime.seconds
         if let id = instruction.cameraTrack, !instruction.isHidden(at: t), let camera = request.sourceFrame(byTrackID: id) {
             image = Self.bubble(CIImage(cvPixelBuffer: camera), over: image, center: instruction.center(at: t),
-                                diameter: instruction.diameter * size.width, canvas: size)
+                                diameter: instruction.diameter * size.width, cornerRatio: instruction.cornerRatio, canvas: size)
         }
         context.render(image.cropped(to: extent), to: output, bounds: extent, colorSpace: CGColorSpace(name: CGColorSpace.sRGB))
         request.finish(withComposedVideoFrame: output)
     }
 
-    /// The camera cropped to a square, mirrored, masked to a circle, and placed at `center`.
-    static func bubble(_ camera: CIImage, over base: CIImage, center: CGPoint, diameter: CGFloat, canvas: CGSize) -> CIImage {
+    /// The camera cropped to a square, mirrored, masked to a circle or rounded
+    /// square, and placed at `center`.
+    static func bubble(_ camera: CIImage, over base: CIImage, center: CGPoint, diameter: CGFloat,
+                       cornerRatio: CGFloat = 0.5, canvas: CGSize) -> CIImage {
         let side = min(camera.extent.width, camera.extent.height)
         let square = camera.cropped(to: CGRect(x: camera.extent.midX - side / 2, y: camera.extent.midY - side / 2, width: side, height: side))
         let scale = diameter / side
@@ -93,13 +99,22 @@ nonisolated final class BubbleCompositor: NSObject, AVVideoCompositing, @uncheck
             .transformed(by: CGAffineTransform(translationX: -square.extent.midX, y: -square.extent.midY))
             .transformed(by: CGAffineTransform(scaleX: -scale, y: scale))
             .transformed(by: CGAffineTransform(translationX: cx, y: cy))
-        let mask = CIFilter(name: "CIRadialGradient", parameters: [
-            "inputCenter": CIVector(x: cx, y: cy),
-            "inputRadius0": diameter / 2 - 1,
-            "inputRadius1": diameter / 2,
-            "inputColor0": CIColor.white,
-            "inputColor1": CIColor.clear,
-        ])?.outputImage?.cropped(to: placed.extent) ?? placed
+        let mask: CIImage
+        if cornerRatio >= 0.5 {
+            mask = CIFilter(name: "CIRadialGradient", parameters: [
+                "inputCenter": CIVector(x: cx, y: cy),
+                "inputRadius0": diameter / 2 - 1,
+                "inputRadius1": diameter / 2,
+                "inputColor0": CIColor.white,
+                "inputColor1": CIColor.clear,
+            ])?.outputImage?.cropped(to: placed.extent) ?? placed
+        } else {
+            mask = CIFilter(name: "CIRoundedRectangleGenerator", parameters: [
+                "inputExtent": CIVector(cgRect: placed.extent),
+                "inputRadius": diameter * cornerRatio,
+                "inputColor": CIColor.white,
+            ])?.outputImage ?? placed
+        }
         return placed.applyingFilter("CIBlendWithAlphaMask", parameters: [
             kCIInputBackgroundImageKey: base,
             kCIInputMaskImageKey: mask,
