@@ -59,12 +59,8 @@ final class RecordController {
 
     @ObservationIgnored private(set) var mic: DeviceCapture?
     @ObservationIgnored private(set) var camera: DeviceCapture?
-    /// Mic level in 0...1 for the meter.
-    private(set) var micLevel: Double = 0
-    /// Seconds the mic has been silent while the panel is open.
-    private var silentSince: Date?
-    private(set) var micSilent = false
-    @ObservationIgnored private var meterTimer: Timer?
+    /// The mic level, observed only by the meter (15 Hz).
+    @ObservationIgnored let meter = MicMeter()
 
     // MARK: The recording in progress
 
@@ -191,7 +187,11 @@ final class RecordController {
             camera?.stop(); camera = nil
             CameraBubble.shared.hide()
         }
-        if mic != nil { startMeter() } else { stopMeter() }
+        if let mic {
+            meter.start { mic.level }
+        } else {
+            meter.stop()
+        }
     }
 
     /// Picks a new device: restarts its session.
@@ -201,34 +201,6 @@ final class RecordController {
         case .video: camera?.stop(); camera = nil
         }
         updateDevices()
-    }
-
-    private func startMeter() {
-        guard meterTimer == nil else { return }
-        meterTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 15, repeats: true) { _ in
-            MainActor.assumeIsolated { RecordController.shared.readMeter() }
-        }
-    }
-
-    private func stopMeter() {
-        meterTimer?.invalidate()
-        meterTimer = nil
-        micLevel = 0
-        micSilent = false
-        silentSince = nil
-    }
-
-    private func readMeter() {
-        guard let mic else { return }
-        let db = Double(mic.level)
-        micLevel = max(0, min(1, (db + 60) / 60))
-        if micLevel < 0.05 {
-            if silentSince == nil { silentSince = .now }
-            micSilent = Date.now.timeIntervalSince(silentSince!) > 5
-        } else {
-            silentSince = nil
-            micSilent = false
-        }
     }
 
     // MARK: Recording

@@ -16,12 +16,12 @@ struct MicToggle: View {
                 Toggle(isOn: $recorder.micOn) {
                     HStack(spacing: Space.xs) {
                         Label(recorder.micOn ? "Mic" : "Mic off", systemImage: recorder.micOn ? "mic" : "mic.slash")
-                        if recorder.micOn { LevelMeter(level: recorder.micLevel) }
+                        if recorder.micOn { LevelMeter(meter: recorder.meter) }
                     }
                 }
                 .toggleStyle(.button)
                 .buttonStyle(.glass)
-                .help(recorder.micSilent ? "No sound detected" : "Record your voice")
+                .help(recorder.meter.silent ? "No sound detected" : "Record your voice")
                 .accessibilityLabel("Microphone")
                 .accessibilityValue(recorder.micOn ? "on, \(devices.microphoneName)" : "off")
                 DeviceMenu(title: "Microphone", items: devices.microphones, selection: $devices.microphoneID) {
@@ -91,9 +91,10 @@ private struct DeviceMenu: View {
     }
 }
 
-/// Five bars that fill with the input level.
+/// Five bars that fill with the input level. Only this view redraws at 15 Hz.
 struct LevelMeter: View {
-    let level: Double
+    let meter: MicMeter
+    private var level: Double { meter.level }
 
     var body: some View {
         HStack(spacing: 2) { // grid: ok hairline gap between meter bars
