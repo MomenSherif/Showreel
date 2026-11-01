@@ -10,7 +10,7 @@ SwiftData database and no server.
 - `Package.swift` a Swift package. There is no Xcode project.
 - `build.sh` builds, signs, and installs `~/Applications/Showreel.app`.
 - `Icon/AppIcon.icon` the app icon, an Icon Composer file (JSON plus SVG layers). `build.sh` compiles it with `tools/make_icon.sh`; `tools/icon_review.sh` renders every look into one PNG.
-- `docs/` the brief, the screen index, and the user stories, when they exist.
+- `docs/` the brief, the stories, the glossary, and `DESIGN.md` (surfaces, editor layout, command map). Follow DESIGN.md for every UI story.
 
 ## Build and check
 

@@ -58,6 +58,9 @@ Native macOS 26 with Liquid Glass, system sidebar and inspector, follows
 light and dark mode, uses the system accent color. Uses the reference for
 layout only, not for its look.
 
+## Design plan
+See `docs/DESIGN.md`: archetype, surfaces, editor layout, and command map.
+
 ## Not in version one
 - Cloud upload, share links, accounts, teams
 - Blur regions

@@ -264,14 +264,15 @@ Status: todo
 Done when you can open a recording, watch it, cut out mistakes, and undo.
 
 ### S-015 Open a project in the editor
-As the user, I open a project and see the editor: an inspector on the left
-(Background, Screen, Effects, Camera, Captions, Audio), the canvas in the
-middle, and the timeline at the bottom.
+As the user, I open a project and see the editor: the canvas in the
+middle, the timeline at the bottom, and a trailing inspector with the
+sections Background, Screen, Effects, Camera, Captions, and Audio
+(docs/DESIGN.md, "Editor").
 Screens: editor, reference-editor.png
 Depends: S-009
 Acceptance:
-- [snap] The layout matches the reference regions, using native macOS 26
-  sidebar, toolbar, and inspector parts.
+- [snap] The layout follows docs/DESIGN.md: the reference's regions, with
+  the section rail moved into a native trailing inspector.
 - [snap] The toolbar has Undo, Redo, an editable title, and Export.
 Status: todo
 
