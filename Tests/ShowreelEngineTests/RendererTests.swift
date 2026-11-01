@@ -57,6 +57,44 @@ struct RendererTests {
         try hidden.expectMatches(golden: "screen-only")
     }
 
+    // MARK: Style (S-022)
+
+    static func styled(_ change: (inout Style) -> Void, image: CIImage? = nil) -> Bitmap {
+        var style = Style()
+        change(&style)
+        return Bitmap(Renderer.frame(screen: screen, camera: camera, at: 0, scene: scene,
+                                     style: RenderStyle(style: style, backgroundImage: image), size: size))
+    }
+
+    @Test func gradientWithPaddingMatchesGolden() throws {
+        try Self.styled { $0.background = .gradient("sunrise"); $0.padding = 0.1 }.expectMatches(golden: "style-gradient")
+    }
+
+    @Test func solidColorShowsAroundTheRecording() {
+        let frame = Self.styled { $0.background = .color(RGB(1, 0, 0)); $0.padding = 0.1 }
+        let corner = frame.pixel(x: 4, y: 4)
+        #expect(corner.r > 250 && corner.g < 5 && corner.b < 5, "the padding shows the color, got \(corner)")
+        let middle = frame.pixel(x: 200, y: 150)
+        #expect(middle.b > middle.r, "the recording sits in the middle, got \(middle)")
+    }
+
+    @Test func blurredImageMatchesGolden() throws {
+        // A hard-edged picture: blur must soften its edge.
+        let left = CIImage(color: CIColor(red: 1, green: 0.8, blue: 0)).cropped(to: CGRect(x: 0, y: 0, width: 50, height: 60))
+        let right = CIImage(color: CIColor(red: 0, green: 0.3, blue: 0.6)).cropped(to: CGRect(x: 50, y: 0, width: 50, height: 60))
+        let picture = right.composited(over: left)
+        let sharp = Self.styled({ $0.background = .image("bg.png"); $0.padding = 0.2 }, image: picture)
+        let blurred = Self.styled({ $0.background = .image("bg.png"); $0.padding = 0.2; $0.backgroundBlur = 0.5 }, image: picture)
+        #expect(sharp.bytes != blurred.bytes)
+        try blurred.expectMatches(golden: "style-image-blur")
+    }
+
+    @Test func missingPictureFallsBackToAGradient() {
+        let frame = Self.styled { $0.background = .wallpaper("/nowhere.heic"); $0.padding = 0.2 }
+        let corner = frame.pixel(x: 2, y: 2)
+        #expect(corner.r + corner.g + corner.b > 100, "not black, got \(corner)")
+    }
+
     @Test func frameFillsTheOutputSize() {
         let image = Renderer.frame(screen: Self.screen, camera: Self.camera, at: 0, scene: Self.scene, size: Self.size)
         #expect(image.extent == CGRect(origin: .zero, size: Self.size))

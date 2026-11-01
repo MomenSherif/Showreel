@@ -17,9 +17,11 @@ public final class BubbleInstruction: NSObject, AVVideoCompositionInstructionPro
     /// Source time minus composition time in this range: the scene is in
     /// source time, and a cut moves later parts earlier in the composition.
     public let sourceOffset: Double
+    public let style: RenderStyle
 
     public init(timeRange: CMTimeRange, screenTrack: CMPersistentTrackID, cameraTrack: CMPersistentTrackID?,
-                scene: BubbleScene, sourceOffset: Double = 0) {
+                scene: BubbleScene, sourceOffset: Double = 0, style: RenderStyle = .plain) {
+        self.style = style
         self.timeRange = timeRange
         self.screenTrack = screenTrack
         self.cameraTrack = cameraTrack
@@ -64,7 +66,7 @@ public final class BubbleCompositor: NSObject, AVVideoCompositing, @unchecked Se
             .flatMap { instruction.scene.isHidden(at: t) ? nil : request.sourceFrame(byTrackID: $0) }
             .map { CIImage(cvPixelBuffer: $0) }
         let image = Renderer.frame(screen: CIImage(cvPixelBuffer: screen), camera: camera, at: t,
-                                   scene: instruction.scene, size: size)
+                                   scene: instruction.scene, style: instruction.style, size: size)
         context.render(image, to: output, bounds: CGRect(origin: .zero, size: size),
                        colorSpace: CGColorSpace(name: CGColorSpace.sRGB))
         request.finish(withComposedVideoFrame: output)

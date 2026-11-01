@@ -1,4 +1,5 @@
 import AppKit
+import CoreImage
 import AVFoundation
 import ScreenCaptureKit
 import SwiftData
@@ -64,6 +65,7 @@ extension SelfTest {
 
         await undo(editor)
 
+        await background(editor)
         await autosave(editor)
 
         // S-017: the timeline zoom.
@@ -194,5 +196,56 @@ extension SelfTest {
         let reopened = EditorModel.newest
         check("the Editor reopens with the edit", reopened !== editor && reopened?.edits == saved,
               "\(reopened?.edits.segments.count ?? -1) segments")
+    }
+
+    /// S-022: a background is saved, is one undo step, shows in the padding,
+    /// and a picked image is copied into the project.
+    static func background(_ editor: EditorModel) async {
+        guard let undo = editor.undoManager else { return }
+        undo.removeAllActions()
+        undo.groupsByEvent = false
+        defer { undo.groupsByEvent = true }
+        let before = editor.style
+        var red = editor.style
+        red.background = .color(RGB(1, 0, 0))
+        red.padding = 0.1
+        undo.beginUndoGrouping()
+        editor.applyStyle(red, named: "Background Color")
+        undo.endUndoGrouping()
+        check("a background is saved with the project", Style.decode(editor.project.styleData) == red)
+        let screen = CIImage(color: CIColor(red: 0, green: 0, blue: 1)).cropped(to: CGRect(x: 0, y: 0, width: 160, height: 100))
+        let frame = Renderer.frame(screen: screen, camera: nil, at: 0, scene: BubbleScene(bubble: [], fallbackCenter: .zero, hidden: [], diameter: 0),
+                                   style: editor.renderStyle(for: editor.style), size: CGSize(width: 320, height: 200))
+        var pixel = [UInt8](repeating: 0, count: 4)
+        CIContext().render(frame, toBitmap: &pixel, rowBytes: 4, bounds: CGRect(x: 2, y: 2, width: 1, height: 1),
+                           format: .RGBA8, colorSpace: CGColorSpace(name: CGColorSpace.sRGB))
+        check("the padding shows the background", pixel[0] > 250 && pixel[1] < 5 && pixel[2] < 5, "\(pixel)")
+        undo.undo()
+        check("choosing a background is one undo step", editor.style == before)
+        // Back to grouping by event: registering undo outside a group with it
+        // off leaves NSUndoManager broken (it crashed SwiftUI later).
+        undo.groupsByEvent = true
+
+        // A picked image is copied into the project folder.
+        let picked = FileManager.default.temporaryDirectory.appending(path: "showreel-bg-\(UUID().uuidString).png")
+        if let ctx = CGContext(data: nil, width: 64, height: 40, bitsPerComponent: 8, bytesPerRow: 0,
+                               space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) {
+            ctx.setFillColor(CGColor(srgbRed: 0, green: 0.6, blue: 0.6, alpha: 1))
+            ctx.fill(CGRect(x: 0, y: 0, width: 64, height: 40))
+            if let cg = ctx.makeImage(), let png = NSBitmapImageRep(cgImage: cg).representation(using: .png, properties: [:]) {
+                try? png.write(to: picked)
+            }
+        }
+        editor.chooseBackgroundImage(picked)
+        if case .image(let name) = editor.style.background {
+            check("a chosen image is copied into the project",
+                  FileManager.default.fileExists(atPath: ProjectStore.file(name, of: editor.project.uuid).path))
+            check("the chosen image is loaded for drawing", editor.renderStyle(for: editor.style).backgroundImage != nil)
+        } else {
+            check("a chosen image becomes the background", false, "\(editor.style.background)")
+        }
+        try? FileManager.default.removeItem(at: picked)
+        editor.applyStyle(before, named: "Reset")
+        undo.removeAllActions()
     }
 }

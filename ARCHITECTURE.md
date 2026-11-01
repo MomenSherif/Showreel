@@ -62,6 +62,14 @@ builds an `AVPlayerItem` for any `EditList`, one `BubbleInstruction` per
 segment with its `sourceOffset`. `EditorModel.apply(_:)` is the one door for
 every edit.
 
+The look is a `Style` (ShowreelKit), stored as JSON in `Project.styleData`.
+The engine draws it: `Renderer.frame(…style: RenderStyle…)`, where
+`RenderStyle` is the style plus its background picture decoded once at
+canvas size. A style change swaps only the item's video composition
+(`PlayerSources.videoComposition(slots:style:)`), so a slider drag redraws
+live. `EditorModel+Style` gives styles the same undo and save path as the
+cut: `applyStyle`, or `previewStyle` while dragging and `commitStyle` at the end.
+
 ## Recording
 
 ```text

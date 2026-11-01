@@ -359,7 +359,8 @@ Depends: S-015
 Acceptance:
 - [snap] A grid of 12 or more gradients, a color well, wallpapers, and
   "Choose Image…".
-Status: todo
+Status: done
+Note: 14 gradients plus None. `Style` (Kit) is stored as JSON in `Project.styleData`; new projects get the Dusk gradient with 6% padding. Wallpapers list the current desktop pictures and the full-size system wallpapers on this Mac. A chosen image is copied into the project folder. Snapshot `editor` (Background).
 
 ### S-023 Set padding and corner rounding
 As the user, I drag the Padding (0–30%) and Rounding (0–40 px) sliders.

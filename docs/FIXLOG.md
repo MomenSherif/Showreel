@@ -1,5 +1,16 @@
 # Fix log
 
+## 2026-11-01 Self-test crashed in SwiftData's @Query after choosing a background image
+Symptom: exit 139, EXC_BAD_ACCESS in an executor check inside a `@Query` update, on the
+main thread's run loop, far from any code that had changed.
+Cause: the test had set `groupsByEvent = false` on the window's UndoManager and then
+registered undo (choosing an image) with no group open. NSUndoManager was left broken,
+and the next SwiftUI update crashed.
+Fix: the test opens a group for every action while grouping by event is off, and turns
+grouping back on before calling code that registers undo on its own.
+Rule: with `groupsByEvent = false`, every `registerUndo` must sit inside
+`beginUndoGrouping`/`endUndoGrouping`; restore grouping as soon as the grouped part ends.
+
 ## 2026-11-01 Editor played nothing after the composition builder was split
 Symptom: (found by the self-test, before commit) the Editor's player was ready but empty:
 seeks returned at once and the item was 0 s long.

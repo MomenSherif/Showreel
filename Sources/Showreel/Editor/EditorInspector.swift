@@ -42,8 +42,7 @@ private struct SectionPage: View {
     var body: some View {
         switch section {
         case .background:
-            Empty(title: "No Background", symbol: section.symbol,
-                  line: "The recording fills the canvas, edge to edge.")
+            BackgroundSection(editor: editor)
         case .screen:
             Form {
                 Section("Recording") {

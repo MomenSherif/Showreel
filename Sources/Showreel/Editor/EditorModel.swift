@@ -1,4 +1,5 @@
 import AVFoundation
+import CoreImage
 import Observation
 import SwiftUI
 import ShowreelKit
@@ -60,7 +61,15 @@ final class EditorModel {
     /// The selected clip segment on the timeline.
     var selectedSegment: EditList.Segment.ID?
 
-    @ObservationIgnored private var sources: PlayerSources?
+    /// The look (M4): background, padding, and more. Changed through
+    /// `applyStyle` (EditorModel+Style.swift), like the cut.
+    var style = Style()
+
+    @ObservationIgnored private(set) var sources: PlayerSources?
+    /// The current item's segments, so a style change can redraw without a rebuild.
+    @ObservationIgnored var slots: [PlayerSources.Slot] = []
+    /// Background pictures, loaded once at the canvas size, by file path.
+    @ObservationIgnored var pictures: [String: CIImage] = [:]
 
     @ObservationIgnored private var timeObserver: Any?
     @ObservationIgnored private var rateObserver: NSKeyValueObservation?
@@ -78,8 +87,11 @@ final class EditorModel {
         guard player == nil, let sources = await PlayerSources.load(for: project) else { return }
         self.sources = sources
         edits = EditList.decode(project.editsData, sourceDuration: sources.duration)
+        style = Style.decode(project.styleData)
         duration = edits.duration
-        let player = AVPlayer(playerItem: sources.item(for: edits))
+        let built = sources.item(for: edits, style: renderStyle(for: style))
+        slots = built.slots
+        let player = AVPlayer(playerItem: built.item)
         player.actionAtItemEnd = .pause
         timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(value: 1, timescale: 30), queue: .main) { [weak self] time in
             MainActor.assumeIsolated {
@@ -138,13 +150,15 @@ final class EditorModel {
         try? project.modelContext?.save()
         if let selectedSegment, !new.segments.contains(where: { $0.id == selectedSegment }) { self.selectedSegment = nil }
         let wasPlaying = isPlaying
-        player.replaceCurrentItem(with: sources.item(for: new))
+        let built = sources.item(for: new, style: renderStyle(for: style))
+        slots = built.slots
+        player.replaceCurrentItem(with: built.item)
         seek(to: source.flatMap { new.editTime(atSourceTime: $0) } ?? min(playhead.time, duration))
         if wasPlaying { player.play() }
         refreshUndo()
     }
 
-    private func observeUndo() {
+    func observeUndo() {
         undoObservers.forEach(NotificationCenter.default.removeObserver)
         undoObservers = []
         guard let undoManager else { return }
@@ -157,7 +171,7 @@ final class EditorModel {
         refreshUndo()
     }
 
-    private func refreshUndo() {
+    func refreshUndo() {
         canUndo = undoManager?.canUndo ?? false
         canRedo = undoManager?.canRedo ?? false
     }

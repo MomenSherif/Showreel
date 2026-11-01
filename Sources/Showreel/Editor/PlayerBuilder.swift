@@ -61,14 +61,23 @@ struct PlayerSources {
         return PlayerSources(screen: screen, audio: audio, camera: camera, naturalSize: natural, duration: duration, scene: scene)
     }
 
-    /// The kept segments, one after another, with the camera in its bubble.
-    func item(for edits: EditList) -> AVPlayerItem {
+    /// One kept segment's place in a built item: what its instruction needs.
+    struct Slot {
+        let timeRange: CMTimeRange
+        let screenTrack: CMPersistentTrackID
+        let cameraTrack: CMPersistentTrackID?
+        let sourceOffset: Double
+    }
+
+    /// The kept segments, one after another, drawn with `style`. The slots
+    /// let a style change swap the video composition without rebuilding the item.
+    func item(for edits: EditList, style: RenderStyle) -> (item: AVPlayerItem, slots: [Slot]) {
         let composition = AVMutableComposition()
         let screenTrack = composition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid)
         let audioTracks = audio.map { ($0, composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid)) }
         let cameraTrack = camera.map { ($0, composition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid)) }
 
-        var instructions: [BubbleInstruction] = []
+        var slots: [Slot] = []
         var at = CMTime.zero
         for segment in edits.segments {
             // Seconds round to the nearest tick: keep the range inside screen.mov,
@@ -81,22 +90,27 @@ struct PlayerSources {
             for (source, track) in audioTracks { Self.insert(range, of: source, into: track, at: at) }
             if let (source, track) = cameraTrack { Self.insert(range, of: source, into: track, at: at) }
             if let screenTrack {
-                instructions.append(BubbleInstruction(timeRange: CMTimeRange(start: at, duration: range.duration),
-                                                      screenTrack: screenTrack.trackID,
-                                                      cameraTrack: cameraTrack?.1?.trackID, scene: scene,
-                                                      sourceOffset: segment.start - at.seconds))
+                slots.append(Slot(timeRange: CMTimeRange(start: at, duration: range.duration), screenTrack: screenTrack.trackID,
+                                  cameraTrack: cameraTrack?.1?.trackID, sourceOffset: segment.start - at.seconds))
             }
             at = at + range.duration
         }
+        let item = AVPlayerItem(asset: composition)
+        item.videoComposition = videoComposition(slots: slots, style: style)
+        return (item, slots)
+    }
 
+    /// How every frame is drawn: the slots with the bubble scene and `style`.
+    func videoComposition(slots: [Slot], style: RenderStyle) -> AVVideoComposition {
         var config = AVVideoComposition.Configuration()
         config.customVideoCompositorClass = BubbleCompositor.self
         config.renderSize = naturalSize
         config.frameDuration = CMTime(value: 1, timescale: 60)
-        config.instructions = instructions
-        let item = AVPlayerItem(asset: composition)
-        item.videoComposition = AVVideoComposition(configuration: config)
-        return item
+        config.instructions = slots.map {
+            BubbleInstruction(timeRange: $0.timeRange, screenTrack: $0.screenTrack, cameraTrack: $0.cameraTrack,
+                              scene: scene, sourceOffset: $0.sourceOffset, style: style)
+        }
+        return AVVideoComposition(configuration: config)
     }
 
     private static func time(_ seconds: Double) -> CMTime { CMTime(seconds: seconds, preferredTimescale: 60_000) }

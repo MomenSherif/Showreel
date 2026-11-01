@@ -18,6 +18,9 @@ enum Layout {
     static let zoomSliderWidth: CGFloat = 96
     /// The seam between two pieces of the clip after a split.
     static let clipSeam: CGFloat = 2
+    /// Inspector tiles: gradient swatches and wallpaper thumbnails (16:10).
+    static let swatch: CGFloat = 36
+    static let wallpaperTile = CGSize(width: 64, height: 40)
 
     // Floating recording chrome
     static let recordPanel = CGSize(width: 600, height: 56)

@@ -34,6 +34,8 @@ final class Project {
     var isSaving: Bool = false
     /// The Editor's cut, an `EditList` as JSON. Nil means uncut.
     var editsData: Data? = nil
+    /// The Editor's style (background, padding, …), a `Style` as JSON. Nil means the default style.
+    var styleData: Data? = nil
 
     init(title: String, duration: Double = 0, uuid: UUID = UUID()) {
         self.title = ProjectTitle.clean(title)
@@ -53,6 +55,7 @@ struct ProjectRecord {
     var videoWidth, videoHeight, bubbleSize: Int
     var bubbleX, bubbleY: Double
     var editsData: Data?
+    var styleData: Data?
 
     init(_ p: Project) {
         title = p.title; sourceKind = p.sourceKind; sourceName = p.sourceName
@@ -62,6 +65,7 @@ struct ProjectRecord {
         bubbleSize = p.bubbleSize; bubbleX = p.bubbleX; bubbleY = p.bubbleY
         bubbleShape = p.bubbleShape
         editsData = p.editsData
+        styleData = p.styleData
     }
 
     /// A model with these fields. With `newID`, a duplicate made now.
@@ -74,6 +78,7 @@ struct ProjectRecord {
         p.bubbleSize = bubbleSize; p.bubbleX = bubbleX; p.bubbleY = bubbleY
         p.bubbleShape = bubbleShape
         p.editsData = editsData
+        p.styleData = styleData
         return p
     }
 }
