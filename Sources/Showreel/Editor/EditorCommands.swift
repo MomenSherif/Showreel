@@ -38,6 +38,13 @@ struct EditorCommands: Commands {
                 } else {
                     Menu("Aspect Ratio") {}.disabled(true)
                 }
+                Button("Save Style as Preset…") { act(nil) { $0.showsSavePreset = true } }
+                    .keyboardShortcut("s", modifiers: [.shift, .command])
+                Menu("Apply Preset") {
+                    ForEach(AppServices.shared.model?.presets ?? []) { preset in
+                        Button(preset.name) { act(nil) { $0.applyPreset(preset) } }
+                    }
+                }
                 Button("Crop Screen…") { act(nil) { $0.showsCropSheet = true } }
                     .keyboardShortcut("c", modifiers: [.option, .command])
                 Divider()

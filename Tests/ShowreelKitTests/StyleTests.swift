@@ -63,6 +63,24 @@ struct StyleTests {
         #expect(CanvasLayout.canvasSize(for: style, source: source) == CGSize(width: 800, height: 500))
     }
 
+    /// S-029: a preset carries the look, not one recording's crop or camera spot.
+    @Test func presetsKeepTheRecordingsOwnValues() {
+        var mine = Style()
+        mine.crop = CropRect(x: 0.1, y: 0.1, width: 0.5, height: 0.5)
+        mine.cameraPosition = Style.Point(x: 0.2, y: 0.3)
+        mine.url = "mine.app"
+        var other = Style()
+        other.background = .gradient("ember")
+        other.padding = 0.2
+        other.frame = .macBook
+        other.crop = CropRect(x: 0, y: 0, width: 0.9, height: 0.9)
+        let preset = other.asPreset
+        #expect(preset.crop.isFull && preset.cameraPosition == nil)
+        let applied = mine.applying(preset: preset)
+        #expect(applied.background == .gradient("ember") && applied.padding == 0.2 && applied.frame == .macBook)
+        #expect(applied.crop == mine.crop && applied.cameraPosition == mine.cameraPosition && applied.url == "mine.app")
+    }
+
     @Test func paddingInsetsAndCenters() {
         let canvas = CGSize(width: 1000, height: 500)
         let rect = CanvasLayout.screenRect(content: CGSize(width: 1600, height: 1000), canvas: canvas, padding: 0.1)

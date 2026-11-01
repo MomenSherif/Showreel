@@ -434,7 +434,8 @@ Screens: editor-background
 Depends: S-022, S-024, S-026
 Acceptance:
 - [self] Applying a preset is one undo step.
-Status: todo
+Status: done
+Note: `StylePreset` (SwiftData) stores `Style.asPreset`, without the crop, camera position, and address; applying keeps the project's own. Inspector > Background > Preset, Clip > Save Style as Preset… (⇧⌘S) and Apply Preset. The default preset styles new recordings. Snapshot `save-preset`.
 
 ---
 

@@ -181,7 +181,7 @@ extension SelfTest {
         // A second, separate database stack reads what is on disk, as a
         // relaunch after a crash would.
         let onDisk: EditList? = {
-            guard let container = try? ModelContainer(for: Project.self, configurations: ModelConfiguration(url: Store.url)) else { return nil }
+            guard let container = try? ModelContainer(for: Project.self, StylePreset.self, configurations: ModelConfiguration(url: Store.url)) else { return nil }
             let context = ModelContext(container)
             let stored = try? context.fetch(FetchDescriptor<Project>(predicate: #Predicate { $0.uuid == id })).first
             return stored.map { EditList.decode($0.editsData, sourceDuration: source) }
@@ -284,6 +284,27 @@ extension SelfTest {
         check("the player draws the dragged position", drawn == Style.Point(x: 0.8, y: 0.2))
         undo.undo()
         check("one Undo puts the camera back on its recorded path", editor.style.cameraPosition == nil)
+        // S-029: a preset applies as one undo step and keeps the crop; the
+        // default preset styles new recordings.
+        if let model = AppServices.shared.model {
+            var look = Style()
+            look.background = .gradient("forest")
+            look.padding = 0.15
+            look.crop = CropRect(x: 0, y: 0, width: 0.5, height: 0.5) // grid: ok normalized crop
+            let preset = model.savePreset(named: "Self-test preset", style: look, isDefault: true)
+            let styleBefore = editor.style
+            undo.beginUndoGrouping()
+            editor.applyPreset(preset)
+            undo.endUndoGrouping()
+            check("applying a preset takes its look and keeps the crop",
+                  editor.style.background == .gradient("forest") && editor.style.padding == 0.15 && editor.style.crop == styleBefore.crop)
+            undo.undo()
+            check("applying a preset is one undo step", editor.style == styleBefore)
+            let fresh = model.addProject(title: "Preset check")
+            check("new recordings start with the default preset", Style.decode(fresh.styleData).background == .gradient("forest"))
+            model.context.delete(fresh)
+            model.deletePreset(preset)
+        }
         // Back to grouping by event: registering undo outside a group with it
         // off leaves NSUndoManager broken (it crashed SwiftUI later).
         undo.groupsByEvent = true

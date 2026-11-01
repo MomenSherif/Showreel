@@ -69,6 +69,7 @@ struct EditorView: View {
         .toolbar { toolbar }
         .toolbarTitleMenu { RenameButton() }
         .sheet(isPresented: $editor.showsCropSheet) { CropSheet(editor: editor) }
+        .sheet(isPresented: $editor.showsSavePreset) { SavePresetSheet(editor: editor) }
         .focusedSceneValue(\.editor, editor)
         .task { await editor.load() }
         .onAppear { editor.undoManager = undoManager }

@@ -195,7 +195,7 @@ enum Store {
 
     static func makeContainer() -> ModelContainer {
         do {
-            return try ModelContainer(for: Project.self, configurations: ModelConfiguration(url: url))
+            return try ModelContainer(for: Project.self, StylePreset.self, configurations: ModelConfiguration(url: url))
         } catch {
             fatalError("Could not open the database at \(url.path): \(error)")
         }

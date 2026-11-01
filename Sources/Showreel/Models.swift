@@ -44,6 +44,23 @@ final class Project {
     }
 }
 
+/// A saved style (S-029). One preset can be the default for new recordings.
+@Model
+final class StylePreset {
+    var name: String = "Preset"
+    /// A `Style` as JSON, already without per-recording values (`Style.asPreset`).
+    var styleData: Data = Data()
+    var isDefault: Bool = false
+    var createdAt: Date = Date.now
+
+    init(name: String, style: Style) {
+        self.name = name
+        styleData = style.asPreset.encoded()
+    }
+
+    var style: Style { Style.decode(styleData) }
+}
+
 /// A plain copy of a project, so Move to Trash can be undone after the
 /// model object is gone, and Duplicate can copy every field.
 struct ProjectRecord {
@@ -121,10 +138,38 @@ final class AppModel {
 
     var selectedProject: Project? { project(selection) }
 
-    /// Adds a project and selects it.
+    /// Every preset, oldest first.
+    var presets: [StylePreset] {
+        (try? context.fetch(FetchDescriptor<StylePreset>(sortBy: [SortDescriptor(\.createdAt)]))) ?? []
+    }
+
+    /// Saves `style` as a preset. With `isDefault`, it becomes the only default.
+    @discardableResult
+    func savePreset(named name: String, style: Style, isDefault: Bool = false) -> StylePreset {
+        let preset = StylePreset(name: name.trimmingCharacters(in: .whitespaces).isEmpty ? "Preset" : name, style: style)
+        context.insert(preset)
+        if isDefault { makeDefault(preset) }
+        try? context.save()
+        return preset
+    }
+
+    /// Makes `preset` the style for new recordings; nil means none.
+    func makeDefault(_ preset: StylePreset?) {
+        for p in presets { p.isDefault = p === preset }
+        try? context.save()
+    }
+
+    func deletePreset(_ preset: StylePreset) {
+        context.delete(preset)
+        try? context.save()
+    }
+
+    /// Adds a project and selects it. New recordings start with the default
+    /// preset's style, when there is one (S-029).
     @discardableResult
     func addProject(title: String = "", duration: Double = 0, uuid: UUID = UUID()) -> Project {
         let project = Project(title: title, duration: duration, uuid: uuid)
+        if let preset = presets.first(where: \.isDefault) { project.styleData = preset.styleData }
         context.insert(project)
         try? context.save()
         selection = project.uuid

@@ -187,6 +187,14 @@ enum Snapshot {
                                  style.aspect = .auto
                                  editor.applyStyle(style, named: "Aspect Ratio")
                              })
+        // S-029: Save Style as Preset.
+        let savePreset = Surface(name: "save-preset", show: {
+                                     guard let editor = await openEditor() else { return }
+                                     editor.section = .background
+                                     editor.showsSavePreset = true
+                                 },
+                                 window: { window()?.attachedSheet },
+                                 hide: { EditorModel.newest?.showsSavePreset = false })
         return InspectorSection.allCases.map { section in
             Surface(name: section == .background ? "editor" : "editor-\(section.rawValue)", show: {
                         let project = (try? model.context.fetch(FetchDescriptor<Project>()))?.first { $0.title == title }
@@ -196,7 +204,7 @@ enum Snapshot {
                     },
                     window: window,
                     hide: {})
-        } + [trim, split, crop, frame, aspect, zoomed]
+        } + [trim, split, crop, frame, aspect, savePreset, zoomed]
     }
 
     static func runIfRequested(model: AppModel, openSettings: OpenSettingsAction) {

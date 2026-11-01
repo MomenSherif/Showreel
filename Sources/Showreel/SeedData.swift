@@ -48,6 +48,17 @@ enum SeedData {
                 writeMovie(cameraFrame(), seconds: Int(sample.duration), to: ProjectStore.file(ProjectFiles.camera, of: project.uuid))
             }
         }
+        // Two presets, as a person would save them (S-029).
+        var launch = Style()
+        launch.background = .gradient("ember")
+        launch.padding = 0.1
+        launch.frame = .macBook
+        model.savePreset(named: "Launch video", style: launch)
+        var docs = Style()
+        docs.background = .gradient("paper")
+        docs.frame = .browser
+        docs.effectAmount = 0.3
+        model.savePreset(named: "Docs", style: docs)
         try? context.save()
     }
 

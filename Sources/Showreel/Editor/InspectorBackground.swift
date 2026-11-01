@@ -17,6 +17,8 @@ struct BackgroundSection: View {
 
     var body: some View {
         Form {
+            PresetSection(editor: editor)
+
             Section("Canvas") {
                 Picker("Aspect Ratio", selection: aspectBinding(editor)) {
                     ForEach(Style.Aspect.allCases, id: \.self) { Text($0.title).tag($0) }

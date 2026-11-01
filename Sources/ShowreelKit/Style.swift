@@ -167,6 +167,26 @@ public struct Style: Codable, Equatable, Sendable {
         cameraPosition = (try? c.decodeIfPresent(Point.self, forKey: .cameraPosition)) ?? d.cameraPosition
     }
 
+    /// The style as a preset (S-029): without what belongs to one recording
+    /// (its crop, the dragged camera position, the browser address).
+    public var asPreset: Style {
+        var preset = self
+        preset.crop = .full
+        preset.cameraPosition = nil
+        preset.url = ""
+        return preset
+    }
+
+    /// `preset` applied to this style: its look, with this recording's crop,
+    /// camera position, and address kept.
+    public func applying(preset: Style) -> Style {
+        var style = preset
+        style.crop = crop
+        style.cameraPosition = cameraPosition
+        style.url = url
+        return style
+    }
+
     public func encoded() -> Data { (try? JSONEncoder().encode(self)) ?? Data() }
 
     /// The stored style, or the default one for a project that has none.

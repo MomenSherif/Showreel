@@ -70,6 +70,13 @@ canvas size. A style change swaps only the item's video composition
 live. `EditorModel+Style` gives styles the same undo and save path as the
 cut: `applyStyle`, or `previewStyle` while dragging and `commitStyle` at the end.
 
+Style parts (M4): background (gradient, color, wallpaper, image + blur),
+padding, rounding, shadow or glow, crop (`CropRect`), device frame
+(`DeviceChrome` in the engine, drawn with Core Graphics at output size and
+cached), aspect ratio (`CanvasLayout.canvasSize` sets the render size), and
+camera overrides. Presets are a second model, `StylePreset`, holding
+`Style.asPreset`; the default one styles new projects in `AppModel.addProject`.
+
 ## Recording
 
 ```text

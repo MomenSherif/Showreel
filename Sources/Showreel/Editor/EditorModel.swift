@@ -54,6 +54,8 @@ final class EditorModel {
     var showsInspector = true
     /// Crop Screen is open (S-025).
     var showsCropSheet = false
+    /// Save Style as Preset is open (S-029).
+    var showsSavePreset = false
     /// The timeline's zoom (S-017). Fit shows the whole recording.
     var zoom = TimelineZoom()
     /// The cut (S-018, S-019). Edits replace it; the files never change.
