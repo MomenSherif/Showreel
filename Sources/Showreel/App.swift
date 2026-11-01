@@ -14,7 +14,13 @@ import SwiftUI
 @main
 struct ShowreelApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
-    @State private var model = AppModel(container: Store.makeContainer())
+    @State private var model: AppModel
+
+    init() {
+        let model = AppModel(container: Store.makeContainer())
+        _model = State(initialValue: model)
+        AppServices.shared.model = model
+    }
 
     var body: some Scene {
         Window("Library", id: "library") {
@@ -27,6 +33,7 @@ struct ShowreelApp: App {
         .modelContainer(model.container)
         .defaultSize(width: 1000, height: 680)
         .windowToolbarStyle(.unified)
+        .defaultLaunchBehavior(.presented)
         .commands { ShowreelCommands(model: model) }
 
         WindowGroup("Project", id: "editor", for: UUID.self) { $id in
@@ -63,6 +70,9 @@ struct ShowreelCommands: Commands {
     @Environment(\.openWindow) private var openWindow
 
     var body: some Commands {
+        // Commands exist from launch, with or without a window, so this is
+        // where AppKit callers get their way to open windows.
+        let _ = AppServices.shared.adopt(openWindow: openWindow)
         ToolbarCommands()
         CommandGroup(replacing: .newItem) {
             Button("New Recording") { RecordController.shared.newRecording() }
@@ -131,6 +141,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Started from a terminal, the process is not a foreground app yet.
         NSApp.setActivationPolicy(.regular)
         NSApp.activate()
+        // SwiftUI sometimes opens no window at launch (docs/FIXLOG.md).
+        // The Library runs the seed data, self-test, and snapshots, so make sure it opens.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            if !NSApp.windows.contains(where: { $0.isVisible && $0.canBecomeMain }) { AppServices.shared.openLibrary() }
+        }
         guard !SelfTest.requested, !Snapshot.isActive else { return }
         StatusItem.shared.install()
         HotKeys.register()

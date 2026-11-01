@@ -7,10 +7,17 @@ import SwiftUI
 final class AppServices {
     static let shared = AppServices()
 
-    private(set) var model: AppModel?
+    /// Set when the app starts.
+    var model: AppModel?
     private var openWindowAction: OpenWindowAction?
     private var undoProvider: (() -> UndoManager?)?
 
+    /// The menu commands hand over their open-window action at launch.
+    func adopt(openWindow: OpenWindowAction) {
+        openWindowAction = openWindow
+    }
+
+    /// The Library hands over its undo manager when it appears.
     func attach(model: AppModel, openWindow: OpenWindowAction, undo: @escaping () -> UndoManager?) {
         self.model = model
         openWindowAction = openWindow
