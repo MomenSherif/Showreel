@@ -53,7 +53,7 @@ stale=$(find "$here/Sources" -name '*.swift' -newer "$bin" | head -1)
 if [[ -n "$stale" ]]; then
   # A comment-only edit compiles to the same objects, so nothing relinks and
   # the binary stays older. Only real errors fail the build.
-  errors=$(swift build -c $config --package-path "$here" --scratch-path "$scratch" 2>&1 | grep -E "error:" | head -20)
+  errors=$(swift build -c $config --package-path "$here" --scratch-path "$scratch" 2>&1 | grep -E "error:" | head -20 || true)
   if [[ -n "$errors" ]]; then
     echo "build failed: binary is older than $stale"
     echo "$errors"
