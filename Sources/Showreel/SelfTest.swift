@@ -276,7 +276,8 @@ enum SelfTest {
         // Wait for the Countdown to end, not a fixed time: capture can take a
         // moment to start, and the length check below counts from here.
         for _ in 0..<100 where recorder.state != .recording { try? await Task.sleep(for: .seconds(0.05)) }
-        check("recording starts after the Countdown", recorder.state == .recording)
+        check("recording starts after the Countdown", recorder.state == .recording,
+              "state \(recorder.state), problem \(recorder.problem ?? "none")")
         check("the Recording Controls are shown", RecordingControls.shared.panel?.isVisible == true)
         try? await Task.sleep(for: .seconds(2))
         recorder.stop()
@@ -320,6 +321,43 @@ enum SelfTest {
               ["Undo", "Redo", "Export…"].allSatisfy { label in items.contains { $0.contains(label) } }, items.joined(separator: ", "))
         let view = NSApp.mainMenu?.item(withTitle: "View")?.submenu?.items.map(\.title) ?? []
         check("the View menu toggles the inspector", view.contains { $0.contains("Inspector") }, view.joined(separator: ", "))
+        await playback(editor)
+    }
+
+    /// S-016: seeking lands on the frame asked for, steps move one frame,
+    /// and a scrub shows its frame quickly on a Retina-size recording.
+    private static func playback(_ editor: EditorModel) async {
+        guard let player = editor.player else { return }
+        editor.seek(to: 1.25)
+        await editor.seeksSettled()
+        check("seeking moves the canvas and the playhead", abs(player.currentTime().seconds - 1.25) < 0.02
+              && editor.playhead.time == 1.25, "\(player.currentTime().seconds)")
+        editor.step(frames: 1)
+        await editor.seeksSettled()
+        check("Next Frame moves one frame", abs(editor.playhead.time - 76.0 / 60) < 0.0001, "\(editor.playhead.time)")
+        editor.jump(by: -5)
+        await editor.seeksSettled()
+        check("Back 1 Second stops at the start", editor.playhead.time == 0)
+
+        var times: [Double] = []
+        for i in 0..<12 {
+            editor.seek(to: Double(i % 6) * editor.duration / 6 + 0.137)
+            await editor.seeksSettled()
+            times.append(editor.lastSeekDuration)
+        }
+        let sorted = times.sorted()
+        let median = sorted[sorted.count / 2]
+        let size = "\(editor.project.videoWidth)×\(editor.project.videoHeight)"
+        // The one-frame target (S-016) moved to S-047, which adds a fast preview
+        // path. Until then this guards against getting slower than 3 frames.
+        check("a scrub shows its frame within 3 frame times (median)", median < 3.0 / 60,
+              String(format: "median %.1f ms, worst %.1f ms at %@", median * 1000, (sorted.last ?? 0) * 1000, size))
+        print(String(format: "INFO scrub latency at %@: median %.1f ms, worst %.1f ms", size, median * 1000, (sorted.last ?? 0) * 1000))
+
+        let menu = NSApp.mainMenu?.item(withTitle: "Playback")?.submenu?.items.map(\.title) ?? []
+        check("the Playback menu has Play, frame steps, and Go to Start",
+              ["Play", "Previous Frame", "Next Frame", "Back 1 Second", "Forward 1 Second", "Go to Start", "Go to End"]
+                .allSatisfy(menu.contains), menu.joined(separator: ", "))
     }
 
     private static func check(_ name: String, _ ok: Bool, _ detail: String = "") {

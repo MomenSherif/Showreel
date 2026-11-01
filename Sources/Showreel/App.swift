@@ -75,6 +75,7 @@ struct ShowreelCommands: Commands {
         let _ = AppServices.shared.adopt(openWindow: openWindow)
         ToolbarCommands()
         InspectorCommands()
+        PlaybackCommands()
         CommandGroup(replacing: .newItem) {
             Button("New Recording") { RecordController.shared.newRecording() }
                 .keyboardShortcut("n")

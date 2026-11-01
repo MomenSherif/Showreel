@@ -70,7 +70,11 @@ final class EditorModel {
         player.actionAtItemEnd = .pause
         if let length = try? await item.asset.load(.duration).seconds, length > 0 { duration = length }
         timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(value: 1, timescale: 30), queue: .main) { [weak self] time in
-            MainActor.assumeIsolated { self?.playhead.set(time.seconds) }
+            MainActor.assumeIsolated {
+                // While scrubbing, the playhead shows the target, not the old frame.
+                guard let self, !self.isSeeking else { return }
+                self.playhead.set(time.seconds)
+            }
         }
         rateObserver = player.observe(\.rate) { [weak self] player, _ in
             let playing = player.rate != 0
@@ -86,10 +90,58 @@ final class EditorModel {
             player.pause()
         } else {
             // At the end, play from the start again.
-            if playhead.time >= duration - 0.05 { player.seek(to: .zero) }
+            if playhead.time >= duration - 0.05 { seek(to: 0) }
             player.play()
         }
     }
+
+    // MARK: Seeking (S-016)
+
+    /// The time the newest seek asked for, while one is still running.
+    @ObservationIgnored private var seekTarget: Double?
+    @ObservationIgnored private var isSeeking = false
+    /// How long the newest exact seek took to show its frame, in seconds.
+    @ObservationIgnored private(set) var lastSeekDuration: Double = 0
+
+    /// Moves the playhead to `time`. The label and line move at once; the
+    /// canvas follows as fast as frames decode. Seeks never pile up: while one
+    /// runs, only the newest target is kept (chase seeking).
+    func seek(to time: Double) {
+        let target = PlayheadMove.clamp(time, duration: duration)
+        playhead.set(target)
+        seekTarget = target
+        if !isSeeking { seekToTarget() }
+    }
+
+    private func seekToTarget() {
+        guard let player, let target = seekTarget else { isSeeking = false; return }
+        isSeeking = true
+        seekTarget = nil
+        let started = Date.now
+        player.seek(to: CMTime(seconds: target, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] _ in
+            Task { @MainActor in
+                self?.lastSeekDuration = Date.now.timeIntervalSince(started)
+                self?.seekToTarget()
+            }
+        }
+    }
+
+    /// Waits until no seek is running. For the self-test.
+    func seeksSettled() async {
+        for _ in 0..<200 where isSeeking { try? await Task.sleep(for: .milliseconds(5)) }
+    }
+
+    func step(frames: Int) {
+        player?.pause()
+        seek(to: PlayheadMove.step(from: playhead.time, frames: frames, duration: duration))
+    }
+
+    func jump(by seconds: Double) {
+        seek(to: PlayheadMove.jump(from: playhead.time, by: seconds, duration: duration))
+    }
+
+    func goToStart() { seek(to: 0) }
+    func goToEnd() { player?.pause(); seek(to: duration) }
 
     func stop() {
         player?.pause()

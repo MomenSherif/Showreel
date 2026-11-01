@@ -30,3 +30,17 @@ struct TimelineScaleTests {
         #expect(scale.tickStep() * scale.pointsPerSecond >= 8)
     }
 }
+
+@Suite("Playhead moves")
+struct PlayheadMoveTests {
+    @Test func stepsOneFrameOnTheGrid() {
+        #expect(PlayheadMove.step(from: 1, frames: 1, duration: 10) == 61.0 / 60)
+        #expect(PlayheadMove.step(from: 1.004, frames: -1, duration: 10) == 59.0 / 60)
+    }
+
+    @Test func staysInsideTheRecording() {
+        #expect(PlayheadMove.step(from: 0, frames: -1, duration: 10) == 0)
+        #expect(PlayheadMove.jump(from: 9.5, by: 1, duration: 10) == 10)
+        #expect(PlayheadMove.jump(from: 0.4, by: -1, duration: 10) == 0)
+    }
+}

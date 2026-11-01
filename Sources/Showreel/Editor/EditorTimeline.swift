@@ -153,6 +153,19 @@ private struct TrackArea: View {
                     }
                     PlayheadLine(playhead: editor.playhead, scale: scale)
                 }
+                .contentShape(Rectangle())
+                // Click or drag anywhere on the ruler or lanes to scrub (S-016).
+                .gesture(DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        if editor.isPlaying { editor.player?.pause() }
+                        editor.seek(to: scale.seconds(at: value.location.x))
+                    })
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("Timeline")
+                .accessibilityValue("Playhead at \(TimeText.spoken(editor.playhead.time))")
+                .accessibilityAdjustableAction { direction in
+                    editor.jump(by: direction == .increment ? 1 : -1)
+                }
             }
         }
         .clipped()

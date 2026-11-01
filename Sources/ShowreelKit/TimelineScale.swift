@@ -40,3 +40,24 @@ public struct TimelineScale: Equatable, Sendable {
         labelStep() < 1 ? TimeText.precise(seconds + 0.0001) : TimeText.clock(seconds + 0.0001)
     }
 }
+
+/// Where the playhead lands for the Playback commands (S-016).
+public enum PlayheadMove {
+    /// The editor's frame rate.
+    public static let fps = 60.0
+
+    /// `frames` frames from `time`, on the frame grid, inside 0...duration.
+    public static func step(from time: Double, frames: Int, duration: Double) -> Double {
+        let index = (time * fps).rounded() + Double(frames)
+        return clamp(index / fps, duration: duration)
+    }
+
+    /// `seconds` from `time`, inside 0...duration.
+    public static func jump(from time: Double, by seconds: Double, duration: Double) -> Double {
+        clamp(time + seconds, duration: duration)
+    }
+
+    public static func clamp(_ time: Double, duration: Double) -> Double {
+        min(max(time, 0), max(duration, 0))
+    }
+}
