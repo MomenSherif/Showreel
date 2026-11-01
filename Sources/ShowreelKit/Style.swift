@@ -79,6 +79,33 @@ public struct Style: Codable, Equatable, Sendable {
     public var showsURLBar: Bool = true
     public var url: String = ""
 
+    /// The canvas's shape (S-027). Auto follows the (cropped) recording.
+    public enum Aspect: String, Codable, CaseIterable, Sendable {
+        case auto, wide, tall, square, classic
+
+        public var title: String {
+            switch self {
+            case .auto: "Auto"
+            case .wide: "16:9"
+            case .tall: "9:16"
+            case .square: "1:1"
+            case .classic: "4:3"
+            }
+        }
+
+        /// Width over height, or nil for Auto.
+        public var ratio: Double? {
+            switch self {
+            case .auto: nil
+            case .wide: 16.0 / 9
+            case .tall: 9.0 / 16
+            case .square: 1
+            case .classic: 4.0 / 3
+            }
+        }
+    }
+    public var aspect: Aspect = .auto
+
     public init() {}
 
     /// The recording edge to edge, nothing around it: how M1 to M3 played.
@@ -91,7 +118,7 @@ public struct Style: Codable, Equatable, Sendable {
         return style
     }()
 
-    enum CodingKeys: String, CodingKey { case background, backgroundBlur, padding, rounding, effect, effectAmount, crop, frame, showsURLBar, url }
+    enum CodingKeys: String, CodingKey { case background, backgroundBlur, padding, rounding, effect, effectAmount, crop, frame, showsURLBar, url, aspect }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -106,6 +133,7 @@ public struct Style: Codable, Equatable, Sendable {
         frame = (try? c.decodeIfPresent(DeviceFrame.self, forKey: .frame)) ?? d.frame
         showsURLBar = (try? c.decodeIfPresent(Bool.self, forKey: .showsURLBar)) ?? d.showsURLBar
         url = (try? c.decodeIfPresent(String.self, forKey: .url)) ?? d.url
+        aspect = (try? c.decodeIfPresent(Aspect.self, forKey: .aspect)) ?? d.aspect
     }
 
     public func encoded() -> Data { (try? JSONEncoder().encode(self)) ?? Data() }
@@ -119,6 +147,19 @@ public struct Style: Codable, Equatable, Sendable {
 
 /// Where the recording sits on the canvas.
 public enum CanvasLayout {
+    /// The output size for `style` from a recording of `source` pixels: the
+    /// cropped recording's shape for Auto, otherwise the aspect's shape with
+    /// the recording's long side kept. Even numbers, for the encoder.
+    public static func canvasSize(for style: Style, source: CGSize) -> CGSize {
+        let crop = style.crop.pixels(of: source).size
+        let content = crop.width > 0 && crop.height > 0 ? crop : source
+        func even(_ v: CGFloat) -> CGFloat { max(2, (v / 2).rounded() * 2) }
+        guard let ratio = style.aspect.ratio else { return CGSize(width: even(content.width), height: even(content.height)) }
+        let long = max(content.width, content.height)
+        return ratio >= 1 ? CGSize(width: even(long), height: even(long / ratio))
+                          : CGSize(width: even(long * ratio), height: even(long))
+    }
+
     /// `rounding` (pixels at 1080p) in pixels of a canvas `height` tall.
     public static func cornerRadius(_ rounding: Double, canvasHeight height: CGFloat) -> CGFloat {
         CGFloat(min(max(rounding, 0), 40)) * height / 1080

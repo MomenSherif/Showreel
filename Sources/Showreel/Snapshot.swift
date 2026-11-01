@@ -172,6 +172,21 @@ enum Snapshot {
                                 style.url = ""
                                 editor.applyStyle(style, named: "Frame")
                             })
+        // S-027: a 9:16 canvas, from Inspector > Background.
+        let aspect = Surface(name: "editor-aspect", show: {
+                                 guard let editor = await openEditor() else { return }
+                                 editor.section = .background
+                                 var style = editor.style
+                                 style.aspect = .tall
+                                 editor.applyStyle(style, named: "Aspect Ratio")
+                             },
+                             window: window,
+                             hide: {
+                                 guard let editor = EditorModel.newest else { return }
+                                 var style = editor.style
+                                 style.aspect = .auto
+                                 editor.applyStyle(style, named: "Aspect Ratio")
+                             })
         return InspectorSection.allCases.map { section in
             Surface(name: section == .background ? "editor" : "editor-\(section.rawValue)", show: {
                         let project = (try? model.context.fetch(FetchDescriptor<Project>()))?.first { $0.title == title }
@@ -181,7 +196,7 @@ enum Snapshot {
                     },
                     window: window,
                     hide: {})
-        } + [trim, split, crop, frame, zoomed]
+        } + [trim, split, crop, frame, aspect, zoomed]
     }
 
     static func runIfRequested(model: AppModel, openSettings: OpenSettingsAction) {

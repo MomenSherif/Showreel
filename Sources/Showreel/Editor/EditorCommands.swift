@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import ShowreelKit
 
 /// The Editor's menus (docs/DESIGN.md, "Command map"): the timeline zoom
 /// in View, and the Playback menu. They act on the Editor in the key window.
@@ -30,6 +31,13 @@ struct EditorCommands: Commands {
                     .keyboardShortcut(.delete, modifiers: [])
                     .disabled(editor?.canDeleteSelection != true)
                 Divider()
+                if let editor {
+                    Picker("Aspect Ratio", selection: aspectBinding(editor)) {
+                        ForEach(Style.Aspect.allCases, id: \.self) { Text($0.title).tag($0) }
+                    }
+                } else {
+                    Menu("Aspect Ratio") {}.disabled(true)
+                }
                 Button("Crop Screen…") { act(nil) { $0.showsCropSheet = true } }
                     .keyboardShortcut("c", modifiers: [.option, .command])
                 Divider()

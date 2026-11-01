@@ -47,6 +47,22 @@ struct StyleTests {
         #expect(abs(rect.width / rect.height - 1.6) < 0.001)
     }
 
+    /// S-027: the canvas takes the aspect's shape and keeps the long side.
+    @Test func aspectSetsTheCanvas() {
+        var style = Style()
+        let source = CGSize(width: 1600, height: 1000)
+        #expect(CanvasLayout.canvasSize(for: style, source: source) == source)
+        style.aspect = .wide
+        #expect(CanvasLayout.canvasSize(for: style, source: source) == CGSize(width: 1600, height: 900))
+        style.aspect = .tall
+        #expect(CanvasLayout.canvasSize(for: style, source: source) == CGSize(width: 900, height: 1600))
+        style.aspect = .square
+        #expect(CanvasLayout.canvasSize(for: style, source: source) == CGSize(width: 1600, height: 1600))
+        style.aspect = .auto
+        style.crop = CropRect(x: 0, y: 0, width: 0.5, height: 0.5)
+        #expect(CanvasLayout.canvasSize(for: style, source: source) == CGSize(width: 800, height: 500))
+    }
+
     @Test func paddingInsetsAndCenters() {
         let canvas = CGSize(width: 1000, height: 500)
         let rect = CanvasLayout.screenRect(content: CGSize(width: 1600, height: 1000), canvas: canvas, padding: 0.1)

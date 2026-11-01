@@ -154,6 +154,19 @@ struct RendererTests {
         #expect(steepest > 60, "a crisp edge changes fast, got \(steepest) per pixel")
     }
 
+    /// S-027: on a 9:16 canvas the recording keeps its shape and its padding.
+    @Test func tallCanvasMatchesGolden() throws {
+        var style = Style()
+        style.background = .gradient("lagoon")
+        style.padding = 0.08
+        style.aspect = .tall
+        let size = CanvasLayout.canvasSize(for: style, source: CGSize(width: 320, height: 200))
+        #expect(size == CGSize(width: 180, height: 320))
+        let frame = Bitmap(Renderer.frame(screen: Self.screen, camera: Self.camera, at: 0, scene: Self.scene,
+                                          style: RenderStyle(style: style), size: size))
+        try frame.expectMatches(golden: "style-tall")
+    }
+
     @Test func solidColorShowsAroundTheRecording() {
         let frame = Self.styled { $0.background = .color(RGB(1, 0, 0)); $0.padding = 0.1 }
         let corner = frame.pixel(x: 4, y: 4)

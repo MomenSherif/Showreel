@@ -256,6 +256,17 @@ extension SelfTest {
         check("a device frame is saved with the project", Style.decode(editor.project.styleData).frame == .macBook)
         undo.undo()
         check("Undo removes the frame", editor.style.frame == Style.DeviceFrame.none)
+        // S-027: the aspect ratio sets the preview canvas.
+        undo.beginUndoGrouping()
+        var square = editor.style
+        square.aspect = .square
+        editor.applyStyle(square, named: "Aspect Ratio")
+        undo.endUndoGrouping()
+        let render = editor.player?.currentItem?.videoComposition?.renderSize ?? .zero
+        check("a 1:1 aspect makes the canvas square", render.width == render.height && render.width > 0, "\(render)")
+        check("the Clip menu has Aspect Ratio",
+              NSApp.mainMenu?.item(withTitle: "Clip")?.submenu?.items.contains { $0.title == "Aspect Ratio" } == true)
+        undo.undo()
         // Back to grouping by event: registering undo outside a group with it
         // off leaves NSUndoManager broken (it crashed SwiftUI later).
         undo.groupsByEvent = true

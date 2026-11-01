@@ -411,7 +411,8 @@ Screens: editor
 Depends: S-022
 Acceptance:
 - [snap] The canvas reflows, and the recording keeps its padding.
-Status: todo
+Status: done
+Note: Inspector > Background > Canvas, and Clip > Aspect Ratio. The canvas keeps the recording's long side (`CanvasLayout.canvasSize`); Auto follows the cropped recording. Snapshot `editor-aspect`, golden `style-tall`.
 
 ### S-028 Style and place the camera in the editor
 As the user, I show or hide the camera, drag it on the canvas, and set

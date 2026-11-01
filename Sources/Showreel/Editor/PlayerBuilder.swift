@@ -104,7 +104,8 @@ struct PlayerSources {
     func videoComposition(slots: [Slot], style: RenderStyle) -> AVVideoComposition {
         var config = AVVideoComposition.Configuration()
         config.customVideoCompositorClass = BubbleCompositor.self
-        config.renderSize = naturalSize
+        // The canvas's shape follows the style's aspect ratio (S-027).
+        config.renderSize = CanvasLayout.canvasSize(for: style.style, source: naturalSize)
         config.frameDuration = CMTime(value: 1, timescale: 60)
         config.instructions = slots.map {
             BubbleInstruction(timeRange: $0.timeRange, screenTrack: $0.screenTrack, cameraTrack: $0.cameraTrack,

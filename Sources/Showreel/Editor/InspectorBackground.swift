@@ -17,6 +17,12 @@ struct BackgroundSection: View {
 
     var body: some View {
         Form {
+            Section("Canvas") {
+                Picker("Aspect Ratio", selection: aspectBinding(editor)) {
+                    ForEach(Style.Aspect.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
+            }
+
             Section("Gradient") {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: Layout.swatch), spacing: Space.sm)], spacing: Space.sm) {
                     Tile(name: "None", isSelected: background == .none) {
@@ -159,6 +165,16 @@ private struct Thumbnail: View {
             }.value
         }
     }
+}
+
+/// The canvas's aspect ratio as a binding: each choice is one undo step.
+@MainActor
+func aspectBinding(_ editor: EditorModel) -> Binding<Style.Aspect> {
+    Binding(get: { editor.style.aspect }, set: { aspect in
+        var style = editor.style
+        style.aspect = aspect
+        withMotion(Motion.ui) { editor.applyStyle(style, named: "Aspect Ratio") }
+    })
 }
 
 extension Color {
