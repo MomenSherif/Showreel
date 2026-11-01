@@ -53,12 +53,19 @@ enum SettingsTab: String, CaseIterable, Identifiable {
     }
 }
 
+/// S-045 adds the save location, record shortcut, and countdown here.
 struct GeneralSettings: View {
-    @AppStorage("confirmDelete") private var confirmDelete = true
+    private var folder: URL { Store.url.deletingLastPathComponent() }
 
     var body: some View {
-        Section("Items") {
-            Toggle("Ask before deleting items", isOn: $confirmDelete)
+        Section("Library") {
+            LabeledContent("Saved in") {
+                Text(folder.path(percentEncoded: false).replacingOccurrences(of: NSHomeDirectory(), with: "~"))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .help(folder.path(percentEncoded: false))
+            }
+            Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([folder]) }
         }
     }
 }

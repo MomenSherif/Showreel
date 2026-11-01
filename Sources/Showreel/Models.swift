@@ -2,37 +2,39 @@ import Foundation
 import SwiftData
 import ShowreelKit
 
+/// One recording and everything done to it in the editor (see docs/GLOSSARY.md).
+/// The recorded tracks live in a folder named after `uuid`; edits are added
+/// to this model story by story.
 @Model
-final class Item {
+final class Project {
     var title: String
-    var notes: String = ""
-    var isStarred: Bool = false
     var createdAt: Date = Date.now
-    /// A stable id for links, sync, and the agent CLI.
+    /// Length of the recording in seconds.
+    var duration: Double = 0
+    /// A stable id for the project folder, links, and the agent CLI.
     var uuid: UUID = UUID()
 
-    init(title: String) {
-        self.title = title
+    init(title: String, duration: Double = 0) {
+        self.title = ProjectTitle.clean(title)
+        self.duration = duration
     }
 }
 
-/// The sidebar pages. Snapshot mode walks through every case.
-enum SidebarItem: String, CaseIterable, Identifiable {
-    case all, starred
+/// The library's pages. Snapshot mode walks through every case.
+enum LibraryPage: String, CaseIterable, Identifiable {
+    case all
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
-        case .all: "All Items"
-        case .starred: "Starred"
+        case .all: "All Projects"
         }
     }
 
     var symbol: String {
         switch self {
-        case .all: "tray"
-        case .starred: "star"
+        case .all: "film.stack"
         }
     }
 }
@@ -41,7 +43,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
 @Observable
 final class AppModel {
     let container: ModelContainer
-    var sidebar: SidebarItem? = .all
+    var page: LibraryPage? = .all
     var selection: PersistentIdentifier?
     /// Settings reopens on the last tab. Test and snapshot runs leave it alone.
     var settingsTab: SettingsTab = SettingsTab(rawValue: UserDefaults.standard.string(forKey: "settings.tab") ?? "") ?? .general {
@@ -52,10 +54,12 @@ final class AppModel {
         self.container = container
     }
 
-    func addItem(title: String = "") {
-        let item = Item(title: ItemTitle.clean(title))
-        if sidebar == .starred { item.isStarred = true }
-        container.mainContext.insert(item)
-        selection = item.id
+    /// Adds a project for a finished recording and selects it.
+    @discardableResult
+    func addProject(title: String = "", duration: Double = 0) -> Project {
+        let project = Project(title: title, duration: duration)
+        container.mainContext.insert(project)
+        selection = project.id
+        return project
     }
 }

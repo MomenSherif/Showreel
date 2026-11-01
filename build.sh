@@ -15,9 +15,33 @@ config=release
 
 # Sign with your Apple Development certificate when you have one (Xcode >
 # Settings > Accounts). Otherwise sign ad hoc, which is fine for your own Mac.
+#
+# Use the certificate's SHA-1 hash, not its name: two certificates with the
+# same name make codesign fail with "ambiguous". Skip revoked certificates:
+# `find-identity -v` still lists them, and the kernel kills an app signed with
+# one (exit 137). The working hash is cached, because permissions like Screen
+# Recording belong to the signature: changing it makes macOS ask again.
 identity="${SIGN_IDENTITY:-}"
+cache="$HOME/Library/Developer/$name/sign-identity"
+if [[ -z "$identity" && -f "$cache" ]]; then
+  identity=$(<"$cache")
+  security find-identity -v -p codesigning 2>/dev/null | grep -q "$identity" || identity=""
+fi
 if [[ -z "$identity" ]]; then
-  identity=$(security find-identity -v -p codesigning 2>/dev/null | grep -m1 -o '"Apple Development: [^"]*"' | tr -d '"' || true)
+  probe=$(mktemp -d)/probe
+  cp /usr/bin/true "$probe"
+  for candidate in $(security find-identity -v -p codesigning 2>/dev/null | grep '"Apple Development: ' | awk '{print $2}'); do
+    codesign --force --sign "$candidate" "$probe" 2>/dev/null || continue
+    # Capture first: spctl exits non-zero for any unnotarized build, and with
+    # pipefail that would hide grep's answer.
+    verdict=$(spctl -a -vv -t exec "$probe" 2>&1 || true)
+    if [[ "$verdict" != *REVOKED* ]]; then
+      identity=$candidate
+      mkdir -p "${cache:h}" && print -r -- "$identity" > "$cache"
+      break
+    fi
+  done
+  rm -rf "${probe:h}"
 fi
 [[ -n "$identity" ]] || identity=-
 

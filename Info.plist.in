@@ -11,7 +11,9 @@
 <key>CFBundleShortVersionString</key><string>0.1</string>
 <key>CFBundleVersion</key><string>__BUILD__</string>
 <key>LSMinimumSystemVersion</key><string>26.0</string>
-<key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>
+<key>LSApplicationCategoryType</key><string>public.app-category.video</string>
 <key>NSHighResolutionCapable</key><true/>
+<key>NSCameraUsageDescription</key><string>Showreel shows you in a Camera Bubble and records your camera to its own track.</string>
+<key>NSMicrophoneUsageDescription</key><string>Showreel records your voice while you record your screen.</string>
 <key>NSPrincipalClass</key><string>NSApplication</string>
 </dict></plist>

@@ -26,21 +26,17 @@ enum SelfTest {
         Task {
             try? await Task.sleep(for: .seconds(0.5))
             let context = model.container.mainContext
-            func items() -> [Item] { (try? context.fetch(FetchDescriptor<Item>())) ?? [] }
+            func projects() -> [Project] { (try? context.fetch(FetchDescriptor<Project>())) ?? [] }
 
-            let before = items().count
-            model.addItem()
-            check("New Item adds one item", items().count == before + 1)
-            check("the new item is selected", model.selection != nil)
-
-            if let item = items().first(where: { $0.id == model.selection }) {
-                item.isStarred.toggle()
-                check("starring an item marks it starred", item.isStarred)
-                context.delete(item)
-                try? context.save()
-                check("deleting the item removes it", items().count == before)
-            }
-            check("titles are cleaned", ItemTitle.clean("  Buy   milk ") == "Buy milk")
+            let before = projects().count
+            let project = model.addProject(title: "  Self-test   recording ", duration: 12)
+            check("adding a project adds one project", projects().count == before + 1)
+            check("the new project is selected", model.selection == project.id)
+            check("the project title is cleaned", project.title == "Self-test recording")
+            context.delete(project)
+            try? context.save()
+            check("deleting the project removes it", projects().count == before)
+            check("an empty title becomes Untitled Project", ProjectTitle.clean("  ") == ProjectTitle.untitled)
 
             print(failures == 0 ? "SELFTEST PASS \(count) checks" : "SELFTEST FAIL \(failures) of \(count) checks")
             finish(code: failures == 0 ? 0 : 1)

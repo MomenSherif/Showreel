@@ -6,7 +6,7 @@ import SwiftUI
 //   Showreel                      the app
 //   APP_STORE=<file> Showreel     use another database (tests, experiments)
 //   APP_SNAPSHOT=<dir> Showreel   save a PNG of every sidebar page and Settings tab in light and dark mode, then quit
-//   APP_SEED=1 Showreel           fill an empty /tmp store with sample items (tools/snap.sh)
+//   APP_SEED=1 Showreel           fill an empty /tmp store with sample projects (tools/snap.sh)
 //   Showreel --selftest           run the self-test on a /tmp store and quit with 0 or 1 (tools/selftest.sh)
 //   APP_ACCENT=<id> Showreel      run with another accent from Theme.all (UI/Theme.swift)
 //   APP_GRID=1 Showreel           draw the 8 pt grid and the layout probes over the window
@@ -30,10 +30,8 @@ struct ShowreelApp: App {
         .commands {
             SidebarCommands()
             ToolbarCommands()
-            CommandGroup(replacing: .newItem) {
-                Button("New Item") { model.addItem() }
-                    .keyboardShortcut("n")
-            }
+            // S-002 adds New Recording (⌘N) here. Until then, no File > New.
+            CommandGroup(replacing: .newItem) {}
         }
 
         Settings {
@@ -78,7 +76,7 @@ enum Store {
 
     static func makeContainer() -> ModelContainer {
         do {
-            return try ModelContainer(for: Item.self, configurations: ModelConfiguration(url: url))
+            return try ModelContainer(for: Project.self, configurations: ModelConfiguration(url: url))
         } catch {
             fatalError("Could not open the database at \(url.path): \(error)")
         }

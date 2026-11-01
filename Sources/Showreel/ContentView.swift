@@ -1,6 +1,7 @@
 import SwiftData
 import SwiftUI
 
+/// The Library window. S-008 turns the list into a grid of project cards.
 struct ContentView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.openSettings) private var openSettings
@@ -9,10 +10,10 @@ struct ContentView: View {
         NavigationSplitView {
             sidebar
         } content: {
-            ItemList(page: model.sidebar ?? .all)
+            ProjectList(page: model.page ?? .all)
                 .navigationSplitViewColumnWidth(min: 260, ideal: 320)
         } detail: {
-            ItemDetail()
+            ProjectDetail()
         }
         .task {
             SeedData.insertIfRequested(into: model)
@@ -23,7 +24,7 @@ struct ContentView: View {
 
     private var sidebar: some View {
         @Bindable var model = model
-        return List(SidebarItem.allCases, selection: $model.sidebar) { page in
+        return List(LibraryPage.allCases, selection: $model.page) { page in
             Label(page.title, systemImage: page.symbol)
                 .tag(page)
         }
@@ -31,61 +32,46 @@ struct ContentView: View {
     }
 }
 
-struct ItemList: View {
+struct ProjectList: View {
     @Environment(AppModel.self) private var model
-    @Environment(\.modelContext) private var context
-    @Query(sort: \Item.createdAt, order: .reverse) private var items: [Item]
-    let page: SidebarItem
-
-    private var visible: [Item] {
-        page == .starred ? items.filter(\.isStarred) : items
-    }
+    @Query(sort: \Project.createdAt, order: .reverse) private var projects: [Project]
+    let page: LibraryPage
 
     var body: some View {
         @Bindable var model = model
-        List(visible, selection: $model.selection) { item in
-            Label(item.title, systemImage: item.isStarred ? "star.fill" : "circle")
-                .tag(item.id)
-                .contextMenu {
-                    Button("Delete", role: .destructive) { context.delete(item) }
-                }
+        List(projects, selection: $model.selection) { project in
+            Label(project.title, systemImage: "play.rectangle")
+                .tag(project.id)
         }
         .overlay {
-            if visible.isEmpty {
+            if projects.isEmpty {
                 ContentUnavailableView(
-                    "No Items",
+                    "No Recordings Yet",
                     systemImage: page.symbol,
-                    description: Text("Press Command-N to add one.")
+                    description: Text("Record your screen, voice, and camera. Showreel adds zooms and a frame for you.")
                 )
             }
         }
-        .navigationTitle(page.title)
-        .toolbar {
-            ToolbarItem {
-                Button("New Item", systemImage: "plus") { model.addItem() }
-                    .help("Add an item (Command-N)")
-            }
-        }
+        .navigationTitle("Library")
     }
 }
 
-struct ItemDetail: View {
+struct ProjectDetail: View {
     @Environment(AppModel.self) private var model
-    @Query private var items: [Item]
+    @Query private var projects: [Project]
 
     var body: some View {
-        if let item = items.first(where: { $0.id == model.selection }) {
-            @Bindable var item = item
+        if let project = projects.first(where: { $0.id == model.selection }) {
+            @Bindable var project = project
             Form {
-                TextField("Title", text: $item.title)
-                Toggle("Starred", isOn: $item.isStarred)
-                TextField("Notes", text: $item.notes, axis: .vertical)
-                    .lineLimit(4...)
+                TextField("Title", text: $project.title)
+                LabeledContent("Length", value: Duration.seconds(project.duration).formatted(.time(pattern: .minuteSecond)))
+                LabeledContent("Recorded", value: project.createdAt.formatted(date: .abbreviated, time: .shortened))
             }
             .formStyle(.grouped)
-            } else {
+        } else {
             ContentUnavailableView("No Selection", systemImage: "sidebar.right")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
+        }
     }
 }
