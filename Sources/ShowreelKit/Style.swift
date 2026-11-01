@@ -72,6 +72,13 @@ public struct Style: Codable, Equatable, Sendable {
     /// The part of the recording that shows (S-025).
     public var crop: CropRect = .full
 
+    /// The outline around the recording (S-026).
+    public enum DeviceFrame: String, Codable, CaseIterable, Sendable { case none, border, browser, macBook }
+    public var frame: DeviceFrame = .none
+    /// Browser frame: show the address bar, and what it says.
+    public var showsURLBar: Bool = true
+    public var url: String = ""
+
     public init() {}
 
     /// The recording edge to edge, nothing around it: how M1 to M3 played.
@@ -84,7 +91,7 @@ public struct Style: Codable, Equatable, Sendable {
         return style
     }()
 
-    enum CodingKeys: String, CodingKey { case background, backgroundBlur, padding, rounding, effect, effectAmount, crop }
+    enum CodingKeys: String, CodingKey { case background, backgroundBlur, padding, rounding, effect, effectAmount, crop, frame, showsURLBar, url }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -96,6 +103,9 @@ public struct Style: Codable, Equatable, Sendable {
         effect = (try? c.decodeIfPresent(Effect.self, forKey: .effect)) ?? d.effect
         effectAmount = (try? c.decodeIfPresent(Double.self, forKey: .effectAmount)) ?? d.effectAmount
         crop = (try? c.decodeIfPresent(CropRect.self, forKey: .crop)) ?? d.crop
+        frame = (try? c.decodeIfPresent(DeviceFrame.self, forKey: .frame)) ?? d.frame
+        showsURLBar = (try? c.decodeIfPresent(Bool.self, forKey: .showsURLBar)) ?? d.showsURLBar
+        url = (try? c.decodeIfPresent(String.self, forKey: .url)) ?? d.url
     }
 
     public func encoded() -> Data { (try? JSONEncoder().encode(self)) ?? Data() }
@@ -115,13 +125,48 @@ public enum CanvasLayout {
     }
 
     /// The recording's rectangle: aspect-fit inside the canvas, inset on every
-    /// side by `padding` times the canvas's shorter side.
-    public static func screenRect(content: CGSize, canvas: CGSize, padding: Double) -> CGRect {
+    /// side by `padding` times the canvas's shorter side. `chrome` is room the
+    /// device frame needs around the recording; the recording and its frame
+    /// fit inside the padding together.
+    public static func screenRect(content: CGSize, canvas: CGSize, padding: Double,
+                                  chrome: FrameInsets = .zero) -> CGRect {
         let inset = CGFloat(min(max(padding, 0), 0.3)) * min(canvas.width, canvas.height)
         let room = CGRect(origin: .zero, size: canvas).insetBy(dx: inset, dy: inset)
-        guard content.width > 0, content.height > 0, room.width > 0, room.height > 0 else { return room }
-        let scale = min(room.width / content.width, room.height / content.height)
+        let available = CGSize(width: room.width - chrome.left - chrome.right, height: room.height - chrome.top - chrome.bottom)
+        guard content.width > 0, content.height > 0, available.width > 0, available.height > 0 else { return room }
+        let scale = min(available.width / content.width, available.height / content.height)
         let size = CGSize(width: content.width * scale, height: content.height * scale)
-        return CGRect(x: room.midX - size.width / 2, y: room.midY - size.height / 2, width: size.width, height: size.height)
+        let outer = CGSize(width: size.width + chrome.left + chrome.right, height: size.height + chrome.top + chrome.bottom)
+        return CGRect(x: room.midX - outer.width / 2 + chrome.left, y: room.midY - outer.height / 2 + chrome.top,
+                      width: size.width, height: size.height)
+    }
+
+    /// Room a device frame takes around the recording, in pixels of a canvas
+    /// `height` tall (sizes are set for 1080 and scale with the canvas).
+    public static func chrome(for style: Style, canvasHeight height: CGFloat, contentWidth: CGFloat = 0) -> FrameInsets {
+        let u = height / 1080
+        switch style.frame {
+        case .none: return .zero
+        case .border: return FrameInsets(top: 10 * u, left: 10 * u, bottom: 10 * u, right: 10 * u)
+        case .browser: return FrameInsets(top: (style.showsURLBar ? 52 : 36) * u, left: 0, bottom: 0, right: 0)
+        // Bezel 18 on each side and 22 on top; the base is 22 tall and overhangs 42.
+        case .macBook: return FrameInsets(top: 22 * u, left: 60 * u, bottom: 40 * u, right: 60 * u)
+        }
+    }
+}
+
+/// Space around the recording, in pixels, top-left origin.
+public struct FrameInsets: Equatable, Sendable {
+    public var top: CGFloat, left: CGFloat, bottom: CGFloat, right: CGFloat
+
+    public init(top: CGFloat, left: CGFloat, bottom: CGFloat, right: CGFloat) {
+        self.top = top; self.left = left; self.bottom = bottom; self.right = right
+    }
+
+    public static let zero = FrameInsets(top: 0, left: 0, bottom: 0, right: 0)
+
+    /// `rect` grown by these insets.
+    public func outer(_ rect: CGRect) -> CGRect {
+        CGRect(x: rect.minX - left, y: rect.minY - top, width: rect.width + left + right, height: rect.height + top + bottom)
     }
 }

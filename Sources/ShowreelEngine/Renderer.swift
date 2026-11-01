@@ -63,21 +63,24 @@ public enum Renderer {
         let crop = style.style.crop
         let screen = cropped(screen, to: crop)
         // Layout uses a top-left origin; Core Image a bottom-left one.
-        let top = CanvasLayout.screenRect(content: screen.extent.size, canvas: size, padding: style.style.padding)
+        let chrome = CanvasLayout.chrome(for: style.style, canvasHeight: size.height)
+        let top = CanvasLayout.screenRect(content: screen.extent.size, canvas: size, padding: style.style.padding, chrome: chrome)
         let rect = CGRect(x: top.minX, y: size.height - top.maxY, width: top.width, height: top.height)
         var image = screen
             .transformed(by: CGAffineTransform(translationX: -screen.extent.minX, y: -screen.extent.minY))
             .transformed(by: CGAffineTransform(scaleX: rect.width / screen.extent.width, y: rect.height / screen.extent.height))
             .transformed(by: CGAffineTransform(translationX: rect.minX, y: rect.minY))
         let radius = CanvasLayout.cornerRadius(style.style.rounding, canvasHeight: size.height)
-        if radius > 0 { image = rounded(image, rect: rect, radius: radius) }
+        let device = DeviceChrome.parts(for: style.style, rect: rect, radius: radius, canvas: size)
+        if let mask = device.screenMask { image = masked(image, by: mask) }
         if let camera, !scene.isHidden(at: t) {
             // A crop moves the bubble with its spot on the recording; its size
             // stays the same, since the camera is not part of the recording.
             image = bubble(camera, over: image, center: crop.mapClamped(scene.center(at: t)),
                            diameter: scene.diameter * rect.width, cornerRatio: scene.cornerRatio, in: rect)
         }
-        if let lift = lift(style.style, rect: rect, radius: radius, canvas: size) {
+        if let behind = device.behind { image = image.composited(over: behind) }
+        if let lift = lift(style.style, rect: device.outer, radius: device.outerRadius, canvas: size) {
             image = image.composited(over: lift)
         }
         if let background = background(style, canvas: canvas) {
@@ -96,14 +99,9 @@ public enum Renderer {
         return screen.cropped(to: rect).transformed(by: CGAffineTransform(translationX: -rect.minX, y: -rect.minY))
     }
 
-    /// `image` cut to a rounded rectangle; the corners become clear.
-    static func rounded(_ image: CIImage, rect: CGRect, radius: CGFloat) -> CIImage {
-        guard let mask = CIFilter(name: "CIRoundedRectangleGenerator", parameters: [
-            "inputExtent": CIVector(cgRect: rect),
-            "inputRadius": radius,
-            "inputColor": CIColor.white,
-        ])?.outputImage else { return image }
-        return image.applyingFilter("CIBlendWithAlphaMask", parameters: [
+    /// `image` where `mask` is white; clear elsewhere.
+    static func masked(_ image: CIImage, by mask: CIImage) -> CIImage {
+        image.applyingFilter("CIBlendWithAlphaMask", parameters: [
             kCIInputBackgroundImageKey: CIImage.empty(),
             kCIInputMaskImageKey: mask,
         ])

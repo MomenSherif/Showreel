@@ -58,6 +58,22 @@ private struct SectionPage: View {
                         Text(cropText).foregroundStyle(.secondary)
                     }
                 }
+                Section("Frame") {
+                    Picker("Frame", selection: frameBinding) {
+                        Text("None").tag(Style.DeviceFrame.none)
+                        Text("Border").tag(Style.DeviceFrame.border)
+                        Text("Browser").tag(Style.DeviceFrame.browser)
+                        Text("MacBook").tag(Style.DeviceFrame.macBook)
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    if editor.style.frame == .browser {
+                        Toggle("Address Bar", isOn: urlBarBinding)
+                        if editor.style.showsURLBar {
+                            AddressField(editor: editor)
+                        }
+                    }
+                }
                 Section("Shadow") {
                     Picker("Effect", selection: effectBinding) {
                         Label("Shadow", systemImage: "shadow").tag(Style.Effect.shadow)
@@ -119,6 +135,22 @@ private struct SectionPage: View {
 }
 
 extension SectionPage {
+    var frameBinding: Binding<Style.DeviceFrame> {
+        Binding(get: { editor.style.frame }, set: { frame in
+            var style = editor.style
+            style.frame = frame
+            withMotion(Motion.ui) { editor.applyStyle(style, named: "Frame") }
+        })
+    }
+
+    var urlBarBinding: Binding<Bool> {
+        Binding(get: { editor.style.showsURLBar }, set: { shows in
+            var style = editor.style
+            style.showsURLBar = shows
+            editor.applyStyle(style, named: shows ? "Show Address Bar" : "Hide Address Bar")
+        })
+    }
+
     var cropText: String {
         let crop = editor.style.crop
         guard !crop.isFull, let size = editor.sources?.naturalSize else { return "None" }
@@ -132,6 +164,31 @@ extension SectionPage {
             style.effect = effect
             editor.applyStyle(style, named: effect == .glow ? "Glow" : "Shadow")
         })
+    }
+}
+
+/// The Browser frame's address. Typing is not an undo step per key: the
+/// address is applied on Return or when the field loses focus.
+private struct AddressField: View {
+    let editor: EditorModel
+    @State private var text = ""
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        TextField("Address", text: $text, prompt: Text("example.com"))
+            .focused($focused)
+            .onSubmit(commit)
+            .onChange(of: focused) { _, isFocused in if !isFocused { commit() } }
+            .onAppear { text = editor.style.url }
+            .onChange(of: editor.style.url) { _, url in if !focused { text = url } }
+    }
+
+    private func commit() {
+        let url = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard url != editor.style.url else { return }
+        var style = editor.style
+        style.url = url
+        editor.applyStyle(style, named: "Address")
     }
 }
 

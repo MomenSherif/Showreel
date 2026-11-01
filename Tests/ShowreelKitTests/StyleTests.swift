@@ -32,6 +32,21 @@ struct StyleTests {
         #expect(CanvasLayout.cornerRadius(90, canvasHeight: 1080) == 40)
     }
 
+    /// S-026: the recording and its frame fit inside the padding together.
+    @Test func frameChromeFitsInsideThePadding() {
+        var style = Style()
+        style.frame = .browser
+        let canvas = CGSize(width: 1920, height: 1080)
+        let chrome = CanvasLayout.chrome(for: style, canvasHeight: canvas.height)
+        #expect(chrome.top == 52)
+        let rect = CanvasLayout.screenRect(content: CGSize(width: 1600, height: 1000), canvas: canvas, padding: 0.1, chrome: chrome)
+        let outer = chrome.outer(rect)
+        let room = CGRect(origin: .zero, size: canvas).insetBy(dx: 108, dy: 108)
+        #expect(room.insetBy(dx: -0.5, dy: -0.5).contains(outer))
+        #expect(abs(outer.midY - room.midY) < 0.5 && abs(outer.midX - room.midX) < 0.5)
+        #expect(abs(rect.width / rect.height - 1.6) < 0.001)
+    }
+
     @Test func paddingInsetsAndCenters() {
         let canvas = CGSize(width: 1000, height: 500)
         let rect = CanvasLayout.screenRect(content: CGSize(width: 1600, height: 1000), canvas: canvas, padding: 0.1)

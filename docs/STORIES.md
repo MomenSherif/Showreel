@@ -402,7 +402,8 @@ Depends: S-023
 Acceptance:
 - [snap] Each frame renders crisply at 4K. Browser shows traffic lights
   and an optional URL bar.
-Status: todo
+Status: done
+Note: `DeviceChrome` (engine) draws each frame with Core Graphics at the output size, cached per layout; the recording and its frame fit inside the padding together (`CanvasLayout.chrome`). Goldens `frame-border`, `frame-browser`, `frame-macbook`; `framesAreSharpAt4K` checks a hard edge at 3840 × 2160. Snapshot `editor-frame`.
 
 ### S-027 Choose the output aspect ratio
 As the user, I choose 16:9, 9:16, 1:1, 4:3, or Auto for the canvas.

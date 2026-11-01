@@ -95,6 +95,13 @@ enum Snapshot {
     private static func editorSurfaces(model: AppModel) -> [Surface] {
         let title = SeedData.samples.first?.title
         let window = { NSApp.windows.first { $0.title == title && $0.isVisible } }
+        /// Opens the first sample in the Editor if no snapshot page did yet.
+        let openEditor: () async -> EditorModel? = {
+            let project = (try? model.context.fetch(FetchDescriptor<Project>()))?.first { $0.title == title }
+            if let project, window() == nil { AppServices.shared.openProject(project.uuid) }
+            for _ in 0..<30 where EditorModel.newest?.player == nil { try? await Task.sleep(for: .seconds(0.1)) }
+            return EditorModel.newest
+        }
         let zoomed = Surface(name: "editor-zoomed", show: {
                                  let project = (try? model.context.fetch(FetchDescriptor<Project>()))?.first { $0.title == title }
                                  if let project, window() == nil { AppServices.shared.openProject(project.uuid) }
@@ -120,7 +127,7 @@ enum Snapshot {
                            hide: {})
         // S-019: split twice, the middle piece selected.
         let split = Surface(name: "editor-split", show: {
-                                guard let editor = EditorModel.newest else { return }
+                                guard let editor = await openEditor() else { return }
                                 editor.section = .background
                                 editor.selectedSegment = nil
                                 editor.apply(EditList(sourceDuration: editor.edits.sourceDuration))
@@ -134,7 +141,7 @@ enum Snapshot {
                             hide: {})
         // S-025: Crop Screen with a crop set, so the handles and dimming show.
         let crop = Surface(name: "crop-sheet", show: {
-                               guard let editor = EditorModel.newest else { return }
+                               guard let editor = await openEditor() else { return }
                                var style = editor.style
                                style.crop = CropRect(x: 0.1, y: 0.12, width: 0.75, height: 0.7) // grid: ok normalized crop
                                editor.applyStyle(style, named: "Crop")
@@ -148,6 +155,23 @@ enum Snapshot {
                                style.crop = .full
                                editor.applyStyle(style, named: "Crop")
                            })
+        // S-026: the Browser frame with an address, in Inspector > Screen.
+        let frame = Surface(name: "editor-frame", show: {
+                                guard let editor = await openEditor() else { return }
+                                editor.section = .screen
+                                var style = editor.style
+                                style.frame = .browser
+                                style.url = "showreel.app/pricing"
+                                editor.applyStyle(style, named: "Frame")
+                            },
+                            window: window,
+                            hide: {
+                                guard let editor = EditorModel.newest else { return }
+                                var style = editor.style
+                                style.frame = .none
+                                style.url = ""
+                                editor.applyStyle(style, named: "Frame")
+                            })
         return InspectorSection.allCases.map { section in
             Surface(name: section == .background ? "editor" : "editor-\(section.rawValue)", show: {
                         let project = (try? model.context.fetch(FetchDescriptor<Project>()))?.first { $0.title == title }
@@ -157,7 +181,7 @@ enum Snapshot {
                     },
                     window: window,
                     hide: {})
-        } + [trim, split, crop, zoomed]
+        } + [trim, split, crop, frame, zoomed]
     }
 
     static func runIfRequested(model: AppModel, openSettings: OpenSettingsAction) {

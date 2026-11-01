@@ -247,6 +247,15 @@ extension SelfTest {
               NSApp.mainMenu?.item(withTitle: "Clip")?.submenu?.items.contains { $0.title == "Crop Screen…" } == true)
         undo.undo()
         check("Undo removes the crop", editor.style.crop.isFull)
+        // S-026: a device frame is stored and drawn around the recording.
+        undo.beginUndoGrouping()
+        var framed = editor.style
+        framed.frame = .macBook
+        editor.applyStyle(framed, named: "Frame")
+        undo.endUndoGrouping()
+        check("a device frame is saved with the project", Style.decode(editor.project.styleData).frame == .macBook)
+        undo.undo()
+        check("Undo removes the frame", editor.style.frame == Style.DeviceFrame.none)
         // Back to grouping by event: registering undo outside a group with it
         // off leaves NSUndoManager broken (it crashed SwiftUI later).
         undo.groupsByEvent = true

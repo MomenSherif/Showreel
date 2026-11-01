@@ -103,6 +103,57 @@ struct RendererTests {
         try frame.expectMatches(golden: "style-crop")
     }
 
+    // MARK: Device frames (S-026)
+
+    static func framed(_ frame: Style.DeviceFrame, size: CGSize = CGSize(width: 640, height: 400),
+                       change: (inout Style) -> Void = { _ in }) -> Bitmap {
+        var style = Style()
+        style.background = .gradient("slate")
+        style.padding = 0.1
+        style.effectAmount = 0
+        style.rounding = 20
+        style.frame = frame
+        change(&style)
+        return Bitmap(Renderer.frame(screen: screen, camera: camera, at: 0, scene: scene,
+                                     style: RenderStyle(style: style), size: size))
+    }
+
+    @Test func borderMatchesGolden() throws {
+        try Self.framed(.border).expectMatches(golden: "frame-border")
+    }
+
+    @Test func browserMatchesGolden() throws {
+        try Self.framed(.browser) { $0.url = "showreel.app" }.expectMatches(golden: "frame-browser")
+    }
+
+    @Test func browserWithoutURLBarIsShorter() {
+        var style = Style()
+        style.frame = .browser
+        let withBar = CanvasLayout.chrome(for: style, canvasHeight: 1080).top
+        style.showsURLBar = false
+        #expect(CanvasLayout.chrome(for: style, canvasHeight: 1080).top < withBar)
+    }
+
+    @Test func macBookMatchesGolden() throws {
+        try Self.framed(.macBook).expectMatches(golden: "frame-macbook")
+    }
+
+    /// Frames are drawn at the output size: at 4K the edge of a traffic light
+    /// goes from page gray to red within two pixels.
+    @Test func framesAreSharpAt4K() {
+        let frame = Self.framed(.browser, size: CGSize(width: 3840, height: 2160))
+        // The first light's center row; walk right from the window's left edge.
+        let chrome = CanvasLayout.chrome(for: { var s = Style(); s.frame = .browser; return s }(), canvasHeight: 2160)
+        let rect = CanvasLayout.screenRect(content: Self.screen.extent.size, canvas: CGSize(width: 3840, height: 2160),
+                                           padding: 0.1, chrome: chrome)
+        let u = 2.0, y = Int(rect.minY - chrome.top + 18 * u)
+        var steepest = 0
+        for x in Int(rect.minX)..<Int(rect.minX + 40 * u) {
+            steepest = max(steepest, abs(frame.pixel(x: x + 1, y: y).g - frame.pixel(x: x, y: y).g))
+        }
+        #expect(steepest > 60, "a crisp edge changes fast, got \(steepest) per pixel")
+    }
+
     @Test func solidColorShowsAroundTheRecording() {
         let frame = Self.styled { $0.background = .color(RGB(1, 0, 0)); $0.padding = 0.1 }
         let corner = frame.pixel(x: 4, y: 4)
