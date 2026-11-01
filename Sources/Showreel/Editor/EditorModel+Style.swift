@@ -72,6 +72,45 @@ extension EditorModel {
         return CIImage(cgImage: image)
     }
 
+    /// Where things are on the preview, in the canvas view's points
+    /// (top-left origin), for handles drawn over it (S-028). `inset` is the
+    /// canvas's margin around the video.
+    struct CanvasGeometry {
+        /// The whole video frame.
+        let video: CGRect
+        /// The recording inside it, after padding and the frame's chrome.
+        let screen: CGRect
+    }
+
+    func canvasGeometry(in view: CGSize, inset: CGFloat) -> CanvasGeometry? {
+        guard let sources else { return nil }
+        let canvas = CanvasLayout.canvasSize(for: style, source: sources.naturalSize)
+        let room = CGRect(origin: .zero, size: view).insetBy(dx: inset, dy: inset)
+        guard canvas.width > 0, canvas.height > 0, room.width > 0, room.height > 0 else { return nil }
+        let scale = min(room.width / canvas.width, room.height / canvas.height)
+        let video = CGRect(x: room.midX - canvas.width * scale / 2, y: room.midY - canvas.height * scale / 2,
+                           width: canvas.width * scale, height: canvas.height * scale)
+        let content = style.crop.pixels(of: sources.naturalSize).size
+        let chrome = CanvasLayout.chrome(for: style, canvasHeight: canvas.height)
+        let screen = CanvasLayout.screenRect(content: content, canvas: canvas, padding: style.padding, chrome: chrome)
+        return CanvasGeometry(video: video, screen: CGRect(x: video.minX + screen.minX * scale, y: video.minY + screen.minY * scale,
+                                                           width: screen.width * scale, height: screen.height * scale))
+    }
+
+    /// The camera's center now, normalized to the recording: the dragged
+    /// position, or the recorded path at the playhead.
+    func cameraCenter(at editTime: Double) -> CGPoint? {
+        guard let sources else { return nil }
+        if let p = style.cameraPosition { return CGPoint(x: p.x, y: p.y) }
+        let source = edits.sourceTime(atEditTime: editTime) ?? 0
+        return style.crop.mapClamped(sources.scene.center(at: source))
+    }
+
+    /// The camera's diameter as a share of the recording's width.
+    var cameraDiameter: CGFloat {
+        (sources?.scene.diameter ?? 0) * CGFloat(min(max(style.cameraScale, 0.5), 2))
+    }
+
     /// The recording's frame under the playhead, uncropped, for Crop Screen.
     func currentSourceFrame() async -> CGImage? {
         guard let sources, let time = edits.sourceTime(atEditTime: playhead.time) else { return nil }

@@ -98,14 +98,7 @@ private struct SectionPage: View {
                   line: "The cursor and clicks show as they were recorded.")
         case .camera:
             if project.hasCamera {
-                Form {
-                    Section("Camera Bubble") {
-                        LabeledContent("Size", value: ["Small", "Medium", "Large"][min(max(project.bubbleSize, 0), 2)])
-                        LabeledContent("Shape", value: project.bubbleShape == BubbleStyle.Shape.roundedSquare.rawValue
-                                       ? "Rounded Square" : "Circle")
-                    }
-                }
-                .formStyle(.grouped)
+                CameraSection(editor: editor)
             } else {
                 Empty(title: "No Camera in This Recording", symbol: "person.crop.circle.badge.xmark",
                       line: "Turn on the camera for your next recording to show yourself in a bubble.")

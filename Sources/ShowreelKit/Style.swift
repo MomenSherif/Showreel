@@ -106,6 +106,29 @@ public struct Style: Codable, Equatable, Sendable {
     }
     public var aspect: Aspect = .auto
 
+    // The camera in the editor (S-028): overrides on top of what was recorded.
+    public enum CameraShape: String, Codable, CaseIterable, Sendable {
+        case circle, roundedSquare
+        /// Corner radius as a share of the bubble's size (matches the recorder's 24%).
+        public var cornerRatio: Double { self == .circle ? 0.5 : 0.24 }
+    }
+    public struct Point: Codable, Equatable, Sendable {
+        public var x: Double, y: Double
+        public init(x: Double, y: Double) { self.x = x; self.y = y }
+    }
+    public var cameraVisible: Bool = true
+    /// Size as a share of the recorded size, 0.5...2.
+    public var cameraScale: Double = 1
+    /// Nil keeps the shape picked while recording.
+    public var cameraShape: CameraShape? = nil
+    /// A white ring around the camera, 0...1.
+    public var cameraBorder: Double = 0
+    /// A shadow under the camera, 0...1.
+    public var cameraShadow: Double = 0.4
+    /// Set by dragging the camera on the canvas: its center for the whole
+    /// video, normalized to the recording (top-left). Nil follows the recorded path.
+    public var cameraPosition: Point? = nil
+
     public init() {}
 
     /// The recording edge to edge, nothing around it: how M1 to M3 played.
@@ -115,10 +138,12 @@ public struct Style: Codable, Equatable, Sendable {
         style.padding = 0
         style.rounding = 0
         style.effectAmount = 0
+        style.cameraShadow = 0
         return style
     }()
 
-    enum CodingKeys: String, CodingKey { case background, backgroundBlur, padding, rounding, effect, effectAmount, crop, frame, showsURLBar, url, aspect }
+    enum CodingKeys: String, CodingKey { case background, backgroundBlur, padding, rounding, effect, effectAmount, crop, frame, showsURLBar, url, aspect,
+        cameraVisible, cameraScale, cameraShape, cameraBorder, cameraShadow, cameraPosition }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -134,6 +159,12 @@ public struct Style: Codable, Equatable, Sendable {
         showsURLBar = (try? c.decodeIfPresent(Bool.self, forKey: .showsURLBar)) ?? d.showsURLBar
         url = (try? c.decodeIfPresent(String.self, forKey: .url)) ?? d.url
         aspect = (try? c.decodeIfPresent(Aspect.self, forKey: .aspect)) ?? d.aspect
+        cameraVisible = (try? c.decodeIfPresent(Bool.self, forKey: .cameraVisible)) ?? d.cameraVisible
+        cameraScale = (try? c.decodeIfPresent(Double.self, forKey: .cameraScale)) ?? d.cameraScale
+        cameraShape = (try? c.decodeIfPresent(CameraShape.self, forKey: .cameraShape)) ?? d.cameraShape
+        cameraBorder = (try? c.decodeIfPresent(Double.self, forKey: .cameraBorder)) ?? d.cameraBorder
+        cameraShadow = (try? c.decodeIfPresent(Double.self, forKey: .cameraShadow)) ?? d.cameraShadow
+        cameraPosition = (try? c.decodeIfPresent(Point.self, forKey: .cameraPosition)) ?? d.cameraPosition
     }
 
     public func encoded() -> Data { (try? JSONEncoder().encode(self)) ?? Data() }

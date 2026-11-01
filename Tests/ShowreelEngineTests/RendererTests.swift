@@ -167,6 +167,41 @@ struct RendererTests {
         try frame.expectMatches(golden: "style-tall")
     }
 
+    // MARK: Camera in the editor (S-028)
+
+    /// A dragged position holds for the whole video: the bubble is in the
+    /// same place before and after its recorded move at 2 s.
+    @Test func draggedCameraStaysPutForTheWholeVideo() {
+        func frame(at t: Double) -> Bitmap {
+            var style = Style.plain
+            style.cameraPosition = Style.Point(x: 0.8, y: 0.25)
+            return Bitmap(Renderer.frame(screen: Self.screen, camera: Self.camera, at: t, scene: Self.scene,
+                                         style: RenderStyle(style: style), size: Self.size))
+        }
+        // (0.8, 0.25) of 320 × 200: x 256, y 50. Left half of the bubble is green.
+        for t in [0.0, 2.5] {
+            let p = frame(at: t).pixel(x: 256 - 25, y: 50 + 10)
+            #expect(p.g > 150, "at \(t) s the camera is where it was dragged, got \(p)")
+        }
+    }
+
+    @Test func hiddenCameraIsNotDrawn() {
+        var style = Style.plain
+        style.cameraVisible = false
+        let frame = Bitmap(Renderer.frame(screen: Self.screen, camera: Self.camera, at: 0, scene: Self.scene,
+                                          style: RenderStyle(style: style), size: Self.size))
+        let screenOnly = Bitmap(Renderer.frame(screen: Self.screen, camera: nil, at: 0, scene: Self.scene, size: Self.size))
+        #expect(frame.bytes == screenOnly.bytes)
+    }
+
+    @Test func cameraStyleMatchesGolden() throws {
+        try Self.styled {
+            $0.background = .color(RGB(0.9, 0.9, 0.92)); $0.padding = 0.1; $0.effectAmount = 0
+            $0.cameraScale = 1.5; $0.cameraShape = .roundedSquare; $0.cameraBorder = 1; $0.cameraShadow = 1
+            $0.cameraPosition = Style.Point(x: 0.75, y: 0.65)
+        }.expectMatches(golden: "camera-style")
+    }
+
     @Test func solidColorShowsAroundTheRecording() {
         let frame = Self.styled { $0.background = .color(RGB(1, 0, 0)); $0.padding = 0.1 }
         let corner = frame.pixel(x: 4, y: 4)

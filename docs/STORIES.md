@@ -424,7 +424,8 @@ Acceptance:
   Shadow controls.
 - [self] Dragging the camera on the canvas overrides the recorded position
   for the whole video.
-Status: todo
+Status: done
+Note: camera settings are `Style` overrides on top of the recording (size 50–200%, shape, border, shadow, position). The drag handle on the canvas uses `EditorModel.canvasGeometry`. The first seed sample now has a camera track. Golden `camera-style`; snapshot `editor-camera`.
 
 ### S-029 Save a style as a preset
 As the user, I save the current style as a preset and apply it to other

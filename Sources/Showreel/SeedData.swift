@@ -42,6 +42,11 @@ enum SeedData {
             let image = frame(hue: sample.hue)
             write(image, to: ProjectStore.file(ProjectFiles.thumbnail, of: project.uuid))
             writeMovie(image, seconds: Int(sample.duration), to: ProjectStore.file(ProjectFiles.screen, of: project.uuid))
+            // The first sample was recorded with the camera on (S-028 snapshots show it).
+            if sample.title == samples[0].title {
+                project.hasCamera = true
+                writeMovie(cameraFrame(), seconds: Int(sample.duration), to: ProjectStore.file(ProjectFiles.camera, of: project.uuid))
+            }
         }
         try? context.save()
     }
@@ -77,6 +82,25 @@ enum SeedData {
                                cornerWidth: 6, cornerHeight: 6, transform: nil)) // grid: ok pixels in a sample image
             ctx.fillPath()
         }
+        return ctx.makeImage()!
+    }
+
+    /// A camera frame: a person's head and shoulders on a soft wall, as plain shapes.
+    static func cameraFrame(size: CGSize = CGSize(width: 1280, height: 720)) -> CGImage {
+        let ctx = CGContext(data: nil, width: Int(size.width), height: Int(size.height), bitsPerComponent: 8, bytesPerRow: 0,
+                            space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue)!
+        let wall = CGGradient(colorsSpace: nil, colors: [NSColor(calibratedRed: 0.86, green: 0.82, blue: 0.76, alpha: 1).cgColor,
+                                                         NSColor(calibratedRed: 0.70, green: 0.66, blue: 0.62, alpha: 1).cgColor] as CFArray,
+                              locations: [0, 1])!
+        ctx.drawLinearGradient(wall, start: CGPoint(x: 0, y: size.height), end: CGPoint(x: 0, y: 0), options: [])
+        let cx = size.width / 2
+        ctx.setFillColor(NSColor(calibratedRed: 0.22, green: 0.33, blue: 0.52, alpha: 1).cgColor)  // sweater
+        ctx.fillEllipse(in: CGRect(x: cx - 260, y: -220, width: 520, height: 440))
+        ctx.setFillColor(NSColor(calibratedRed: 0.87, green: 0.68, blue: 0.56, alpha: 1).cgColor)  // face
+        ctx.fillEllipse(in: CGRect(x: cx - 105, y: 230, width: 210, height: 250)) // grid: ok pixels in a sample image
+        ctx.setFillColor(NSColor(calibratedRed: 0.25, green: 0.17, blue: 0.12, alpha: 1).cgColor)  // hair
+        ctx.addPath(CGPath(ellipseIn: CGRect(x: cx - 115, y: 380, width: 230, height: 130), transform: nil)) // grid: ok pixels in a sample image
+        ctx.fillPath()
         return ctx.makeImage()!
     }
 

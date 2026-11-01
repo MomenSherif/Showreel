@@ -73,11 +73,17 @@ public enum Renderer {
         let radius = CanvasLayout.cornerRadius(style.style.rounding, canvasHeight: size.height)
         let device = DeviceChrome.parts(for: style.style, rect: rect, radius: radius, canvas: size)
         if let mask = device.screenMask { image = masked(image, by: mask) }
-        if let camera, !scene.isHidden(at: t) {
-            // A crop moves the bubble with its spot on the recording; its size
-            // stays the same, since the camera is not part of the recording.
-            image = bubble(camera, over: image, center: crop.mapClamped(scene.center(at: t)),
-                           diameter: scene.diameter * rect.width, cornerRatio: scene.cornerRatio, in: rect)
+        let look = style.style
+        if let camera, look.cameraVisible, !scene.isHidden(at: t) {
+            // A position dragged in the editor holds for the whole video (S-028).
+            // Otherwise a crop moves the bubble with its spot on the recording;
+            // its size stays, since the camera is not part of the recording.
+            let center = look.cameraPosition.map { CGPoint(x: $0.x, y: $0.y) } ?? crop.mapClamped(scene.center(at: t))
+            let diameter = scene.diameter * rect.width * CGFloat(min(max(look.cameraScale, 0.5), 2))
+            image = bubble(camera, over: image, center: center, diameter: diameter,
+                           cornerRatio: look.cameraShape.map { CGFloat($0.cornerRatio) } ?? scene.cornerRatio,
+                           border: CGFloat(min(max(look.cameraBorder, 0), 1)) * diameter * 0.05,
+                           shadow: min(max(look.cameraShadow, 0), 1), in: rect)
         }
         if let behind = device.behind { image = image.composited(over: behind) }
         if let lift = lift(style.style, rect: device.outer, radius: device.outerRadius, canvas: size) {
@@ -180,9 +186,10 @@ public enum Renderer {
     }
 
     /// The camera cropped to a square, mirrored, masked to a circle or rounded
-    /// square, and placed at `center`.
+    /// square, and placed at `center` (normalized to `rect`, top-left). A white
+    /// ring of `border` pixels and a soft shadow (0...1) go under it.
     static func bubble(_ camera: CIImage, over base: CIImage, center: CGPoint, diameter: CGFloat,
-                       cornerRatio: CGFloat, in rect: CGRect) -> CIImage {
+                       cornerRatio: CGFloat, border: CGFloat = 0, shadow: Double = 0, in rect: CGRect) -> CIImage {
         let side = min(camera.extent.width, camera.extent.height)
         let square = camera.cropped(to: CGRect(x: camera.extent.midX - side / 2, y: camera.extent.midY - side / 2, width: side, height: side))
         let scale = diameter / side
@@ -192,25 +199,41 @@ public enum Renderer {
             .transformed(by: CGAffineTransform(translationX: -square.extent.midX, y: -square.extent.midY))
             .transformed(by: CGAffineTransform(scaleX: -scale, y: scale))
             .transformed(by: CGAffineTransform(translationX: cx, y: cy))
-        let mask: CIImage
-        if cornerRatio >= 0.5 {
-            mask = CIFilter(name: "CIRadialGradient", parameters: [
-                "inputCenter": CIVector(x: cx, y: cy),
-                "inputRadius0": diameter / 2 - 1,
-                "inputRadius1": diameter / 2,
-                "inputColor0": CIColor.white,
-                "inputColor1": CIColor.clear,
-            ])?.outputImage?.cropped(to: placed.extent) ?? placed
-        } else {
-            mask = CIFilter(name: "CIRoundedRectangleGenerator", parameters: [
-                "inputExtent": CIVector(cgRect: placed.extent),
-                "inputRadius": diameter * cornerRatio,
-                "inputColor": CIColor.white,
-            ])?.outputImage ?? placed
+        let mask = shape(cx: cx, cy: cy, diameter: diameter, cornerRatio: cornerRatio, color: .white) ?? placed
+        var under = base
+        if shadow > 0, let shade = shape(cx: cx, cy: cy, diameter: diameter, cornerRatio: cornerRatio,
+                                         color: CIColor(red: 0, green: 0, blue: 0, alpha: 0.25 + 0.4 * shadow)) {
+            under = shade.applyingGaussianBlur(sigma: Double(diameter) * (0.03 + 0.05 * shadow))
+                .transformed(by: CGAffineTransform(translationX: 0, y: -diameter * 0.03 * shadow))
+                .composited(over: under)
+        }
+        if border > 0, let ring = shape(cx: cx, cy: cy, diameter: diameter + 2 * border,
+                                        cornerRatio: cornerRatio, color: CIColor(red: 1, green: 1, blue: 1, alpha: 0.95)) {
+            under = ring.composited(over: under)
         }
         return placed.applyingFilter("CIBlendWithAlphaMask", parameters: [
-            kCIInputBackgroundImageKey: base,
+            kCIInputBackgroundImageKey: under,
             kCIInputMaskImageKey: mask,
         ])
     }
+
+    /// A filled circle (cornerRatio 0.5) or rounded square centered at cx, cy.
+    static func shape(cx: CGFloat, cy: CGFloat, diameter: CGFloat, cornerRatio: CGFloat, color: CIColor) -> CIImage? {
+        let box = CGRect(x: cx - diameter / 2, y: cy - diameter / 2, width: diameter, height: diameter)
+        if cornerRatio >= 0.5 {
+            return CIFilter(name: "CIRadialGradient", parameters: [
+                "inputCenter": CIVector(x: cx, y: cy),
+                "inputRadius0": diameter / 2 - 1,
+                "inputRadius1": diameter / 2,
+                "inputColor0": color,
+                "inputColor1": CIColor.clear,
+            ])?.outputImage?.cropped(to: box)
+        }
+        return CIFilter(name: "CIRoundedRectangleGenerator", parameters: [
+            "inputExtent": CIVector(cgRect: box),
+            "inputRadius": diameter * cornerRatio,
+            "inputColor": color,
+        ])?.outputImage
+    }
+
 }

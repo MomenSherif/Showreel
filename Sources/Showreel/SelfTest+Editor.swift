@@ -267,6 +267,23 @@ extension SelfTest {
         check("the Clip menu has Aspect Ratio",
               NSApp.mainMenu?.item(withTitle: "Clip")?.submenu?.items.contains { $0.title == "Aspect Ratio" } == true)
         undo.undo()
+        // S-028: dragging the camera sets one position for the whole video.
+        undo.beginUndoGrouping()
+        let dragStart = editor.style
+        for step in 1...8 {
+            var dragged = editor.style
+            dragged.cameraPosition = Style.Point(x: 0.1 * Double(step), y: 0.2)
+            editor.previewStyle(dragged)
+        }
+        editor.commitStyle(from: dragStart, named: "Move Camera")
+        undo.endUndoGrouping()
+        let early = editor.cameraCenter(at: 0), late = editor.cameraCenter(at: editor.duration)
+        check("a dragged camera holds its place for the whole video",
+              early == CGPoint(x: 0.8, y: 0.2) && late == early, "\(String(describing: early)) \(String(describing: late))")
+        let drawn = (editor.player?.currentItem?.videoComposition?.instructions.first as? BubbleInstruction)?.style.style.cameraPosition
+        check("the player draws the dragged position", drawn == Style.Point(x: 0.8, y: 0.2))
+        undo.undo()
+        check("one Undo puts the camera back on its recorded path", editor.style.cameraPosition == nil)
         // Back to grouping by event: registering undo outside a group with it
         // off leaves NSUndoManager broken (it crashed SwiftUI later).
         undo.groupsByEvent = true
