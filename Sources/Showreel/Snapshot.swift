@@ -57,6 +57,9 @@ enum Snapshot {
                     },
                     window: { AreaSelector.shared.mainPanel },
                     hide: { AreaSelector.shared.hideOverlay(); recorder.area = nil; recorder.snapshotState(.idle) }),
+            Surface(name: "camera-bubble", show: { CameraBubble.shared.show(session: nil, near: nil) },
+                    window: { CameraBubble.shared.panel },
+                    hide: { CameraBubble.shared.hide() }),
             Surface(name: "countdown", show: {
                         recorder.snapshotState(.countdown, countdown: 3)
                         Countdown.shared.show(on: mainDisplay)

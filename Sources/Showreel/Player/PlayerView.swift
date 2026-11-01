@@ -122,7 +122,7 @@ enum PlayerBuilder {
         let log = (try? Data(contentsOf: ProjectStore.file(ProjectFiles.events, of: id))).flatMap { try? EventLog.decode($0) }
         // The bubble's size on screen, as a share of the recorded width in points.
         let pointWidth = max(1, (log?.source.width ?? natural.width / 2))
-        let diameter = (Layout.bubbleSizes[min(max(project.bubbleSize, 0), 2)] - Space.lg) / pointWidth
+        let diameter = Layout.bubbleSizes[min(max(project.bubbleSize, 0), 2)] / pointWidth
 
         let instruction = BubbleInstruction(timeRange: range, screenTrack: screenTrack.trackID, cameraTrack: cameraID,
                                             bubble: log?.bubble ?? [],

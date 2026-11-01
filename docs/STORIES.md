@@ -232,7 +232,7 @@ Acceptance:
   by default.
 - [unit] The bubble window is excluded from the screen capture. The camera
   is recorded only to `camera.mov`.
-Status: todo
+Status: done
 
 ### S-012 Drag the bubble to a new position
 As the user, I drag the bubble anywhere. It snaps to corners and edges

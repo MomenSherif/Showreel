@@ -2,6 +2,7 @@ import AppKit
 import AVFoundation
 import ScreenCaptureKit
 import SwiftData
+import SwiftUI
 import ShowreelKit
 
 /// Self-test for agents: runs the app's real functions on a test store,
@@ -30,6 +31,7 @@ enum SelfTest {
             projects(model)
             library(model)
             menuBar()
+            panels()
             await recording()
             await endToEnd(model)
             print(failures == 0 ? "SELFTEST PASS \(count) checks" : "SELFTEST FAIL \(failures) of \(count) checks")
@@ -102,6 +104,14 @@ enum SelfTest {
               titles.joined(separator: ", "))
         let mainMenu = NSApp.mainMenu?.items.map(\.title) ?? []
         check("the menu bar has a Record menu", mainMenu.contains("Record"), mainMenu.joined(separator: ", "))
+    }
+
+    /// S-011: floating chrome, the Camera Bubble included, never shows up in a recording.
+    private static func panels() {
+        let panel = FloatingPanel(size: CGSize(width: Space.md, height: Space.md), options: .init(), content: Color.clear)
+        check("floating panels are left out of screen capture", panel.sharingType == .none)
+        check("floating panels are not in the Window menu", panel.isExcludedFromWindowsMenu)
+        check("the Camera Bubble is Medium by default", CameraBubble.shared.diameter == Layout.bubbleSizes[1])
     }
 
     /// S-007: a real 2.5 s capture of the main display with a pause in the
