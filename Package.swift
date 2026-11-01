@@ -17,5 +17,7 @@ let package = Package(
             swiftSettings: [.defaultIsolation(MainActor.self)]
         ),
         .testTarget(name: "ShowreelKitTests", dependencies: ["ShowreelKit"]),
+        .testTarget(name: "ShowreelEngineTests", dependencies: ["ShowreelEngine", "ShowreelKit"],
+                    exclude: ["Golden"]),
     ]
 )

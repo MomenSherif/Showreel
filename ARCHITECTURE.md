@@ -5,6 +5,7 @@
 ```text
 Showreel (app: SwiftUI, AppKit panels) -> ShowreelEngine (AVFoundation, Core Image, ScreenCaptureKit) -> ShowreelKit (pure rules)
 ShowreelKitTests -> ShowreelKit
+ShowreelEngineTests -> ShowreelEngine   (golden frames in Tests/ShowreelEngineTests/Golden/)
 ```
 
 ShowreelKit knows nothing about SwiftUI, AppKit, or AVFoundation. It holds
@@ -66,5 +67,10 @@ RecordController (state: idle -> panel -> countdown -> recording <-> paused -> s
 
 ## Seams
 
-None with two adapters yet. The self-test drives the real capture stack
+- `Renderer.frame`: two callers, `BubbleCompositor` (playback) and the
+  golden-frame tests. Export (M6) is the third. Re-record the goldens with
+  `SHOWREEL_RECORD_GOLDEN=1 swift test ...` only for an intended change of look,
+  and look at the PNGs before committing them.
+
+Nothing else has two adapters yet. The self-test drives the real capture stack
 (it needs Screen Recording for the process that starts it).

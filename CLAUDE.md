@@ -7,6 +7,7 @@ SwiftData database and no server.
 
 - `Sources/Showreel/` the app. `App.swift` has the window, menus, and the database location.
 - `Sources/ShowreelKit/` rules and data logic with no SwiftUI. Tests in `Tests/ShowreelKitTests/`.
+- `Sources/ShowreelEngine/` capture, writers, and `Renderer` (AVFoundation, Core Image), no SwiftUI or AppKit. Golden-frame tests in `Tests/ShowreelEngineTests/`.
 - `Package.swift` a Swift package. There is no Xcode project.
 - `build.sh` builds, signs, and installs `~/Applications/Showreel.app`.
 - `Icon/AppIcon.icon` the app icon, an Icon Composer file (JSON plus SVG layers). `build.sh` compiles it with `tools/make_icon.sh`; `tools/icon_review.sh` renders every look into one PNG.
