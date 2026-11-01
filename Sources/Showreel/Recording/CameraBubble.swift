@@ -2,6 +2,7 @@ import AppKit
 import AVFoundation
 import ScreenCaptureKit
 import SwiftUI
+import ShowreelKit
 
 /// The live Camera Bubble (S-011): a mirrored circle above every app.
 /// Left out of the screen capture; the camera is recorded only to camera.mov.
@@ -24,14 +25,13 @@ final class CameraBubble: NSObject, NSWindowDelegate {
         return CGPoint(x: f.midX, y: mainHeight - f.midY)
     }
 
-    /// Shows the bubble with the live camera. In snapshot mode, with no
+    /// Shows the bubble with the live camera. In snapshot and self-test runs, with no
     /// session, it shows a stand-in picture instead.
     func show(session: AVCaptureSession?, near display: SCDisplay?) {
-        guard session != nil || Snapshot.isActive else { return }
+        guard session != nil || Snapshot.isActive || SelfTest.requested else { return }
         if panel == nil {
             var options = FloatingPanel.Options()
             options.takesKey = false
-            options.movable = true
             let side = diameter + 2 * Self.margin
             let panel = FloatingPanel(size: CGSize(width: side, height: side), options: options,
                                       content: CameraBubbleView(session: session, diameter: diameter))
@@ -58,6 +58,49 @@ final class CameraBubble: NSObject, NSWindowDelegate {
     func windowDidMove(_ notification: Notification) {
         if let center { recorder?.bubbleMoved(to: center) }
     }
+
+    // MARK: Dragging (S-012)
+
+    private var dragStart: (mouse: NSPoint, origin: NSPoint)?
+
+    /// Follows the pointer in screen coordinates, so the window moving under
+    /// it never feeds back into the drag.
+    func drag(ended: Bool) {
+        guard let panel else { return }
+        let mouse = NSEvent.mouseLocation
+        if dragStart == nil { dragStart = (mouse, panel.frame.origin) }
+        guard let start = dragStart else { return }
+        panel.setFrameOrigin(NSPoint(x: start.origin.x + mouse.x - start.mouse.x,
+                                     y: start.origin.y + mouse.y - start.mouse.y))
+        if ended {
+            dragStart = nil
+            settle()
+        }
+    }
+
+    /// Glides to the nearest corner or edge midpoint within 24 pt of the
+    /// bubble, or stays put inside the screen.
+    func settle(animated: Bool = true) {
+        guard let panel else { return }
+        let frame = panel.frame
+        let screen = NSScreen.screens.first { $0.frame.contains(NSPoint(x: frame.midX, y: frame.midY)) } ?? NSScreen.main
+        guard let visible = screen?.visibleFrame else { return }
+        // The panel includes the shadow margin; snap the circle, not the panel.
+        let target = BubbleSnap.snapped(frame, in: visible, inset: Layout.snapDistance - Self.margin,
+                                        distance: Layout.snapDistance)
+        guard target != frame else { return }
+        let duration = animated ? Motion.windowGlide : 0
+        guard duration > 0 else { panel.setFrame(target, display: true); return }
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = duration
+            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            panel.animator().setFrame(target, display: true)
+        } completionHandler: {
+            MainActor.assumeIsolated {
+                if let center = CameraBubble.shared.center { CameraBubble.shared.recorder?.bubbleMoved(to: center) }
+            }
+        }
+    }
 }
 
 struct CameraBubbleView: View {
@@ -83,6 +126,10 @@ struct CameraBubbleView: View {
         .clipShape(Circle())
         .overlay(Circle().strokeBorder(Surfaces.hairline, lineWidth: 1))
         .shadow(color: Surfaces.shadowHover, radius: 8, y: 4)
+        .contentShape(Circle())
+        .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .global)
+            .onChanged { _ in CameraBubble.shared.drag(ended: false) }
+            .onEnded { _ in CameraBubble.shared.drag(ended: true) })
         .padding(CameraBubble.margin)
         .accessibilityElement()
         .accessibilityLabel("Camera Bubble")

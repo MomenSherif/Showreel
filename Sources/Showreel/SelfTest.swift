@@ -112,6 +112,38 @@ enum SelfTest {
         check("floating panels are left out of screen capture", panel.sharingType == .none)
         check("floating panels are not in the Window menu", panel.isExcludedFromWindowsMenu)
         check("the Camera Bubble is Medium by default", CameraBubble.shared.diameter == Layout.bubbleSizes[1])
+        bubbleSnap()
+    }
+
+    /// S-012: a bubble dropped near a corner glides into it; one dropped in
+    /// the open stays where it is; moves are logged in source coordinates.
+    private static func bubbleSnap() {
+        let bubble = CameraBubble.shared
+        bubble.show(session: nil, near: nil)
+        guard let panel = bubble.panel, let visible = panel.screen?.visibleFrame else {
+            check("shows the Camera Bubble", false)
+            return
+        }
+        let side = panel.frame.width
+        let inset = Layout.snapDistance - CameraBubble.margin
+        panel.setFrameOrigin(NSPoint(x: visible.minX + inset + 15, y: visible.maxY - side - inset - 10))
+        bubble.settle(animated: false)
+        check("a bubble dropped near the top-left corner snaps into it",
+              panel.frame.origin == NSPoint(x: visible.minX + inset, y: visible.maxY - side - inset), "\(panel.frame.origin)")
+        let free = NSPoint(x: visible.midX - 200, y: visible.midY - 150)
+        panel.setFrameOrigin(free)
+        bubble.settle(animated: false)
+        check("a bubble dropped in the open stays there", panel.frame.origin == free)
+
+        let timeline = Timeline()
+        let source = CGRect(x: 0, y: 0, width: 1000, height: 500)
+        let events = EventRecorder(source: source, timeline: timeline)
+        timeline.begin(at: Timeline.hostNow - 1)
+        events.bubbleMoved(to: CGPoint(x: 250, y: 400))
+        let move = events.stop(at: 2).bubble.first
+        check("a bubble move is logged in source coordinates with its time",
+              move?.x == 0.25 && move?.y == 0.8 && (move?.t ?? 0) >= 1, "\(String(describing: move))")
+        bubble.hide()
     }
 
     /// S-007: a real 2.5 s capture of the main display with a pause in the

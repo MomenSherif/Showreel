@@ -33,12 +33,15 @@ nonisolated final class BubbleInstruction: NSObject, AVVideoCompositionInstructi
         requiredSourceTrackIDs = ([screenTrack] + [cameraTrack].compactMap { $0 }).map { NSNumber(value: $0) }
     }
 
-    func center(at t: Double) -> CGPoint {
-        guard let last = bubble.last(where: { $0.t <= t }) ?? bubble.first else { return fallbackCenter }
-        return CGPoint(x: last.x, y: last.y)
+    private var log: EventLog {
+        var log = EventLog(source: .zero)
+        log.bubble = bubble
+        log.cameraHidden = hidden
+        return log
     }
 
-    func isHidden(at t: Double) -> Bool { hidden.contains { t >= $0.start && t < $0.end } }
+    func center(at t: Double) -> CGPoint { log.bubbleCenter(at: t, fallback: fallbackCenter) }
+    func isHidden(at t: Double) -> Bool { log.cameraIsHidden(at: t) }
 }
 
 nonisolated final class BubbleCompositor: NSObject, AVVideoCompositing, @unchecked Sendable {

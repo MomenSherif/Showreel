@@ -30,6 +30,10 @@ enum Motion {
     /// The Reduce Motion stand-in for movement.
     static let fade = Animation.easeInOut(duration: 0.2)
 
+    /// AppKit window moves (the Camera Bubble gliding to a snap point), in
+    /// seconds. Zero under Reduce Motion: the window jumps.
+    static var windowGlide: TimeInterval { reduceMotion ? 0 : 0.28 }
+
     static var reduceMotion: Bool { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
 
     /// The animation to use right now: the fade under Reduce Motion, or nil

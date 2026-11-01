@@ -243,7 +243,8 @@ Acceptance:
 - [self] Snapping happens within 24 pt of a corner or an edge midpoint.
 - [unit] Each move during a recording is logged to `events.json` as a
   normalized position with a timestamp.
-Status: todo
+Status: done
+Note: snapping and logging are self-tested; the drag feel needs a person to try ([manual]).
 
 ### S-013 Resize the bubble and change its shape
 As the user, I pick Small, Medium, or Large and Circle or Rounded Square
