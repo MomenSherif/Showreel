@@ -262,7 +262,7 @@ Depends: S-011
 Acceptance:
 - [unit] Hide and show times are logged, and the editor hides the camera
   for those ranges.
-Status: todo
+Status: done
 
 ---
 

@@ -20,3 +20,11 @@ Cause: `build.sh` picked the first "Apple Development" certificate by name, and 
 certificates with that name were revoked (`spctl` said CSSMERR_TP_CERT_REVOKED).
 Fix: `build.sh` signs by SHA-1 hash, skips revoked certificates, and caches the working one.
 Rule: sign by hash and check `spctl -a -vv -t exec` when a launch exits 137.
+
+## 2026-11-01 Camera hidden during a pause still showed in the video
+Symptom: (found in review) hiding the Camera Bubble or moving it while paused was not logged.
+Cause: `EventRecorder` stamps events with recording time, which is undefined while paused,
+so those events were dropped.
+Fix: bubble moves and hide/show during a pause are stamped with the pause point, so they
+apply from where the video resumes.
+Rule: events that change state (not samples) must never be dropped while paused.

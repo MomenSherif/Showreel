@@ -145,6 +145,35 @@ enum SelfTest {
               move?.x == 0.25 && move?.y == 0.8 && (move?.t ?? 0) >= 1, "\(String(describing: move))")
         bubbleStyle(bubble, panel: panel)
         bubble.hide()
+        hideCamera()
+    }
+
+    /// S-014: hiding the camera while recording is logged as a range, and the
+    /// player leaves the camera out for that range.
+    private static func hideCamera() {
+        let timeline = Timeline()
+        let events = EventRecorder(source: CGRect(x: 0, y: 0, width: 100, height: 100), timeline: timeline)
+        timeline.begin(at: Timeline.hostNow - 2)   // two seconds in
+        events.cameraHidden(true)
+        timeline.pause()
+        timeline.resume(at: Timeline.hostNow + 0)
+        let log = events.stop(at: 5)               // still hidden when it stops
+        let range = log.cameraHidden.first
+        check("hiding the camera logs a range that ends at Stop",
+              log.cameraHidden.count == 1 && abs((range?.start ?? 0) - 2) < 0.2 && range?.end == 5, "\(log.cameraHidden)")
+        let instruction = BubbleInstruction(timeRange: .zero, screenTrack: 1, cameraTrack: 2, bubble: [],
+                                            fallbackCenter: .zero, hidden: log.cameraHidden, diameter: 0.1)
+        check("the player hides the camera in that range", instruction.isHidden(at: 3) && !instruction.isHidden(at: 1))
+        let paused = Timeline()
+        let pausedEvents = EventRecorder(source: CGRect(x: 0, y: 0, width: 100, height: 100), timeline: paused)
+        paused.begin(at: Timeline.hostNow - 3)
+        paused.pause(at: Timeline.hostNow - 1)     // paused at 2 s
+        pausedEvents.cameraHidden(true)
+        let pausedLog = pausedEvents.stop(at: 4)
+        check("hiding the camera while paused counts from the pause",
+              abs((pausedLog.cameraHidden.first?.start ?? -1) - 2) < 0.2, "\(pausedLog.cameraHidden)")
+        let menu = NSApp.mainMenu?.item(withTitle: "Record")?.submenu?.items.map(\.title) ?? []
+        check("the Record menu has Hide Camera Bubble", menu.contains("Hide Camera Bubble"), menu.joined(separator: ", "))
     }
 
     /// S-013: size and shape change the bubble and are remembered.

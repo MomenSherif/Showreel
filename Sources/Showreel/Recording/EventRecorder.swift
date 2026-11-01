@@ -11,7 +11,7 @@ final class EventRecorder {
     private var timer: Timer?
     private var monitors: [Any] = []
     private var lastCursor: CGPoint?
-    private var hiddenSince: Double?
+    private var hidden = HiddenRanges()
 
     init(source: CGRect, timeline: Timeline) {
         log = EventLog(source: source)
@@ -40,12 +40,18 @@ final class EventRecorder {
         timer = nil
         monitors.forEach(NSEvent.removeMonitor)
         monitors = []
-        if let since = hiddenSince { log.cameraHidden.append(.init(start: since, end: end)) }
-        hiddenSince = nil
+        hidden.close(at: end)
+        log.cameraHidden = hidden.ranges
         return log
     }
 
     private var now: Double? { timeline.mediaTime(at: Timeline.hostNow) }
+
+    /// Like `now`, but while paused it is the moment the pause began, so a
+    /// bubble moved or hidden during a pause applies from where the video resumes.
+    private var nowOrPausePoint: Double? {
+        now ?? (timeline.isStarted ? timeline.elapsed() : nil)
+    }
 
     /// The mouse in global top-left coordinates.
     private var mouse: CGPoint {
@@ -79,18 +85,15 @@ final class EventRecorder {
 
     /// The Camera Bubble's center in global top-left points.
     func bubbleMoved(to center: CGPoint) {
-        guard let t = now else { return }
+        guard let t = nowOrPausePoint else { return }
         let rect = log.source
         guard rect.width > 0, rect.height > 0 else { return }
         log.bubble.append(.init(t: t, x: (center.x - rect.minX) / rect.width, y: (center.y - rect.minY) / rect.height))
     }
 
-    func cameraHidden(_ hidden: Bool) {
-        guard let t = now else { return }
-        if hidden, hiddenSince == nil { hiddenSince = t }
-        if !hidden, let since = hiddenSince {
-            log.cameraHidden.append(.init(start: since, end: t))
-            hiddenSince = nil
-        }
+    /// ⌃⌥⌘C while recording (S-014).
+    func cameraHidden(_ isHidden: Bool) {
+        guard let t = nowOrPausePoint else { return }
+        if isHidden { hidden.hide(at: t) } else { hidden.show(at: t) }
     }
 }
