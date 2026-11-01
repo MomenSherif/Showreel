@@ -358,6 +358,8 @@ enum SelfTest {
 
         await undo(editor)
 
+        await autosave(editor)
+
         // S-017: the timeline zoom.
         editor.zoom.zoomIn()
         editor.zoom.zoomIn()
@@ -455,6 +457,37 @@ enum SelfTest {
         check("Redo brings the split back", editor.edits == split && editor.canUndo)
         await action { editor.apply(uncut) }
         undo.removeAllActions()
+    }
+
+    /// S-021: an edit is in the store within a second, and the Editor opens
+    /// with it after closing.
+    private static func autosave(_ editor: EditorModel) async {
+        let project = editor.project
+        let id = project.uuid
+        let source = editor.edits.sourceDuration
+        editor.seek(to: 0.6)
+        await editor.seeksSettled()
+        editor.splitAtPlayhead()
+        let saved = editor.edits
+        try? await Task.sleep(for: .seconds(1))
+        // A second, separate database stack reads what is on disk, as a
+        // relaunch after a crash would.
+        let onDisk: EditList? = {
+            guard let container = try? ModelContainer(for: Project.self, configurations: ModelConfiguration(url: Store.url)) else { return nil }
+            let context = ModelContext(container)
+            let stored = try? context.fetch(FetchDescriptor<Project>(predicate: #Predicate { $0.uuid == id })).first
+            return stored.map { EditList.decode($0.editsData, sourceDuration: source) }
+        }()
+        check("an edit is saved to disk within 1 second", onDisk == saved, "\(onDisk?.segments.count ?? -1) segments on disk")
+        for window in NSApp.windows where window.title == project.title { window.close() }
+        try? await Task.sleep(for: .seconds(0.5))
+        AppServices.shared.openProject(id)
+        for _ in 0..<60 where !(EditorModel.newest !== editor && EditorModel.newest?.project.uuid == id && EditorModel.newest?.player != nil) {
+            try? await Task.sleep(for: .seconds(0.1))
+        }
+        let reopened = EditorModel.newest
+        check("the Editor reopens with the edit", reopened !== editor && reopened?.edits == saved,
+              "\(reopened?.edits.segments.count ?? -1) segments")
     }
 
     private static func check(_ name: String, _ ok: Bool, _ detail: String = "") {

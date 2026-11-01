@@ -133,6 +133,9 @@ final class EditorModel {
         draft = nil
         duration = new.duration
         project.editsData = new.encoded()
+        // Saved right away (S-021): an edit is small and comes at most once
+        // per action, and a crash must not lose it.
+        try? project.modelContext?.save()
         if let selectedSegment, !new.segments.contains(where: { $0.id == selectedSegment }) { self.selectedSegment = nil }
         let wasPlaying = isPlaying
         player.replaceCurrentItem(with: sources.item(for: new))

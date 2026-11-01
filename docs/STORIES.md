@@ -342,7 +342,8 @@ left it.
 Depends: S-015
 Acceptance:
 - [self] Edits are saved within 1 second, and survive a crash or restart.
-Status: todo
+Status: done
+Note: every edit saves the store at once. The self-test reads it back through a second, separate database stack (as a relaunch would) and reopens the Editor; without the save it fails.
 
 ---
 
