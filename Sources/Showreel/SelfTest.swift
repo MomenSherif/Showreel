@@ -3,6 +3,7 @@ import AVFoundation
 import ScreenCaptureKit
 import SwiftData
 import SwiftUI
+import ShowreelEngine
 import ShowreelKit
 
 /// Self-test for agents: runs the app's real functions on a test store,
@@ -161,9 +162,8 @@ enum SelfTest {
         let range = log.cameraHidden.first
         check("hiding the camera logs a range that ends at Stop",
               log.cameraHidden.count == 1 && abs((range?.start ?? 0) - 2) < 0.2 && range?.end == 5, "\(log.cameraHidden)")
-        let instruction = BubbleInstruction(timeRange: .zero, screenTrack: 1, cameraTrack: 2, bubble: [],
-                                            fallbackCenter: .zero, hidden: log.cameraHidden, diameter: 0.1)
-        check("the player hides the camera in that range", instruction.isHidden(at: 3) && !instruction.isHidden(at: 1))
+        let scene = BubbleScene(bubble: [], fallbackCenter: .zero, hidden: log.cameraHidden, diameter: 0.1)
+        check("the player hides the camera in that range", scene.isHidden(at: 3) && !scene.isHidden(at: 1))
         let paused = Timeline()
         let pausedEvents = EventRecorder(source: CGRect(x: 0, y: 0, width: 100, height: 100), timeline: paused)
         paused.begin(at: Timeline.hostNow - 3)

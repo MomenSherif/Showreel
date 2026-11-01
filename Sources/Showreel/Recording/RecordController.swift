@@ -1,6 +1,7 @@
 import AppKit
 import AVFoundation
 import ScreenCaptureKit
+import ShowreelEngine
 import ShowreelKit
 
 /// Runs a recording from the Record Panel to the finished project (S-002 to S-007).

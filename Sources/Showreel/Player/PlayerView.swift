@@ -2,6 +2,7 @@ import AVFoundation
 import AVKit
 import SwiftData
 import SwiftUI
+import ShowreelEngine
 import ShowreelKit
 
 /// One project's window (S-009). In M1 it plays the recording with mic and
@@ -124,12 +125,13 @@ enum PlayerBuilder {
         let pointWidth = max(1, (log?.source.width ?? natural.width / 2))
         let diameter = Layout.bubbleSizes[min(max(project.bubbleSize, 0), 2)] / pointWidth
 
+        let scene = BubbleScene(bubble: log?.bubble ?? [],
+                                fallbackCenter: CGPoint(x: project.bubbleX, y: project.bubbleY),
+                                hidden: log?.cameraHidden ?? [], diameter: diameter,
+                                cornerRatio: project.bubbleShape == BubbleStyle.Shape.roundedSquare.rawValue
+                                    ? Radius.bubbleSquareRatio : 0.5)
         let instruction = BubbleInstruction(timeRange: range, screenTrack: screenTrack.trackID, cameraTrack: cameraID,
-                                            bubble: log?.bubble ?? [],
-                                            fallbackCenter: CGPoint(x: project.bubbleX, y: project.bubbleY),
-                                            hidden: log?.cameraHidden ?? [], diameter: diameter,
-                                            cornerRatio: project.bubbleShape == BubbleStyle.Shape.roundedSquare.rawValue
-                                                ? Radius.bubbleSquareRatio : 0.5)
+                                            scene: scene)
         var config = AVVideoComposition.Configuration()
         config.customVideoCompositorClass = BubbleCompositor.self
         config.renderSize = natural

@@ -1,35 +1,16 @@
 import AVFoundation
 import CoreMedia
-import Synchronization
-import ShowreelKit
-
-/// The recording clock shared by every track and the event log. Samples
-/// carry host-clock times; the timeline turns them into recording time with
-/// pauses removed, so all files line up (S-007).
-nonisolated final class Timeline: Sendable {
-    private let clock = Mutex(RecordingClock())
-
-    static var hostNow: Double { CMClockGetTime(CMClockGetHostTimeClock()).seconds }
-
-    func begin(at host: Double = Timeline.hostNow) { clock.withLock { $0.begin(at: host) } }
-    func pause(at host: Double = Timeline.hostNow) { clock.withLock { $0.pause(at: host) } }
-    func resume(at host: Double = Timeline.hostNow) { clock.withLock { $0.resume(at: host) } }
-    func mediaTime(at host: Double) -> Double? { clock.withLock { $0.mediaTime(at: host) } }
-    func elapsed(at host: Double = Timeline.hostNow) -> Double { clock.withLock { $0.elapsed(at: host) } }
-    var isStarted: Bool { clock.withLock { $0.isStarted } }
-    var isPaused: Bool { clock.withLock { $0.isPaused } }
-}
 
 /// Writes one track (screen, camera, mic, or system audio) to its own file.
 /// Samples arrive on capture queues; everything here runs on `queue`.
-nonisolated final class TrackWriter: @unchecked Sendable {
+public final class TrackWriter: @unchecked Sendable {
     // @unchecked: every mutable property is touched only on `queue`.
-    enum Kind: Sendable {
+    public enum Kind: Sendable {
         case video(width: Int, height: Int, bitrate: Int)
         case audio(channels: Int, bitrate: Int)
     }
 
-    let url: URL
+    public let url: URL
     private let kind: Kind
     private let timeline: Timeline
     private let queue: DispatchQueue
@@ -38,9 +19,9 @@ nonisolated final class TrackWriter: @unchecked Sendable {
     private var lastTime = -1.0
     /// The newest video frame, kept so a still screen still has a first and last frame.
     private var lastFrame: CMSampleBuffer?
-    private(set) var appended = 0
+    private var appended = 0
 
-    init(url: URL, kind: Kind, timeline: Timeline) throws {
+    public init(url: URL, kind: Kind, timeline: Timeline) throws {
         self.url = url
         self.kind = kind
         self.timeline = timeline
@@ -76,7 +57,7 @@ nonisolated final class TrackWriter: @unchecked Sendable {
     }
 
     /// Takes a sample stamped `host` seconds (host clock).
-    func append(_ buffer: CMSampleBuffer, host: Double) {
+    public func append(_ buffer: CMSampleBuffer, host: Double) {
         let sample = Sample(buffer: buffer)
         queue.async { [self] in
             if case .video = kind { lastFrame = sample.buffer }
@@ -91,14 +72,14 @@ nonisolated final class TrackWriter: @unchecked Sendable {
 
     /// Called when the clock starts: puts the newest frame at 0, so the
     /// video has a picture from the first instant even if nothing moves.
-    func primeFirstFrame() {
+    public func primeFirstFrame() {
         queue.async { [self] in
             if appended == 0, let lastFrame { write(lastFrame, at: 0) }
         }
     }
 
     /// Repeats the newest frame at `end`, then closes the file.
-    func finish(at end: Double) async -> Bool {
+    public func finish(at end: Double) async -> Bool {
         await withCheckedContinuation { (done: CheckedContinuation<Bool, Never>) in
             queue.async { [self] in
                 if case .video = kind, let lastFrame, end > lastTime + 0.001 { write(lastFrame, at: end) }
@@ -117,7 +98,7 @@ nonisolated final class TrackWriter: @unchecked Sendable {
     }
 
     /// Stops without saving (Restart).
-    func cancel() {
+    public func cancel() {
         queue.async { [self] in
             if writer.status == .writing { writer.cancelWriting() }
             try? FileManager.default.removeItem(at: url)

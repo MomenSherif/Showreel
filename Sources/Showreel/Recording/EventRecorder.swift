@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import ShowreelEngine
 import ShowreelKit
 
 /// Logs the cursor (60 Hz), clicks, key presses, and Camera Bubble moves

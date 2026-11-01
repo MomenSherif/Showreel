@@ -3,15 +3,31 @@
 ## Targets
 
 ```text
-Showreel (app: SwiftUI, AppKit panels, AVFoundation, ScreenCaptureKit) -> ShowreelKit (pure rules)
+Showreel (app: SwiftUI, AppKit panels) -> ShowreelEngine (AVFoundation, Core Image, ScreenCaptureKit) -> ShowreelKit (pure rules)
 ShowreelKitTests -> ShowreelKit
 ```
 
 ShowreelKit knows nothing about SwiftUI, AppKit, or AVFoundation. It holds
 `ProjectFiles`, `SourceKind`, `EventLog` (events.json), `RecordingClock`
-(pauses removed), `AreaRules`, `DeviceChoice`, `TimeText`, and `ProjectTitle`.
-Planned before M3: a `ShowreelEngine` target for the writers, capture, and
-renderer (docs/architecture-review-2026-11-01.md).
+(pauses removed), `AreaRules`, `DeviceChoice`, `TimeText`, `ProjectTitle`,
+and the bubble rules.
+
+ShowreelEngine holds the media code, with no SwiftUI or AppKit, so
+`swift test` can run it:
+
+| Type | Does |
+| --- | --- |
+| `Timeline` | Host clock to recording time, shared by every track (`Mutex<RecordingClock>`) |
+| `TrackWriter` | One file per track (HEVC .mov or AAC .m4a) on its own serial queue |
+| `ScreenCapture` | The SCStream: screen frames and system audio, to their writers |
+| `DeviceCapture` | One AVCaptureSession per mic or camera |
+| `Renderer` | `frame(screen:camera:at:scene:size:) -> CIImage`, one output frame. The preview and the export both draw with it |
+| `BubbleScene` | The bubble's path, hidden ranges, size, and shape for a whole recording |
+| `BubbleCompositor` | The AVVideoCompositing adapter that feeds AVPlayer frames through `Renderer` |
+
+The app keeps what needs AppKit or SwiftData: `CaptureSource` (the Record
+Panel's choice resolved to a filter and pixel size), `Devices` (lists and
+the saved choice), and building the `BubbleScene` from a `Project`.
 
 ## App folders
 
@@ -20,7 +36,7 @@ renderer (docs/architecture-review-2026-11-01.md).
 | `Library/` | The Library window: grid, cards, context menu |
 | `Projects/` | `ProjectStore`: project folders, thumbnails, Rename, Duplicate, Move to Trash with Undo |
 | `Recording/` | Everything from the Record Panel to the saved files (below) |
-| `Player/` | The project window and `BubbleCompositor` (Core Image) |
+| `Player/` | The project window; it builds the composition and `BubbleScene` |
 | `UI/` | Design tokens and the shared `FloatingPanel` |
 
 ## Recording
