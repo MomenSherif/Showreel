@@ -4,8 +4,8 @@ import SwiftUI
 
 // Showreel
 //   Showreel                      the app
-//   APP_STORE=<file> Showreel     use another database (tests, experiments)
-//   APP_SNAPSHOT=<dir> Showreel   save a PNG of every sidebar page and Settings tab in light and dark mode, then quit
+//   APP_STORE=<file> Showreel     use another database (tests, experiments); projects go to /tmp/Showreel-projects
+//   APP_SNAPSHOT=<dir> Showreel   save a PNG of every page, panel, and Settings tab in light and dark mode, then quit
 //   APP_SEED=1 Showreel           fill an empty /tmp store with sample projects (tools/snap.sh)
 //   Showreel --selftest           run the self-test on a /tmp store and quit with 0 or 1 (tools/selftest.sh)
 //   APP_ACCENT=<id> Showreel      run with another accent from Theme.all (UI/Theme.swift)
@@ -17,22 +17,36 @@ struct ShowreelApp: App {
     @State private var model = AppModel(container: Store.makeContainer())
 
     var body: some Scene {
-        Window("Showreel", id: "main") {
-            ContentView()
+        Window("Library", id: "library") {
+            LibraryView()
                 .environment(model)
                 .themed()
                 .overlay { if GridOverlay.enabled { GridOverlay() } }
-                .frame(minWidth: 760, minHeight: 480)
+                .frame(minWidth: 560, minHeight: 400)
+        }
+        .modelContainer(model.container)
+        .defaultSize(width: 1000, height: 680)
+        .windowToolbarStyle(.unified)
+        .commands { ShowreelCommands(model: model) }
+
+        WindowGroup("Project", id: "editor", for: UUID.self) { $id in
+            if let id {
+                ProjectWindow(id: id)
+                    .environment(model)
+                    .themed()
+            }
         }
         .modelContainer(model.container)
         .defaultSize(width: 1100, height: 720)
         .windowToolbarStyle(.unified)
-        .commands {
-            SidebarCommands()
-            ToolbarCommands()
-            // S-002 adds New Recording (⌘N) here. Until then, no File > New.
-            CommandGroup(replacing: .newItem) {}
+
+        Window("Welcome to Showreel", id: "welcome") {
+            WelcomeView()
+                .themed()
         }
+        .windowResizability(.contentSize)
+        .windowStyle(.hiddenTitleBar)
+        .defaultLaunchBehavior(.suppressed)
 
         Settings {
             SettingsView()
@@ -43,14 +57,102 @@ struct ShowreelApp: App {
     }
 }
 
+/// Every command in the menu bar (docs/DESIGN.md, "Command map").
+struct ShowreelCommands: Commands {
+    let model: AppModel
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some Commands {
+        ToolbarCommands()
+        CommandGroup(replacing: .newItem) {
+            Button("New Recording") { RecordController.shared.newRecording() }
+                .keyboardShortcut("n")
+            Button("Open") { open() }
+                .keyboardShortcut("o")
+                .disabled(selected == nil || selected?.isSaving == true)
+        }
+        CommandGroup(after: .saveItem) {
+            Button("Duplicate") { if let p = selected { ProjectStore.duplicate(p, in: model, undo: AppServices.shared.undoManager) } }
+                .keyboardShortcut("d")
+                .disabled(selected == nil || selected?.isSaving == true)
+            Button("Rename…") { model.renaming = model.selection }
+                .disabled(selected == nil)
+            Button("Show in Finder") { if let p = selected { ProjectStore.showInFinder(p) } }
+                .keyboardShortcut("r", modifiers: [.command, .option])
+                .disabled(selected == nil)
+            Divider()
+            Button("Move to Trash") { if let p = selected { ProjectStore.moveToTrash(p, in: model, undo: AppServices.shared.undoManager) } }
+                .keyboardShortcut(.delete)
+                .disabled(selected == nil)
+        }
+        CommandMenu("Record") {
+            RecordMenu()
+        }
+        CommandGroup(before: .windowList) {
+            Button("Library") { openWindow(id: "library") }
+                .keyboardShortcut("0")
+            Divider()
+        }
+        CommandGroup(after: .help) {
+            Button("Check Access…") { openWindow(id: "welcome") }
+        }
+    }
+
+    private var selected: Project? { model.selectedProject }
+
+    private func open() {
+        guard let id = model.selection else { return }
+        openWindow(id: "editor", value: id)
+    }
+}
+
+/// The Record menu. Its labels follow the recording state.
+private struct RecordMenu: View {
+    private var recorder = RecordController.shared
+
+    var body: some View {
+        Button(recorder.isCapturing ? "Stop Recording" : "Start Recording") { recorder.toggleFromShortcut() }
+            .keyboardShortcut("r", modifiers: [.control, .option, .command])
+            .disabled(recorder.state == .saving)
+        Button(recorder.state == .paused ? "Resume Recording" : "Pause Recording") { recorder.togglePause() }
+            .keyboardShortcut("p", modifiers: [.control, .option, .command])
+            .disabled(!recorder.isCapturing)
+        Button("Restart Recording") { recorder.restart() }
+            .disabled(!recorder.isCapturing)
+        Divider()
+        Button(recorder.cameraHidden ? "Show Camera Bubble" : "Hide Camera Bubble") { recorder.toggleCameraHidden() }
+            .keyboardShortcut("c", modifiers: [.control, .option, .command])
+            .disabled(!recorder.cameraOn)
+    }
+}
+
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Started from a terminal, the process is not a foreground app yet.
         NSApp.setActivationPolicy(.regular)
         NSApp.activate()
+        guard !SelfTest.requested, !Snapshot.isActive else { return }
+        StatusItem.shared.install()
+        HotKeys.register()
     }
 
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
+    /// Showreel keeps running in the menu bar with no windows open.
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        if !hasVisibleWindows { AppServices.shared.openLibrary() }
+        return true
+    }
+
+    func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
+        let menu = NSMenu()
+        menu.addItem(withTitle: "New Recording", action: #selector(newRecording), keyEquivalent: "").target = self
+        menu.addItem(withTitle: "Open Library", action: #selector(openLibrary), keyEquivalent: "").target = self
+        return menu
+    }
+
+    @objc private func newRecording() { RecordController.shared.newRecording() }
+    @objc private func openLibrary() { AppServices.shared.openLibrary() }
 
     /// The self-test's result becomes the exit code, after a normal quit.
     func applicationWillTerminate(_ notification: Notification) {

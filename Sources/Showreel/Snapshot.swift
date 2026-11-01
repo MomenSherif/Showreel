@@ -1,15 +1,84 @@
 import AppKit
 import IOKit.pwr_mgt
+import SwiftData
 import SwiftUI
 
 /// Screenshot mode for agents.
 ///   APP_STORE=/tmp/test.store APP_SNAPSHOT=/tmp/shots ~/Applications/Showreel.app/Contents/MacOS/Showreel
-/// writes <page>-light.png and <page>-dark.png for every sidebar page, and
-/// settings-<tab>-light.png and settings-<tab>-dark.png for every Settings tab, then quits.
+/// writes <page>-light.png and <page>-dark.png for every library page and
+/// every surface (welcome, record-panel, source-picker, area-selector,
+/// countdown, recording-controls, player), and settings-<tab>-light.png and
+/// settings-<tab>-dark.png for every Settings tab, then quits.
 /// Each PNG gets a <page>-<mode>-layout.json with the grid probes (tools/check-layout.swift).
-/// APP_SNAPSHOT_PAGES=all limits the pages. Add "settings" to include Settings.
+/// APP_SNAPSHOT_PAGES=library,record-panel limits the pages. Add "settings" to include Settings.
 /// Add APP_ACCENT=<id> to see the pages in another accent.
 enum Snapshot {
+    static var isActive: Bool { !(ProcessInfo.processInfo.environment["APP_SNAPSHOT"] ?? "").isEmpty }
+
+    /// One floating panel or extra window: how to show it, find it, and close it.
+    private struct Surface {
+        let name: String
+        let show: () async -> Void
+        let window: () -> NSWindow?
+        let hide: () -> Void
+    }
+
+    private static func surfaces(model: AppModel) -> [Surface] {
+        let recorder = RecordController.shared
+        let mainDisplay = CGMainDisplayID()
+        return [
+            Surface(name: "welcome", show: { AppServices.shared.openWelcome() },
+                    window: { NSApp.windows.first { $0.title == "Welcome to Showreel" && $0.isVisible } },
+                    hide: { NSApp.windows.first { $0.title == "Welcome to Showreel" }?.close() }),
+            Surface(name: "record-panel", show: {
+                        recorder.snapshotState(.panel)
+                        RecordPanel.shared.show(activate: true)
+                        await recorder.loadContent()
+                    },
+                    window: { RecordPanel.shared.panel },
+                    hide: { RecordPanel.shared.hide(); recorder.snapshotState(.idle) }),
+            Surface(name: "source-picker", show: {
+                        recorder.snapshotState(.panel)
+                        recorder.sourceKind = .display
+                        RecordPanel.shared.show(activate: true)
+                        await recorder.loadContent()
+                        recorder.showingSourcePicker = true
+                    },
+                    window: { NSApp.windows.first { $0.className.contains("Popover") && $0.isVisible } },
+                    hide: {
+                        recorder.showingSourcePicker = false
+                        RecordPanel.shared.hide()
+                        recorder.snapshotState(.idle)
+                    }),
+            Surface(name: "area-selector", show: {
+                        recorder.snapshotState(.panel)
+                        recorder.area = CGRect(x: 320, y: 220, width: 960, height: 600)
+                        AreaSelector.shared.begin()
+                    },
+                    window: { AreaSelector.shared.mainPanel },
+                    hide: { AreaSelector.shared.hideOverlay(); recorder.area = nil; recorder.snapshotState(.idle) }),
+            Surface(name: "countdown", show: {
+                        recorder.snapshotState(.countdown, countdown: 3)
+                        Countdown.shared.show(on: mainDisplay)
+                    },
+                    window: { Countdown.shared.window },
+                    hide: { Countdown.shared.hide(); recorder.snapshotState(.idle) }),
+            Surface(name: "recording-controls", show: {
+                        recorder.snapshotState(.recording, elapsed: 72)
+                        RecordingControls.shared.show(on: mainDisplay)
+                    },
+                    window: { RecordingControls.shared.panel },
+                    hide: { RecordingControls.shared.hide(); recorder.snapshotState(.idle) }),
+            Surface(name: "player", show: {
+                        let first = SeedData.samples.first?.title
+                        let project = (try? model.context.fetch(FetchDescriptor<Project>()))?.first { $0.title == first }
+                        if let project { AppServices.shared.openProject(project.uuid) }
+                    },
+                    window: { NSApp.windows.first { $0.title == SeedData.samples.first?.title && $0.isVisible } },
+                    hide: { NSApp.windows.first { $0.title == SeedData.samples.first?.title }?.close() }),
+        ]
+    }
+
     static func runIfRequested(model: AppModel, openSettings: OpenSettingsAction) {
         let env = ProcessInfo.processInfo.environment
         guard let dir = env["APP_SNAPSHOT"], !dir.isEmpty else { return }
@@ -37,6 +106,22 @@ enum Snapshot {
                     try? await Task.sleep(for: .seconds(0.8))
                     capture(to: "\(dir)/\(page.rawValue)-\(mode).png")
                 }
+            }
+            for surface in surfaces(model: model) where only?.contains(surface.name) ?? true {
+                model.page = .library
+                await surface.show()
+                try? await Task.sleep(for: .seconds(1.5))
+                for mode in ["light", "dark"] {
+                    NSApp.appearance = NSAppearance(named: mode == "light" ? .aqua : .darkAqua)
+                    try? await Task.sleep(for: .seconds(0.8))
+                    if let window = surface.window() {
+                        capture(to: "\(dir)/\(surface.name)-\(mode).png", window: window)
+                    } else {
+                        print("SNAPSHOT no window for \(surface.name)")
+                    }
+                }
+                surface.hide()
+                try? await Task.sleep(for: .seconds(0.3))
             }
             if only == nil || only?.contains("settings") == true {
                 let main = NSApp.windows.first { $0.canBecomeMain && !$0.isSheet }

@@ -42,7 +42,8 @@ UX:
 - States: each row is either "Not allowed" (an Allow button) or "Allowed" (a green checkmark and the word). Screen Recording granted but not active yet: "Quit and reopen Showreel to finish" with a "Quit & Reopen" button. Continue is disabled until Screen Recording is allowed, with the inline hint "Screen Recording is required to record."
 - Words: title "Welcome to Showreel", subtitle "Showreel needs your permission to record. Your recordings stay on this Mac." Rows: "Screen Recording: to record your displays and windows", "Microphone: to record your voice (optional)", "Camera: to show you in a Camera Bubble (optional)". Buttons "Allow…", "Continue".
 - Access: Tab moves through the Allow buttons, and Return triggers Continue. VoiceOver reads "Screen Recording, not allowed, Allow button". Status uses an icon and a word, never color alone.
-Status: todo
+Status: done
+Note: the system prompts and the Screen Recording relaunch need a person to try ([manual]).
 
 ### S-002 Open the record panel from the menu bar or a shortcut
 As the user, I click the menu bar icon or press ⌃⌥⌘R to open the floating
@@ -62,7 +63,7 @@ UX:
 - States: no Screen Recording access shows an inline "Allow Screen Recording…" button in place of Start Recording. The menu bar icon is red with the elapsed time while recording.
 - Words: menu "New Recording ⌃⌥⌘R", "Open Library", "Settings…", "Quit Showreel". Panel button "Start Recording". Tooltip on the menu bar icon: "Showreel: New Recording (⌃⌥⌘R)".
 - Access: the panel takes keyboard focus when opened from the shortcut. Tab order: Source, Mic, Camera, System Audio, Start Recording. Return starts.
-Status: todo
+Status: done
 
 ### S-003 Choose what to record: display, window, or area
 As the user, I choose a display, a window, or an area I drag out before
@@ -83,7 +84,7 @@ UX:
 - States: a closed window falls back to "Choose a Window…" with an inline warning. An area smaller than 200×200 shows "Area is too small" next to the size readout. Long window titles truncate in the middle, with a tooltip.
 - Words: segments "Display", "Window", "Area". Popover titles "Choose a Display", "Choose a Window". Area hint "Drag to select an area. Press Return to confirm, Escape to cancel." Size readout "1920 × 1080".
 - Access: arrow keys move through thumbnails and Return picks. VoiceOver reads "Window, Safari: GitHub, 1 of 12". In area mode, arrow keys nudge by 1 pt and Shift-arrow by 10 pt.
-Status: todo
+Status: done
 
 ### S-004 Turn the microphone on or off and pick a device
 As the user, I toggle the mic and choose which microphone to use, with a
@@ -101,7 +102,8 @@ UX:
 - States: off is a slashed mic and "Mic off". No access shows "Allow Microphone…" inline. Device lost: "MacBook Pro Microphone (default)" with a small warning icon and the tooltip "Your USB mic was disconnected." A silent meter for 5 seconds shows the hint "No sound detected".
 - Words: label "Mic", tooltip "Record your voice", menu header "Microphone".
 - Access: Space toggles. VoiceOver reads "Microphone, on, MacBook Pro Microphone", and the meter is exposed as a level value.
-Status: todo
+Status: done
+Note: unplugging a USB mic is not tried yet ([manual]); the fallback rule is unit-tested.
 
 ### S-005 Turn the camera on or off and pick a device
 As the user, I toggle the camera and choose which camera to use.
@@ -117,7 +119,8 @@ UX:
 - States: off is a slashed camera and "Camera off". No access shows "Allow Camera…" inline. Camera in use by another app: "Camera is in use by another app" inline.
 - Words: label "Camera", tooltip "Show yourself in a Camera Bubble", menu header "Camera".
 - Access: Space toggles. VoiceOver reads "Camera, on, FaceTime HD Camera".
-Status: todo
+Status: done
+Note: the bubble is the basic live circle; dragging with snap, sizes, and shapes are M2.
 
 ### S-006 Turn system audio on or off
 As the user, I choose whether sounds from my Mac are recorded.
@@ -132,7 +135,7 @@ UX:
 - States: off by default, with a speaker-slash icon when off.
 - Words: label "System Audio", tooltip "Record sounds your Mac plays".
 - Access: Space toggles. VoiceOver reads "System Audio, off".
-Status: todo
+Status: done
 
 ### S-007 Start and stop a recording
 As the user, I press Record, see a 3-second countdown, and later stop with
@@ -155,7 +158,8 @@ UX:
 - States: paused shows the time blinking and "Paused". Low disk space (under 2 GB) shows an inline warning in the controls. A failed write stops the recording, keeps everything recorded so far, and shows the alert "Recording stopped because the disk is full. What was recorded up to 4:12 is saved."
 - Words: "Pause", "Resume", "Stop", "Restart". Tooltips: "Stop and open the project (⌃⌥⌘R)", "Throw away this recording and start again". Restart sends the recording to the Trash without a dialog, and the Library's Undo restores it.
 - Access: ⌃⌥⌘P pauses or resumes. VoiceOver reads "Recording, 1 minute 12 seconds". Reduce Motion fades the Countdown numbers instead of scaling them.
-Status: todo
+Status: done
+Note: the self-test records real 2 s and 2.5 s clips with a pause; the 10-minute 4K/60 run is [manual].
 
 ### S-008 See my recordings in the library
 As the user, I open the library window and see every project as a card
@@ -173,7 +177,7 @@ UX:
 - States: empty shows a large icon, "No Recordings Yet", the line "Record your screen, voice, and camera. Showreel adds zooms and a frame for you.", and a "New Recording" button. A project still finishing its recording shows its card with a spinner and "Saving…". A missing file shows "Recording files are missing" with Show in Finder. Long titles wrap to two lines, then truncate with a tooltip.
 - Words: window title "Library". Toolbar "New Recording" (⌘N). Card subtitle "0:42 · Today, 10:14".
 - Access: arrow keys move the selection, Return opens, and type-to-select works. VoiceOver reads each card as "Onboarding walkthrough, 42 seconds, today".
-Status: todo
+Status: done
 
 ### S-009 Play back a recording
 As the user, I double-click a project and play it back with mic and system
@@ -191,7 +195,8 @@ UX:
 - States: loading for more than half a second shows the first frame with a spinner. A missing camera track hides the bubble without an error.
 - Words: window title is the project title. Tooltips "Play (Space)", "Pause (Space)".
 - Access: Space plays and pauses, ←/→ step 1 second, J/K/L control playback speed. VoiceOver reads the scrubber as "Playhead, 0:12 of 0:42".
-Status: todo
+Status: done
+Note: audio/video sync over a long recording is not measured yet ([unit] still to write).
 
 ### S-010 Rename, show in Finder, or move a project to the Trash
 As the user, I right-click a project card to rename it, show its folder in
@@ -209,7 +214,7 @@ UX:
 - States: an empty title restores the previous one. Undo after Move to Trash puts the folder back in place.
 - Words: "Open", "Rename", "Show in Finder", "Duplicate", "Move to Trash". Edit menu "Undo Move to Trash".
 - Access: every item has a menu bar equivalent in the File menu with the same shortcut.
-Status: todo
+Status: done
 
 ---
 

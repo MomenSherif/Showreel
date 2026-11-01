@@ -18,6 +18,10 @@ enum Surfaces {
     static let scrim = Color.black.opacity(0.45)
     /// Text on `scrim`. Fixed, because the scrim is dark in both modes.
     static let onScrim = Color.white
+    /// Soft shadow under content that floats a little: cards, the Camera Bubble.
+    static let shadow = Color.black.opacity(0.10)
+    /// The same shadow when the pointer is over a card.
+    static let shadowHover = Color.black.opacity(0.18)
 }
 
 /// Colors that carry a meaning in recording and on the timeline. Each one is
