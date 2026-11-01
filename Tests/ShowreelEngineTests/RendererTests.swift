@@ -92,6 +92,17 @@ struct RendererTests {
         try glow.expectMatches(golden: "style-glow")
     }
 
+    /// S-025: a crop shows only part of the recording, scaled to fill the
+    /// same space, and the bubble stays on its spot of the recording.
+    @Test func cropMatchesGolden() throws {
+        let frame = Self.styled { $0.background = .color(RGB(1, 1, 1)); $0.padding = 0.1; $0.effectAmount = 0
+            $0.crop = CropRect(x: 0, y: 0, width: 0.5, height: 0.5) }
+        // The top-left quarter holds the bubble (center 0.25, 0.3 → 0.5, 0.6 in the crop).
+        let bubble = frame.pixel(x: 160 - 20, y: 20 + Int(0.6 * 160) + 10)
+        #expect(bubble.g > 150, "the bubble is in the cropped frame, got \(bubble)")
+        try frame.expectMatches(golden: "style-crop")
+    }
+
     @Test func solidColorShowsAroundTheRecording() {
         let frame = Self.styled { $0.background = .color(RGB(1, 0, 0)); $0.padding = 0.1 }
         let corner = frame.pixel(x: 4, y: 4)

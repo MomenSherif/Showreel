@@ -132,6 +132,22 @@ enum Snapshot {
                             },
                             window: window,
                             hide: {})
+        // S-025: Crop Screen with a crop set, so the handles and dimming show.
+        let crop = Surface(name: "crop-sheet", show: {
+                               guard let editor = EditorModel.newest else { return }
+                               var style = editor.style
+                               style.crop = CropRect(x: 0.1, y: 0.12, width: 0.75, height: 0.7) // grid: ok normalized crop
+                               editor.applyStyle(style, named: "Crop")
+                               editor.showsCropSheet = true
+                           },
+                           window: { window()?.attachedSheet },
+                           hide: {
+                               guard let editor = EditorModel.newest else { return }
+                               editor.showsCropSheet = false
+                               var style = editor.style
+                               style.crop = .full
+                               editor.applyStyle(style, named: "Crop")
+                           })
         return InspectorSection.allCases.map { section in
             Surface(name: section == .background ? "editor" : "editor-\(section.rawValue)", show: {
                         let project = (try? model.context.fetch(FetchDescriptor<Project>()))?.first { $0.title == title }
@@ -141,7 +157,7 @@ enum Snapshot {
                     },
                     window: window,
                     hide: {})
-        } + [trim, split, zoomed]
+        } + [trim, split, crop, zoomed]
     }
 
     static func runIfRequested(model: AppModel, openSettings: OpenSettingsAction) {

@@ -60,6 +60,8 @@ public enum Renderer {
     public static func frame(screen: CIImage, camera: CIImage?, at t: Double, scene: BubbleScene,
                              style: RenderStyle = .plain, size: CGSize) -> CIImage {
         let canvas = CGRect(origin: .zero, size: size)
+        let crop = style.style.crop
+        let screen = cropped(screen, to: crop)
         // Layout uses a top-left origin; Core Image a bottom-left one.
         let top = CanvasLayout.screenRect(content: screen.extent.size, canvas: size, padding: style.style.padding)
         let rect = CGRect(x: top.minX, y: size.height - top.maxY, width: top.width, height: top.height)
@@ -70,8 +72,10 @@ public enum Renderer {
         let radius = CanvasLayout.cornerRadius(style.style.rounding, canvasHeight: size.height)
         if radius > 0 { image = rounded(image, rect: rect, radius: radius) }
         if let camera, !scene.isHidden(at: t) {
-            image = bubble(camera, over: image, center: scene.center(at: t), diameter: scene.diameter * rect.width,
-                           cornerRatio: scene.cornerRatio, in: rect)
+            // A crop moves the bubble with its spot on the recording; its size
+            // stays the same, since the camera is not part of the recording.
+            image = bubble(camera, over: image, center: crop.mapClamped(scene.center(at: t)),
+                           diameter: scene.diameter * rect.width, cornerRatio: scene.cornerRatio, in: rect)
         }
         if let lift = lift(style.style, rect: rect, radius: radius, canvas: size) {
             image = image.composited(over: lift)
@@ -80,6 +84,16 @@ public enum Renderer {
             image = image.composited(over: background)
         }
         return image.cropped(to: canvas)
+    }
+
+    /// The cropped part of the recording (S-025), moved to the origin.
+    static func cropped(_ screen: CIImage, to crop: CropRect) -> CIImage {
+        let e = screen.extent
+        guard !crop.isFull else { return screen }
+        let top = crop.pixels(of: e.size)
+        // Top-left crop to Core Image's bottom-left extent.
+        let rect = CGRect(x: e.minX + top.minX, y: e.minY + e.height - top.maxY, width: top.width, height: top.height)
+        return screen.cropped(to: rect).transformed(by: CGAffineTransform(translationX: -rect.minX, y: -rect.minY))
     }
 
     /// `image` cut to a rounded rectangle; the corners become clear.

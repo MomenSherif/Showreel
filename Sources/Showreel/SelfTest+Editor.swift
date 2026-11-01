@@ -236,6 +236,17 @@ extension SelfTest {
               editor.style.padding == 0.24 && Style.decode(editor.project.styleData).padding == 0.24)
         undo.undo()
         check("one Undo reverts the whole Padding drag", editor.style.padding == before.padding, "\(editor.style.padding)")
+        // S-025: a crop is stored with the style and is one undo step.
+        undo.beginUndoGrouping()
+        var cropped = editor.style
+        cropped.crop = CropRect(x: 0.1, y: 0.1, width: 0.5, height: 0.5) // grid: ok normalized crop
+        editor.applyStyle(cropped, named: "Crop")
+        undo.endUndoGrouping()
+        check("a crop is saved with the project", Style.decode(editor.project.styleData).crop == cropped.crop)
+        check("the Clip menu has Crop Screen…",
+              NSApp.mainMenu?.item(withTitle: "Clip")?.submenu?.items.contains { $0.title == "Crop Screen…" } == true)
+        undo.undo()
+        check("Undo removes the crop", editor.style.crop.isFull)
         // Back to grouping by event: registering undo outside a group with it
         // off leaves NSUndoManager broken (it crashed SwiftUI later).
         undo.groupsByEvent = true

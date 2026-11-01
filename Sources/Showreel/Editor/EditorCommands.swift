@@ -30,6 +30,9 @@ struct EditorCommands: Commands {
                     .keyboardShortcut(.delete, modifiers: [])
                     .disabled(editor?.canDeleteSelection != true)
                 Divider()
+                Button("Crop Screen…") { act(nil) { $0.showsCropSheet = true } }
+                    .keyboardShortcut("c", modifiers: [.option, .command])
+                Divider()
                 Button("Trim Start to Playhead") { act(nil) { $0.trimStartToPlayhead() } }
                     .keyboardShortcut("[", modifiers: .option)
                 Button("Trim End to Playhead") { act(nil) { $0.trimEndToPlayhead() } }

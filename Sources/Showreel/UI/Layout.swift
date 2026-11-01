@@ -21,6 +21,8 @@ enum Layout {
     /// Inspector tiles: gradient swatches and wallpaper thumbnails (16:10).
     static let swatch: CGFloat = 36
     static let wallpaperTile = CGSize(width: 64, height: 40)
+    /// The frame area in the Crop Screen sheet.
+    static let cropArea = CGSize(width: 640, height: 400)
 
     // Floating recording chrome
     static let recordPanel = CGSize(width: 600, height: 56)

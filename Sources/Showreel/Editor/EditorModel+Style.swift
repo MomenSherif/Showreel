@@ -72,6 +72,16 @@ extension EditorModel {
         return CIImage(cgImage: image)
     }
 
+    /// The recording's frame under the playhead, uncropped, for Crop Screen.
+    func currentSourceFrame() async -> CGImage? {
+        guard let sources, let time = edits.sourceTime(atEditTime: playhead.time) else { return nil }
+        let generator = AVAssetImageGenerator(asset: sources.screen.asset)
+        generator.appliesPreferredTrackTransform = true
+        generator.requestedTimeToleranceBefore = .zero
+        generator.requestedTimeToleranceAfter = CMTime(value: 1, timescale: 10)
+        return try? await generator.image(at: CMTime(seconds: time, preferredTimescale: 600)).image
+    }
+
     /// Copies the person's image into the project folder, so the project
     /// keeps working if the original moves, and makes it the background.
     func chooseBackgroundImage(_ url: URL) {

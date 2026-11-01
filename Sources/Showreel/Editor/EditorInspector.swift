@@ -50,6 +50,13 @@ private struct SectionPage: View {
                                 format: StyleSlider.percent, undoName: "Padding")
                     StyleSlider(title: "Rounding", editor: editor, value: \.rounding, range: 0...40,
                                 format: StyleSlider.pixels, undoName: "Rounding")
+                    LabeledContent {
+                        Button("Crop Screen…", systemImage: "crop") { editor.showsCropSheet = true }
+                            .help("Cut away the edges of the recording (⌥⌘C)")
+                    } label: {
+                        Text("Crop")
+                        Text(cropText).foregroundStyle(.secondary)
+                    }
                 }
                 Section("Shadow") {
                     Picker("Effect", selection: effectBinding) {
@@ -112,6 +119,13 @@ private struct SectionPage: View {
 }
 
 extension SectionPage {
+    var cropText: String {
+        let crop = editor.style.crop
+        guard !crop.isFull, let size = editor.sources?.naturalSize else { return "None" }
+        let pixels = crop.pixels(of: size)
+        return "\(Int(pixels.width)) × \(Int(pixels.height))"
+    }
+
     var effectBinding: Binding<Style.Effect> {
         Binding(get: { editor.style.effect }, set: { effect in
             var style = editor.style

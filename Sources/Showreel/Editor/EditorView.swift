@@ -68,6 +68,7 @@ struct EditorView: View {
         .navigationSubtitle(TimeText.clock(editor.duration))
         .toolbar { toolbar }
         .toolbarTitleMenu { RenameButton() }
+        .sheet(isPresented: $editor.showsCropSheet) { CropSheet(editor: editor) }
         .focusedSceneValue(\.editor, editor)
         .task { await editor.load() }
         .onAppear { editor.undoManager = undoManager }

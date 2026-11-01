@@ -69,6 +69,8 @@ public struct Style: Codable, Equatable, Sendable {
     public var effect: Effect = .shadow
     /// Strength of the shadow or glow, 0...1. Zero turns it off.
     public var effectAmount: Double = 0.5
+    /// The part of the recording that shows (S-025).
+    public var crop: CropRect = .full
 
     public init() {}
 
@@ -82,7 +84,7 @@ public struct Style: Codable, Equatable, Sendable {
         return style
     }()
 
-    enum CodingKeys: String, CodingKey { case background, backgroundBlur, padding, rounding, effect, effectAmount }
+    enum CodingKeys: String, CodingKey { case background, backgroundBlur, padding, rounding, effect, effectAmount, crop }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -93,6 +95,7 @@ public struct Style: Codable, Equatable, Sendable {
         rounding = (try? c.decodeIfPresent(Double.self, forKey: .rounding)) ?? d.rounding
         effect = (try? c.decodeIfPresent(Effect.self, forKey: .effect)) ?? d.effect
         effectAmount = (try? c.decodeIfPresent(Double.self, forKey: .effectAmount)) ?? d.effectAmount
+        crop = (try? c.decodeIfPresent(CropRect.self, forKey: .crop)) ?? d.crop
     }
 
     public func encoded() -> Data { (try? JSONEncoder().encode(self)) ?? Data() }

@@ -391,7 +391,8 @@ Acceptance:
   Done.
 - [unit] Click positions and zoom focus points are remapped to the cropped
   frame.
-Status: todo
+Status: done
+Note: `CropRect` (Kit) maps points (`map`, `mapClamped`; CropTests). The bubble follows its spot on the recording and keeps its size. Clip > Crop Screen… (⌥⌘C) or Inspector > Screen. Snapshot `crop-sheet`, golden `style-crop`.
 
 ### S-026 Add a device frame
 As the user, I pick None, Border, Browser, or MacBook as the outline
