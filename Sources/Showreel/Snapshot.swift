@@ -112,6 +112,7 @@ enum Snapshot {
                                for _ in 0..<20 where EditorModel.newest?.player == nil { try? await Task.sleep(for: .seconds(0.1)) }
                                guard let editor = EditorModel.newest, let first = editor.edits.segments.first else { return }
                                editor.zoom = TimelineZoom()
+                               editor.section = .background
                                editor.selectedSegment = first.id
                                editor.previewTrim(first.id, edge: .start, by: 6)
                            },
@@ -120,6 +121,7 @@ enum Snapshot {
         // S-019: split twice, the middle piece selected.
         let split = Surface(name: "editor-split", show: {
                                 guard let editor = EditorModel.newest else { return }
+                                editor.section = .background
                                 editor.selectedSegment = nil
                                 editor.apply(EditList(sourceDuration: editor.edits.sourceDuration))
                                 editor.seek(to: 12)
