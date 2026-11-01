@@ -81,3 +81,20 @@ and the behavior stays the same. Applied in this check-in, unattended.
   real ones.
 - Moving `ProjectStore` into Kit: it uses AppKit (Finder, Trash, thumbnails),
   and its pure part (`ProjectFiles`) is already in Kit.
+
+---
+
+# Check-in at the end of M2 (commit 7955260)
+
+The code now has 5,294 lines. The largest files are `RecordController` (445,
+down from 471), `SelfTest` (312), and `RecordPanel` (291). Nothing is near
+600 lines. The pure rules added in M2 (`BubbleSnap`, `HiddenRanges`, and the
+`EventLog` bubble helpers) went into ShowreelKit with unit tests, as planned.
+
+- **Media engine target**: still the top recommendation, and now due. M3 starts
+  the editor preview on top of `BubbleCompositor`. Rated **Worth exploring**,
+  not Strong, because it touches about 8 files and makes their APIs public. So
+  it waits for the user's go-ahead instead of running unattended.
+- **Split SelfTest by area** [Speculative]: it grows with every story. Split it into
+  `SelfTest+Library`, `+Recording`, and `+Bubble` when it passes 450 lines.
+- No Strong candidate this time, so no refactor in this check-in.
