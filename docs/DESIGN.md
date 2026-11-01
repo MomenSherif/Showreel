@@ -120,7 +120,7 @@ toggles with ⌃⌘I.
 ```
 
 - **Structure:** a `VSplitView` with the canvas on top and the timeline below
-  (default 220 pt, min 160). `.inspector` sits on the outer view.
+  (min 212 pt, which fits the transport, the ruler, and four lanes). `.inspector` sits on the outer view.
 - **Inspector:** at the top, a segmented `Picker` with six symbols, each with
   a title and `.help`: Background `photo`, Screen `macwindow`, Effects
   `cursorarrow.rays`, Camera `person.crop.circle`, Captions `captions.bubble`,

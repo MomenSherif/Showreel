@@ -295,9 +295,31 @@ enum SelfTest {
               [ProjectFiles.screen, ProjectFiles.events, ProjectFiles.thumbnail].allSatisfy(files.contains), files.joined(separator: ", "))
         let log = (try? Data(contentsOf: ProjectStore.file(ProjectFiles.events, of: project.uuid))).flatMap { try? EventLog.decode($0) }
         check("events.json decodes", log != nil)
+        await editor(project)
         for window in NSApp.windows where window.title == project.title { window.close() }
         try? FileManager.default.removeItem(at: ProjectStore.folder(for: project.uuid))
         model.context.delete(project)
+    }
+
+    /// S-015: a saved recording opens in the Editor with its real length,
+    /// the inspector, and the toolbar.
+    private static func editor(_ project: Project) async {
+        AppServices.shared.openProject(project.uuid)
+        for _ in 0..<60 where EditorModel.newest?.project.uuid != project.uuid { try? await Task.sleep(for: .seconds(0.1)) }
+        guard let editor = EditorModel.newest, editor.project.uuid == project.uuid else {
+            check("the project opens in the Editor", false)
+            return
+        }
+        check("the project opens in the Editor", editor.player != nil)
+        check("the Editor's length matches the recording", abs(editor.duration - project.duration) < 0.2,
+              "\(editor.duration) vs \(project.duration)")
+        check("the inspector is shown with six sections", editor.showsInspector && InspectorSection.allCases.count == 6)
+        let window = NSApp.windows.first { $0.title == project.title && $0.isVisible }
+        let items = window?.toolbar?.items.compactMap { $0.label.isEmpty ? $0.paletteLabel : $0.label } ?? []
+        check("the toolbar has Undo, Redo, and Export…",
+              ["Undo", "Redo", "Export…"].allSatisfy { label in items.contains { $0.contains(label) } }, items.joined(separator: ", "))
+        let view = NSApp.mainMenu?.item(withTitle: "View")?.submenu?.items.map(\.title) ?? []
+        check("the View menu toggles the inspector", view.contains { $0.contains("Inspector") }, view.joined(separator: ", "))
     }
 
     private static func check(_ name: String, _ ok: Bool, _ detail: String = "") {

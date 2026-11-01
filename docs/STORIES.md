@@ -5,7 +5,7 @@ Source: `docs/BRIEF.md`. Reference: `docs/screens/reference-editor.png`
 
 Snapshot pages: `permissions`, `menubar`, `record-panel`, `source-picker`,
 `area-selector`, `countdown`, `recording-controls`, `camera-bubble`, `library`,
-`library-empty`, `player`, `editor`, `editor-background`, `editor-screen`,
+`library-empty`, `editor`, `editor-background`, `editor-screen`,
 `editor-camera`, `editor-effects`, `editor-captions`, `editor-audio`,
 `editor-zoom-selected`, `crop-sheet`, `export-sheet`, `export-progress`,
 `settings`.
@@ -182,7 +182,7 @@ Status: done
 ### S-009 Play back a recording
 As the user, I double-click a project and play it back with mic and system
 audio in sync.
-Screens: player
+Screens: editor (was player until S-015)
 Depends: S-008
 Acceptance:
 - [snap] A player with play/pause, a scrubber, and the time. The camera is
@@ -280,7 +280,8 @@ Acceptance:
 - [snap] The layout follows docs/DESIGN.md: the reference's regions, with
   the section rail moved into a native trailing inspector.
 - [snap] The toolbar has Undo, Redo, an editable title, and Export.
-Status: todo
+Status: done
+Note: snapshots `editor` and `editor-<section>`. Export is shown but disabled until S-036, and Split, Add Zoom, and the timeline zoom until their stories. Space, ←/→, and J/K/L (S-009's AVPlayerView keys) come back with the Playback menu in S-016.
 
 ### S-016 Play, pause, and scrub
 As the user, I press Space to play or pause, drag the playhead, and use

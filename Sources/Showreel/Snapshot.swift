@@ -7,7 +7,7 @@ import SwiftUI
 ///   APP_STORE=/tmp/test.store APP_SNAPSHOT=/tmp/shots ~/Applications/Showreel.app/Contents/MacOS/Showreel
 /// writes <page>-light.png and <page>-dark.png for every library page and
 /// every surface (welcome, record-panel, source-picker, area-selector,
-/// countdown, recording-controls, player), and settings-<tab>-light.png and
+/// countdown, recording-controls, editor, editor-<section>), and settings-<tab>-light.png and
 /// settings-<tab>-dark.png for every Settings tab, then quits.
 /// Each PNG gets a <page>-<mode>-layout.json with the grid probes (tools/check-layout.swift).
 /// APP_SNAPSHOT_PAGES=library,record-panel limits the pages. Add "settings" to include Settings.
@@ -86,14 +86,24 @@ enum Snapshot {
                     },
                     window: { RecordingControls.shared.panel },
                     hide: { RecordingControls.shared.hide(); recorder.snapshotState(.idle) }),
-            Surface(name: "player", show: {
-                        let first = SeedData.samples.first?.title
-                        let project = (try? model.context.fetch(FetchDescriptor<Project>()))?.first { $0.title == first }
-                        if let project { AppServices.shared.openProject(project.uuid) }
+        ] + editorSurfaces(model: model)
+    }
+
+    /// The Editor, once per inspector section: "editor" shows Background,
+    /// "editor-<section>" the others.
+    private static func editorSurfaces(model: AppModel) -> [Surface] {
+        let title = SeedData.samples.first?.title
+        let window = { NSApp.windows.first { $0.title == title && $0.isVisible } }
+        return InspectorSection.allCases.map { section in
+            Surface(name: section == .background ? "editor" : "editor-\(section.rawValue)", show: {
+                        let project = (try? model.context.fetch(FetchDescriptor<Project>()))?.first { $0.title == title }
+                        if let project, window() == nil { AppServices.shared.openProject(project.uuid) }
+                        for _ in 0..<20 where EditorModel.newest == nil { try? await Task.sleep(for: .seconds(0.1)) }
+                        EditorModel.newest?.section = section
                     },
-                    window: { NSApp.windows.first { $0.title == SeedData.samples.first?.title && $0.isVisible } },
-                    hide: { NSApp.windows.first { $0.title == SeedData.samples.first?.title }?.close() }),
-        ]
+                    window: window,
+                    hide: { if section == InspectorSection.allCases.last { window()?.close() } })
+        }
     }
 
     static func runIfRequested(model: AppModel, openSettings: OpenSettingsAction) {

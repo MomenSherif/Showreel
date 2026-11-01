@@ -9,7 +9,8 @@ enum Layout {
 
     // Editor
     static let inspectorWidth = (min: CGFloat(280), ideal: CGFloat(300), max: CGFloat(340))
-    static let timelineHeight = (min: CGFloat(160), ideal: CGFloat(220))
+    /// Min fits the transport row, the ruler, and four lanes.
+    static let timelineHeight = (min: CGFloat(212), ideal: CGFloat(240))
     static let trackHeaderWidth: CGFloat = 28
     static let trackHeight: CGFloat = 36
     static let playheadWidth: CGFloat = 2

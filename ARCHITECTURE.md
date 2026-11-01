@@ -37,8 +37,21 @@ the saved choice), and building the `BubbleScene` from a `Project`.
 | `Library/` | The Library window: grid, cards, context menu |
 | `Projects/` | `ProjectStore`: project folders, thumbnails, Rename, Duplicate, Move to Trash with Undo |
 | `Recording/` | Everything from the Record Panel to the saved files (below) |
-| `Player/` | The project window; it builds the composition and `BubbleScene` |
+| `Editor/` | The project window (S-015): `EditorModel` per window, canvas (AVPlayerLayer), custom timeline, inspector. `PlayerBuilder` builds the composition and `BubbleScene` |
 | `UI/` | Design tokens and the shared `FloatingPanel` |
+
+## Editor
+
+```text
+EditorWindow (finds the Project) -> EditorView
+  ├─ EditorModel (@Observable, one per window): player, duration, isPlaying, inspector section
+  │    └─ Playhead (@Observable): the time, 30 Hz, observed only by the time label and playhead line
+  ├─ EditorCanvas      AVPlayerLayer on the canvas backdrop, frames from BubbleCompositor
+  ├─ EditorTimeline    transport row, ruler (TimelineScale in Kit), one lane per TrackKind
+  └─ EditorInspector   segmented section picker, one grouped Form per section
+```
+
+Menus reach the key window's Editor through `@FocusedValue(\.editor)`.
 
 ## Recording
 

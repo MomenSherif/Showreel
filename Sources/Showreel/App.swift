@@ -38,7 +38,7 @@ struct ShowreelApp: App {
 
         WindowGroup("Project", id: "editor", for: UUID.self) { $id in
             if let id {
-                ProjectWindow(id: id)
+                EditorWindow(id: id)
                     .environment(model)
                     .themed()
             }
@@ -74,6 +74,7 @@ struct ShowreelCommands: Commands {
         // where AppKit callers get their way to open windows.
         let _ = AppServices.shared.adopt(openWindow: openWindow)
         ToolbarCommands()
+        InspectorCommands()
         CommandGroup(replacing: .newItem) {
             Button("New Recording") { RecordController.shared.newRecording() }
                 .keyboardShortcut("n")
