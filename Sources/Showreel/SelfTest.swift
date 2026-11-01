@@ -231,6 +231,8 @@ enum SelfTest {
             await capture.stop()
             let saved = await writer.finish(at: end)
             check("the screen track is saved", saved)
+            let stats = writer.stats
+            check("the screen writer drops no frames", stats.dropped == 0 && stats.late == 0 && stats.appended > 0, "\(stats)")
             check("the pause leaves no gap in recording time", abs(end - 2.5) < 0.15, "elapsed \(end)")
             let asset = AVURLAsset(url: ProjectStore.file(ProjectFiles.screen, of: id))
             let duration = (try? await asset.load(.duration))?.seconds ?? 0
@@ -271,7 +273,9 @@ enum SelfTest {
         check("Start Recording is ready", recorder.startBlocker == nil, recorder.startBlocker ?? "")
         recorder.start()
         check("Start shows the Countdown", recorder.state == .countdown)
-        try? await Task.sleep(for: .seconds(3.6))
+        // Wait for the Countdown to end, not a fixed time: capture can take a
+        // moment to start, and the length check below counts from here.
+        for _ in 0..<100 where recorder.state != .recording { try? await Task.sleep(for: .seconds(0.05)) }
         check("recording starts after the Countdown", recorder.state == .recording)
         check("the Recording Controls are shown", RecordingControls.shared.panel?.isVisible == true)
         try? await Task.sleep(for: .seconds(2))

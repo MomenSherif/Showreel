@@ -1,5 +1,18 @@
 import AVFoundation
 import CoreMedia
+import Synchronization
+
+/// What a writer did with the samples it was given while recording.
+/// Samples before the start and while paused are skipped on purpose and
+/// are not counted.
+public struct WriterStats: Sendable, Equatable {
+    /// Samples written to the file.
+    public var appended = 0
+    /// Samples lost because the encoder was not ready or refused them.
+    public var dropped = 0
+    /// Samples that arrived with a time at or before the previous one.
+    public var late = 0
+}
 
 /// Writes one track (screen, camera, mic, or system audio) to its own file.
 /// Samples arrive on capture queues; everything here runs on `queue`.
@@ -19,7 +32,11 @@ public final class TrackWriter: @unchecked Sendable {
     private var lastTime = -1.0
     /// The newest video frame, kept so a still screen still has a first and last frame.
     private var lastFrame: CMSampleBuffer?
-    private var appended = 0
+    private let counters = Mutex(WriterStats())
+
+    /// The counts so far. Safe to read from any thread.
+    public var stats: WriterStats { counters.withLock { $0 } }
+    private var appended: Int { counters.withLock { $0.appended } }
 
     public init(url: URL, kind: Kind, timeline: Timeline) throws {
         self.url = url
@@ -106,7 +123,9 @@ public final class TrackWriter: @unchecked Sendable {
     }
 
     private func write(_ buffer: CMSampleBuffer, at time: Double) {
-        guard writer.status == .writing, time > lastTime, input.isReadyForMoreMediaData else { return }
+        guard writer.status == .writing else { return }
+        guard time > lastTime else { counters.withLock { $0.late += 1 }; return }
+        guard input.isReadyForMoreMediaData else { counters.withLock { $0.dropped += 1 }; return }
         // One timing entry covers every sample in the buffer, so for audio
         // its duration is one sample, not the whole buffer.
         let duration: CMTime = switch kind {
@@ -120,8 +139,8 @@ public final class TrackWriter: @unchecked Sendable {
         CMSampleBufferCreateCopyWithNewTiming(allocator: nil, sampleBuffer: buffer,
                                               sampleTimingEntryCount: 1, sampleTimingArray: &timing,
                                               sampleBufferOut: &copy)
-        guard let copy, input.append(copy) else { return }
+        guard let copy, input.append(copy) else { counters.withLock { $0.dropped += 1 }; return }
         lastTime = time
-        appended += 1
+        counters.withLock { $0.appended += 1 }
     }
 }

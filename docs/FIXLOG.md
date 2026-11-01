@@ -1,5 +1,12 @@
 # Fix log
 
+## 2026-11-01 Self-test "about 2 seconds long" failed now and then
+Symptom: the project measured 2.4 s instead of 2 s on some runs.
+Cause: the check slept a fixed 3.6 s for the 3 s Countdown, so the recorded length
+depended on how quickly capture started.
+Fix: it waits until the state is `.recording`, then records for 2 s.
+Rule: self-test checks wait for a state, never a fixed sleep that guesses how long it takes.
+
 ## 2026-11-01 Samples handled after Resume got the wrong time
 Symptom: (found by the new TrackWriter test) a frame captured before a pause but written
 after Resume was placed earlier than it happened, even at a negative time.

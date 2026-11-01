@@ -19,7 +19,7 @@ ShowreelEngine holds the media code, with no SwiftUI or AppKit, so
 | Type | Does |
 | --- | --- |
 | `Timeline` | Host clock to recording time, shared by every track (`Mutex<RecordingClock>`) |
-| `TrackWriter` | One file per track (HEVC .mov or AAC .m4a) on its own serial queue |
+| `TrackWriter` | One file per track (HEVC .mov or AAC .m4a) on its own serial queue; `stats` counts appended, dropped, and late samples |
 | `ScreenCapture` | The SCStream: screen frames and system audio, to their writers |
 | `DeviceCapture` | One AVCaptureSession per mic or camera |
 | `Renderer` | `frame(screen:camera:at:scene:size:) -> CIImage`, one output frame. The preview and the export both draw with it |

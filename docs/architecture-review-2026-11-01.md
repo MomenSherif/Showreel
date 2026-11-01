@@ -98,3 +98,15 @@ down from 471), `SelfTest` (312), and `RecordPanel` (291). Nothing is near
 - **Split SelfTest by area** [Speculative]: it grows with every story. Split it into
   `SelfTest+Library`, `+Recording`, and `+Bubble` when it passes 450 lines.
 - No Strong candidate this time, so no refactor in this check-in.
+
+---
+
+# Applied after M2 (user approved)
+
+- **Media engine target**: done in 5558b3f (move, behavior unchanged: 49
+  self-test checks, byte-identical player snapshots) and 86c57fb (golden
+  frames). `Renderer.frame` takes a `BubbleScene` built by the app, not a
+  `Project`, because `Project` is a SwiftData model the engine cannot see.
+- **Writers report counters**: done. `TrackWriter.stats` counts appended,
+  dropped, and late samples; the self-test fails on any drop. Its new unit
+  test found a clock bug (docs/FIXLOG.md), fixed in its own commit.
