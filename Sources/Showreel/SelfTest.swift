@@ -354,6 +354,8 @@ enum SelfTest {
               String(format: "median %.1f ms, worst %.1f ms at %@", median * 1000, (sorted.last ?? 0) * 1000, size))
         print(String(format: "INFO scrub latency at %@: median %.1f ms, worst %.1f ms", size, median * 1000, (sorted.last ?? 0) * 1000))
 
+        await trim(editor)
+
         // S-017: the timeline zoom.
         editor.zoom.zoomIn()
         editor.zoom.zoomIn()
@@ -367,6 +369,30 @@ enum SelfTest {
         check("the Playback menu has Play, frame steps, and Go to Start",
               ["Play", "Previous Frame", "Next Frame", "Back 1 Second", "Forward 1 Second", "Go to Start", "Go to End"]
                 .allSatisfy(menu.contains), menu.joined(separator: ", "))
+    }
+
+    /// S-018: trims are ranges. The video gets shorter; the files do not change.
+    private static func trim(_ editor: EditorModel) async {
+        let files = ProjectFiles.all.map { ProjectStore.file($0, of: editor.project.uuid) }
+        func stamps() -> [Date?] {
+            files.map { (try? $0.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate }
+        }
+        let before = stamps()
+        let source = editor.edits.sourceDuration
+        editor.seek(to: 0.5)
+        await editor.seeksSettled()
+        editor.trimStartToPlayhead()
+        await editor.seeksSettled()
+        check("Trim Start to Playhead shortens the video", abs(editor.duration - (source - 0.5)) < 0.01, "\(editor.duration)")
+        let itemLength = (try? await editor.player?.currentItem?.asset.load(.duration).seconds) ?? 0
+        check("the player plays the trimmed length", abs(itemLength - editor.duration) < 0.02, "\(itemLength)")
+        check("the trim is stored with the project", EditList.decode(editor.project.editsData, sourceDuration: source) == editor.edits)
+        check("the recording files are never changed", stamps() == before)
+        let menu = NSApp.mainMenu?.item(withTitle: "Clip")?.submenu?.items.map(\.title) ?? []
+        check("the Clip menu has Trim Start and Trim End to Playhead",
+              menu.contains("Trim Start to Playhead") && menu.contains("Trim End to Playhead"), menu.joined(separator: ", "))
+        editor.apply(EditList(sourceDuration: source))
+        await editor.seeksSettled()
     }
 
     private static func check(_ name: String, _ ok: Bool, _ detail: String = "") {

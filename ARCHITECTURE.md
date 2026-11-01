@@ -53,6 +53,14 @@ EditorWindow (finds the Project) -> EditorView
 
 Menus reach the key window's Editor through `@FocusedValue(\.editor)`.
 
+The cut is an `EditList` (ShowreelKit): kept segments in **source time**,
+stored as JSON in `Project.editsData`. Edits never touch the files. Zooms,
+captions, and events are kept in source time too, so a cut shifts them for
+free. `PlayerSources` loads the tracks once (holding their assets) and
+builds an `AVPlayerItem` for any `EditList`, one `BubbleInstruction` per
+segment with its `sourceOffset`. `EditorModel.apply(_:)` is the one door for
+every edit.
+
 ## Recording
 
 ```text

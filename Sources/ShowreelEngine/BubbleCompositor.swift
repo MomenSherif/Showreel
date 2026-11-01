@@ -14,13 +14,17 @@ public final class BubbleInstruction: NSObject, AVVideoCompositionInstructionPro
     public let screenTrack: CMPersistentTrackID
     public let cameraTrack: CMPersistentTrackID?
     public let scene: BubbleScene
+    /// Source time minus composition time in this range: the scene is in
+    /// source time, and a cut moves later parts earlier in the composition.
+    public let sourceOffset: Double
 
     public init(timeRange: CMTimeRange, screenTrack: CMPersistentTrackID, cameraTrack: CMPersistentTrackID?,
-                scene: BubbleScene) {
+                scene: BubbleScene, sourceOffset: Double = 0) {
         self.timeRange = timeRange
         self.screenTrack = screenTrack
         self.cameraTrack = cameraTrack
         self.scene = scene
+        self.sourceOffset = sourceOffset
         requiredSourceTrackIDs = ([screenTrack] + [cameraTrack].compactMap { $0 }).map { NSNumber(value: $0) }
     }
 }
@@ -54,7 +58,7 @@ public final class BubbleCompositor: NSObject, AVVideoCompositing, @unchecked Se
             return
         }
         let size = request.renderContext.size
-        let t = request.compositionTime.seconds
+        let t = request.compositionTime.seconds + instruction.sourceOffset
         // The camera frame is fetched only when the bubble shows.
         let camera = instruction.cameraTrack
             .flatMap { instruction.scene.isHidden(at: t) ? nil : request.sourceFrame(byTrackID: $0) }

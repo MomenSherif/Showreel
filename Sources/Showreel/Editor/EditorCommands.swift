@@ -22,6 +22,15 @@ struct EditorCommands: Commands {
             }
             .disabled(editor == nil)
         }
+        CommandMenu("Clip") {
+            Group {
+                Button("Trim Start to Playhead") { act(nil) { $0.trimStartToPlayhead() } }
+                    .keyboardShortcut("[", modifiers: .option)
+                Button("Trim End to Playhead") { act(nil) { $0.trimEndToPlayhead() } }
+                    .keyboardShortcut("]", modifiers: .option)
+            }
+            .disabled(editor?.player == nil)
+        }
         CommandMenu("Playback") {
             // With no Editor in front, the keys keep their usual meaning.
             Group {

@@ -247,30 +247,109 @@ private struct Lane: View {
     let scale: TimelineScale
 
     var body: some View {
-        ZStack(alignment: .leading) {
+        ZStack(alignment: .topLeading) {
             Media.Track.lane
-            if let block {
-                Block(kind: kind, title: block.title)
-                    .frame(width: max(scale.x(at: block.length), 1))
+            switch kind {
+            case .clip:
+                ForEach(editor.edits.segments) { segment in
+                    ClipBlock(editor: editor, segment: segment, scale: scale)
+                }
+            case .audio:
+                if editor.project.hasMicrophone || editor.project.hasSystemAudio {
+                    // Audio is cut with the clip, so it shows the same pieces.
+                    ForEach(editor.edits.segments) { segment in
+                        Block(kind: kind, title: editor.project.hasMicrophone ? "Microphone" : "System Audio")
+                            .frame(width: max(scale.x(at: segment.length), 1))
+                            .offset(x: scale.x(at: editor.edits.editStart(of: segment.id) ?? 0)) // grid: ok position from time
+                    }
+                }
+            case .zoom, .captions:
+                EmptyView()
             }
         }
         .padding(.vertical, Space.xs)
         .overlay(alignment: .bottom) { Surfaces.hairline.frame(height: 1) }
     }
+}
 
-    /// What this lane shows today: the clip, and the audio when there is any.
-    private var block: (title: String, length: Double)? {
-        let project = editor.project
-        switch kind {
-        case .clip:
-            return ("\(String(format: "%.1f", editor.duration))s", editor.duration)
-        case .audio:
-            guard project.hasMicrophone || project.hasSystemAudio else { return nil }
-            return (project.hasMicrophone ? "Microphone" : "System Audio", editor.duration)
-        case .zoom, .captions:
-            return nil
+/// One kept piece of the clip. Click selects it; its edges trim it (S-018).
+/// While an edge is dragged, the part being trimmed away is dimmed and the
+/// label shows the new length; letting go closes the gap.
+private struct ClipBlock: View {
+    let editor: EditorModel
+    let segment: EditList.Segment
+    let scale: TimelineScale
+
+    private var isSelected: Bool { editor.selectedSegment == segment.id }
+    /// The segment as the dragged trim would leave it.
+    private var trimmed: EditList.Segment {
+        editor.draft?.segments.first { $0.id == segment.id } ?? segment
+    }
+
+    var body: some View {
+        let start = editor.edits.editStart(of: segment.id) ?? 0
+        let kept = trimmed
+        let leadingCut = kept.start - segment.start      // seconds trimmed off the start
+        ZStack(alignment: .leading) {
+            // The whole segment as it was, dimmed: visible only where the trim removes it.
+            Radius.shape(Radius.xs)
+                .fill(TrackKind.clip.fill.opacity(0.3))
+            Block(kind: .clip, title: Self.length(kept.length))
+                .frame(width: max(scale.x(at: kept.length), 1))
+                .offset(x: scale.x(at: leadingCut)) // grid: ok position from time
+                .overlay {
+                    if isSelected {
+                        Radius.shape(Radius.xs)
+                            .strokeBorder(Palette.accent, lineWidth: Layout.selectionRing)
+                            .frame(width: max(scale.x(at: kept.length), 1))
+                            .offset(x: scale.x(at: leadingCut)) // grid: ok position from time
+                    }
+                }
+        }
+        .frame(width: max(scale.x(at: segment.length), 1), alignment: .leading)
+        .overlay(alignment: .leading) { handle(.start) }
+        .overlay(alignment: .trailing) { handle(.end) }
+        .offset(x: scale.x(at: start)) // grid: ok position from time
+        .onTapGesture { location in
+            withMotion(Motion.select) { editor.selectedSegment = segment.id }
+            editor.seek(to: start + scale.seconds(at: location.x))
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Clip, \(Self.length(kept.length))")
+        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
+    }
+
+    /// An edge handle: a grab area the full height, a visible bar when selected.
+    private func handle(_ edge: EditorModel.Edge) -> some View {
+        Rectangle()
+            .fill(.clear)
+            .frame(width: Space.sm)
+            .overlay {
+                if isSelected {
+                    Capsule().fill(Media.Track.label).frame(width: Layout.playheadWidth, height: Space.md)
+                }
+            }
+            .contentShape(Rectangle())
+            .offset(x: offset(for: edge)) // grid: ok position from time
+            .pointerStyle(.columnResize)
+            .gesture(DragGesture(minimumDistance: 1)
+                .onChanged { value in
+                    editor.selectedSegment = segment.id
+                    editor.previewTrim(segment.id, edge: edge, by: scale.seconds(at: value.translation.width))
+                }
+                .onEnded { _ in editor.commitTrim() })
+            .help(edge == .start ? "Drag to trim the start" : "Drag to trim the end")
+    }
+
+    /// Handles follow the trimmed edge while dragging.
+    private func offset(for edge: EditorModel.Edge) -> CGFloat {
+        switch edge {
+        case .start: scale.x(at: trimmed.start - segment.start)
+        case .end: scale.x(at: trimmed.end - segment.end)
         }
     }
+
+    static func length(_ seconds: Double) -> String { String(format: "%.1fs", seconds) }
 }
 
 private struct Block: View {

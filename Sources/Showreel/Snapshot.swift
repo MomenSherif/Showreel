@@ -105,6 +105,18 @@ enum Snapshot {
                              },
                              window: window,
                              hide: { window()?.close() })
+        // S-018: the start being trimmed by 6 s, mid-drag.
+        let trim = Surface(name: "editor-trim", show: {
+                               let project = (try? model.context.fetch(FetchDescriptor<Project>()))?.first { $0.title == title }
+                               if let project, window() == nil { AppServices.shared.openProject(project.uuid) }
+                               for _ in 0..<20 where EditorModel.newest?.player == nil { try? await Task.sleep(for: .seconds(0.1)) }
+                               guard let editor = EditorModel.newest, let first = editor.edits.segments.first else { return }
+                               editor.zoom = TimelineZoom()
+                               editor.selectedSegment = first.id
+                               editor.previewTrim(first.id, edge: .start, by: 6)
+                           },
+                           window: window,
+                           hide: {})
         return InspectorSection.allCases.map { section in
             Surface(name: section == .background ? "editor" : "editor-\(section.rawValue)", show: {
                         let project = (try? model.context.fetch(FetchDescriptor<Project>()))?.first { $0.title == title }
@@ -114,7 +126,7 @@ enum Snapshot {
                     },
                     window: window,
                     hide: {})
-        } + [zoomed]
+        } + [trim, zoomed]
     }
 
     static func runIfRequested(model: AppModel, openSettings: OpenSettingsAction) {

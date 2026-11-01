@@ -313,7 +313,8 @@ Acceptance:
   never changed.
 - [snap] The trimmed part is dimmed while dragging, and the clip shows its
   new length.
-Status: todo
+Status: done
+Note: the cut is an `EditList` (Kit) of source-time segments, stored as JSON in `Project.editsData`. Snapshot `editor-trim`. Clip > Trim Start/End to Playhead (⌥[ / ⌥]). Clicking a clip selects it and moves the playhead.
 
 ### S-019 Split and delete a section
 As the user, I press S (or the scissors) to split at the playhead, select

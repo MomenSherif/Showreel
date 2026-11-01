@@ -53,6 +53,14 @@ final class EditorModel {
     var showsInspector = true
     /// The timeline's zoom (S-017). Fit shows the whole recording.
     var zoom = TimelineZoom()
+    /// The cut (S-018, S-019). Edits replace it; the files never change.
+    private(set) var edits = EditList(sourceDuration: 0)
+    /// A trim being dragged, shown on the timeline before it is applied.
+    private(set) var draft: EditList?
+    /// The selected clip segment on the timeline.
+    var selectedSegment: EditList.Segment.ID?
+
+    @ObservationIgnored private var sources: PlayerSources?
 
     @ObservationIgnored private var timeObserver: Any?
     @ObservationIgnored private var rateObserver: NSKeyValueObservation?
@@ -65,12 +73,14 @@ final class EditorModel {
         duration = project.duration
     }
 
-    /// Builds the composition and the player. Called once per window.
+    /// Loads the tracks and the saved cut, and makes the player. Called once per window.
     func load() async {
-        guard player == nil, let item = await PlayerBuilder.item(for: project) else { return }
-        let player = AVPlayer(playerItem: item)
+        guard player == nil, let sources = await PlayerSources.load(for: project) else { return }
+        self.sources = sources
+        edits = EditList.decode(project.editsData, sourceDuration: sources.duration)
+        duration = edits.duration
+        let player = AVPlayer(playerItem: sources.item(for: edits))
         player.actionAtItemEnd = .pause
-        if let length = try? await item.asset.load(.duration).seconds, length > 0 { duration = length }
         timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(value: 1, timescale: 30), queue: .main) { [weak self] time in
             MainActor.assumeIsolated {
                 // While scrubbing, the playhead shows the target, not the old frame.
@@ -95,6 +105,61 @@ final class EditorModel {
             if playhead.time >= duration - 0.05 { seek(to: 0) }
             player.play()
         }
+    }
+
+    // MARK: Edits (S-018, S-019)
+
+    /// Replaces the cut. The playhead stays on the same moment of the
+    /// recording when that moment is still in the video.
+    func apply(_ new: EditList) {
+        guard new != edits, let sources, let player else { draft = nil; return }
+        let source = edits.sourceTime(atEditTime: playhead.time)
+        edits = new
+        draft = nil
+        duration = new.duration
+        project.editsData = new.encoded()
+        if let selectedSegment, !new.segments.contains(where: { $0.id == selectedSegment }) { self.selectedSegment = nil }
+        let wasPlaying = isPlaying
+        player.replaceCurrentItem(with: sources.item(for: new))
+        seek(to: source.flatMap { new.editTime(atSourceTime: $0) } ?? min(playhead.time, duration))
+        if wasPlaying { player.play() }
+    }
+
+    enum Edge { case start, end }
+
+    /// Shows a trim while its edge is dragged: `delta` seconds from where
+    /// the edge was in `edits`.
+    func previewTrim(_ id: EditList.Segment.ID, edge: Edge, by delta: Double) {
+        guard let segment = edits.segments.first(where: { $0.id == id }) else { return }
+        var new = edits
+        switch edge {
+        case .start: new.trimStart(id, toSource: segment.start + delta)
+        case .end: new.trimEnd(id, toSource: segment.end + delta)
+        }
+        draft = new
+    }
+
+    func commitTrim() {
+        if let draft { apply(draft) }
+        draft = nil
+    }
+
+    /// Clip > Trim Start to Playhead (⌥[).
+    func trimStartToPlayhead() {
+        guard let (segment, _) = edits.segment(atEditTime: playhead.time),
+              let s = edits.sourceTime(atEditTime: playhead.time) else { return }
+        var new = edits
+        new.trimStart(segment.id, toSource: s)
+        apply(new)
+    }
+
+    /// Clip > Trim End to Playhead (⌥]).
+    func trimEndToPlayhead() {
+        guard let (segment, _) = edits.segment(atEditTime: playhead.time),
+              let s = edits.sourceTime(atEditTime: playhead.time) else { return }
+        var new = edits
+        new.trimEnd(segment.id, toSource: s)
+        apply(new)
     }
 
     // MARK: Seeking (S-016)

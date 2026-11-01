@@ -1,5 +1,15 @@
 # Fix log
 
+## 2026-11-01 Editor played nothing after the composition builder was split
+Symptom: (found by the self-test, before commit) the Editor's player was ready but empty:
+seeks returned at once and the item was 0 s long.
+Cause: `PlayerSources` kept each `AVAssetTrack` but not its `AVURLAsset`. The asset was
+freed when loading finished, and `insertTimeRange(_:of:at:)` fails quietly for a track whose
+asset is gone (the call was `try?`).
+Fix: `PlayerSources.Track` holds the asset together with the track and its time range.
+Rule: whoever keeps an `AVAssetTrack` keeps its `AVAsset` too; never `try?` a composition
+insert without a check that something was inserted.
+
 ## 2026-11-01 Self-test "about 2 seconds long" failed now and then
 Symptom: the project measured 2.4 s instead of 2 s on some runs.
 Cause: the check slept a fixed 3.6 s for the 3 s Countdown, so the recorded length
