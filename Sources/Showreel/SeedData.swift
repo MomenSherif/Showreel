@@ -41,7 +41,7 @@ enum SeedData {
             _ = try? ProjectStore.makeFolder(for: project.uuid)
             let image = frame(hue: sample.hue)
             write(image, to: ProjectStore.file(ProjectFiles.thumbnail, of: project.uuid))
-            writeMovie(image, seconds: 2, to: ProjectStore.file(ProjectFiles.screen, of: project.uuid))
+            writeMovie(image, seconds: Int(sample.duration), to: ProjectStore.file(ProjectFiles.screen, of: project.uuid))
         }
         try? context.save()
     }
@@ -85,7 +85,8 @@ enum SeedData {
         try? rep.representation(using: .jpeg, properties: [.compressionFactor: 0.8])?.write(to: url)
     }
 
-    /// A short H.264 movie that shows `image`, so the player has a real file.
+    /// An H.264 movie as long as the sample that shows `image`, at 2 fps
+    /// to keep seeding fast, so the Editor has a real file.
     private static func writeMovie(_ image: CGImage, seconds: Int, to url: URL) {
         guard let writer = try? AVAssetWriter(outputURL: url, fileType: .mov) else { return }
         let input = AVAssetWriterInput(mediaType: .video, outputSettings: [
@@ -99,7 +100,7 @@ enum SeedData {
         writer.startWriting()
         writer.startSession(atSourceTime: .zero)
         guard let pool = adaptor.pixelBufferPool else { return }
-        for i in 0...(seconds * 10) {
+        for i in 0...(seconds * 2) {
             var buffer: CVPixelBuffer?
             CVPixelBufferPoolCreatePixelBuffer(nil, pool, &buffer)
             guard let buffer else { continue }
@@ -111,7 +112,7 @@ enum SeedData {
             ctx?.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
             CVPixelBufferUnlockBaseAddress(buffer, [])
             while !input.isReadyForMoreMediaData { Thread.sleep(forTimeInterval: 0.005) }
-            adaptor.append(buffer, withPresentationTime: CMTime(value: CMTimeValue(i), timescale: 10))
+            adaptor.append(buffer, withPresentationTime: CMTime(value: CMTimeValue(i), timescale: 2))
         }
         input.markAsFinished()
         let done = DispatchSemaphore(value: 0)

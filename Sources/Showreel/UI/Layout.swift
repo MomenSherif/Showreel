@@ -15,6 +15,7 @@ enum Layout {
     static let trackHeight: CGFloat = 36
     static let playheadWidth: CGFloat = 2
     static let selectionRing: CGFloat = 2
+    static let zoomSliderWidth: CGFloat = 96
 
     // Floating recording chrome
     static let recordPanel = CGSize(width: 600, height: 56)

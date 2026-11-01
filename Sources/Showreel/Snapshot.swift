@@ -2,6 +2,7 @@ import AppKit
 import IOKit.pwr_mgt
 import SwiftData
 import SwiftUI
+import ShowreelKit
 
 /// Screenshot mode for agents.
 ///   APP_STORE=/tmp/test.store APP_SNAPSHOT=/tmp/shots ~/Applications/Showreel.app/Contents/MacOS/Showreel
@@ -94,6 +95,16 @@ enum Snapshot {
     private static func editorSurfaces(model: AppModel) -> [Surface] {
         let title = SeedData.samples.first?.title
         let window = { NSApp.windows.first { $0.title == title && $0.isVisible } }
+        let zoomed = Surface(name: "editor-zoomed", show: {
+                                 let project = (try? model.context.fetch(FetchDescriptor<Project>()))?.first { $0.title == title }
+                                 if let project, window() == nil { AppServices.shared.openProject(project.uuid) }
+                                 for _ in 0..<20 where EditorModel.newest == nil { try? await Task.sleep(for: .seconds(0.1)) }
+                                 EditorModel.newest?.section = .background
+                                 EditorModel.newest?.seek(to: 12.3)
+                                 EditorModel.newest?.zoom = TimelineZoom(level: 0.9)
+                             },
+                             window: window,
+                             hide: { window()?.close() })
         return InspectorSection.allCases.map { section in
             Surface(name: section == .background ? "editor" : "editor-\(section.rawValue)", show: {
                         let project = (try? model.context.fetch(FetchDescriptor<Project>()))?.first { $0.title == title }
@@ -102,8 +113,8 @@ enum Snapshot {
                         EditorModel.newest?.section = section
                     },
                     window: window,
-                    hide: { if section == InspectorSection.allCases.last { window()?.close() } })
-        }
+                    hide: {})
+        } + [zoomed]
     }
 
     static func runIfRequested(model: AppModel, openSettings: OpenSettingsAction) {

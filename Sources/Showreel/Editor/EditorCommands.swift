@@ -1,12 +1,27 @@
 import AppKit
 import SwiftUI
 
-/// The Playback menu (docs/DESIGN.md, "Command map"). It acts on the Editor
-/// in the key window.
-struct PlaybackCommands: Commands {
+/// The Editor's menus (docs/DESIGN.md, "Command map"): the timeline zoom
+/// in View, and the Playback menu. They act on the Editor in the key window.
+struct EditorCommands: Commands {
     @FocusedValue(\.editor) private var editor
 
     var body: some Commands {
+        CommandGroup(after: .toolbar) {
+            Divider()
+            Group {
+                Button("Zoom In") { act(nil) { $0.zoom.zoomIn() } }
+                    .keyboardShortcut("+", modifiers: .command)
+                    .disabled(editor?.zoom.level == 1)
+                Button("Zoom Out") { act(nil) { $0.zoom.zoomOut() } }
+                    .keyboardShortcut("-", modifiers: .command)
+                    .disabled(editor?.zoom.level == 0)
+                Button("Zoom to Fit") { act(.text("Z")) { $0.zoom.fit() } }
+                    .keyboardShortcut("z", modifiers: .shift)
+                    .disabled(editor?.zoom.isFit == true)
+            }
+            .disabled(editor == nil)
+        }
         CommandMenu("Playback") {
             // With no Editor in front, the keys keep their usual meaning.
             Group {
@@ -34,19 +49,20 @@ struct PlaybackCommands: Commands {
     /// Runs `action` on the Editor, unless a text field is being edited:
     /// then the key goes to the text, because a menu shortcut with no ⌘
     /// would otherwise take Space and the arrows away from typing.
-    private func act(_ key: TextKey, _ action: (EditorModel) -> Void) {
-        if let text = NSApp.keyWindow?.firstResponder as? NSTextView, text.isEditable {
+    private func act(_ key: TextKey?, _ action: (EditorModel) -> Void) {
+        if let key, let text = NSApp.keyWindow?.firstResponder as? NSTextView, text.isEditable {
             key.send(to: text)
             return
         }
-        guard let editor, editor.player != nil else { return }
-        action(editor)
+        guard let editor else { return }
+        withMotion(Motion.quick) { action(editor) }
     }
 }
 
 /// The keys the Playback menu uses, as a text view would handle them.
 enum TextKey {
     case space, left, right, shiftLeft, shiftRight, home, end
+    case text(String)
 
     @MainActor func send(to text: NSTextView) {
         switch self {
@@ -57,6 +73,7 @@ enum TextKey {
         case .shiftRight: text.moveRightAndModifySelection(nil)
         case .home: text.moveToBeginningOfLine(nil)
         case .end: text.moveToEndOfLine(nil)
+        case .text(let string): text.insertText(string, replacementRange: text.selectedRange())
         }
     }
 }

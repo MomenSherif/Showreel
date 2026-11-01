@@ -354,6 +354,15 @@ enum SelfTest {
               String(format: "median %.1f ms, worst %.1f ms at %@", median * 1000, (sorted.last ?? 0) * 1000, size))
         print(String(format: "INFO scrub latency at %@: median %.1f ms, worst %.1f ms", size, median * 1000, (sorted.last ?? 0) * 1000))
 
+        // S-017: the timeline zoom.
+        editor.zoom.zoomIn()
+        editor.zoom.zoomIn()
+        check("Zoom In zooms the timeline", editor.zoom.level == 0.25)
+        editor.zoom.fit()
+        let view = NSApp.mainMenu?.item(withTitle: "View")?.submenu?.items.map(\.title) ?? []
+        check("the View menu has Zoom In, Zoom Out, and Zoom to Fit",
+              ["Zoom In", "Zoom Out", "Zoom to Fit"].allSatisfy(view.contains), view.joined(separator: ", "))
+
         let menu = NSApp.mainMenu?.item(withTitle: "Playback")?.submenu?.items.map(\.title) ?? []
         check("the Playback menu has Play, frame steps, and Go to Start",
               ["Play", "Previous Frame", "Next Frame", "Back 1 Second", "Forward 1 Second", "Go to Start", "Go to End"]

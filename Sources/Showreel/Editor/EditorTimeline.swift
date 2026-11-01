@@ -77,21 +77,8 @@ private struct TransportRow: View {
                 TransportTime(playhead: editor.playhead, duration: editor.duration)
             }
 
-            HStack(spacing: Space.sm) {
-                Button("Zoom Out", systemImage: "minus") {}
-                    .labelStyle(.iconOnly)
-                    .help("Zoom Out (⌘−)")
-                Slider(value: .constant(0), in: 0...1)
-                    .frame(width: 96)
-                    .accessibilityLabel("Timeline Zoom")
-                Button("Zoom In", systemImage: "plus") {}
-                    .labelStyle(.iconOnly)
-                    .help("Zoom In (⌘+)")
-                Button("Fit") {}
-                    .help("Zoom to Fit (⇧Z)")
-            }
-            .disabled(true) // S-017
-            .frame(maxWidth: .infinity, alignment: .trailing)
+            TimelineZoomControls(editor: editor)
+                .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .buttonStyle(.borderless)
         .controlSize(.small)
@@ -117,9 +104,37 @@ private struct TransportTime: View {
     }
 }
 
-/// The ruler and the lanes, with the playhead over both.
+/// − slider + and Fit, on the trailing side of the transport row.
+private struct TimelineZoomControls: View {
+    @Bindable var editor: EditorModel
+
+    var body: some View {
+        HStack(spacing: Space.sm) {
+            Button("Zoom Out", systemImage: "minus") { withMotion(Motion.quick) { editor.zoom.zoomOut() } }
+                .labelStyle(.iconOnly)
+                .help("Zoom Out (⌘−)")
+                .disabled(editor.zoom.level == 0)
+            Slider(value: $editor.zoom.level, in: 0...1)
+                .frame(width: Layout.zoomSliderWidth)
+                .accessibilityLabel("Timeline Zoom")
+            Button("Zoom In", systemImage: "plus") { withMotion(Motion.quick) { editor.zoom.zoomIn() } }
+                .labelStyle(.iconOnly)
+                .help("Zoom In (⌘+)")
+                .disabled(editor.zoom.level == 1)
+            Button("Fit") { withMotion(Motion.quick) { editor.zoom.fit() } }
+                .help("Zoom to Fit (⇧Z)")
+                .disabled(editor.zoom.isFit)
+        }
+    }
+}
+
+/// The ruler and the lanes, with the playhead over both. Zoomed in, the
+/// lanes scroll sideways and the header column stays put.
 private struct TrackArea: View {
     let editor: EditorModel
+    @State private var position = ScrollPosition(edge: .leading)
+    /// The zoom level when a pinch began.
+    @State private var pinchStart: Double?
 
     static let rulerHeight: CGFloat = 24
 
@@ -140,35 +155,59 @@ private struct TrackArea: View {
             .frame(width: Layout.trackHeaderWidth + Space.sm)
 
             GeometryReader { geo in
-                let width = max(geo.size.width - Space.lg, 1)
-                let scale = TimelineScale.fit(duration: editor.duration, width: width)
-                ZStack(alignment: .topLeading) {
-                    VStack(spacing: 0) {
-                        Ruler(scale: scale, duration: editor.duration)
-                            .frame(height: Self.rulerHeight)
-                        ForEach(TrackKind.allCases) { kind in
-                            Lane(kind: kind, editor: editor, scale: scale)
-                                .frame(height: Layout.trackHeight)
-                        }
-                    }
-                    PlayheadLine(playhead: editor.playhead, scale: scale)
+                let fit = TimelineScale.fit(duration: editor.duration, width: max(geo.size.width - Space.lg, 1))
+                let scale = editor.zoom.scale(fitting: fit)
+                let contentWidth = max(scale.x(at: editor.duration) + Space.lg, geo.size.width)
+                ScrollView(.horizontal) {
+                    TrackContent(editor: editor, scale: scale)
+                        .frame(width: contentWidth, alignment: .leading)
                 }
-                .contentShape(Rectangle())
-                // Click or drag anywhere on the ruler or lanes to scrub (S-016).
-                .gesture(DragGesture(minimumDistance: 0)
+                .scrollPosition($position)
+                .scrollIndicators(editor.zoom.isFit ? .hidden : .automatic)
+                .onChange(of: editor.zoom) { centerPlayhead(scale: scale, width: geo.size.width) }
+                .gesture(MagnifyGesture()
                     .onChanged { value in
-                        if editor.isPlaying { editor.player?.pause() }
-                        editor.seek(to: scale.seconds(at: value.location.x))
-                    })
-                .accessibilityElement(children: .contain)
-                .accessibilityLabel("Timeline")
-                .accessibilityValue("Playhead at \(TimeText.spoken(editor.playhead.time))")
-                .accessibilityAdjustableAction { direction in
-                    editor.jump(by: direction == .increment ? 1 : -1)
-                }
+                        let start = pinchStart ?? editor.zoom.level
+                        pinchStart = start
+                        // Pinching to twice the size zooms in four steps.
+                        editor.zoom.level = start + log2(value.magnification) * TimelineZoom.step * 4
+                    }
+                    .onEnded { _ in pinchStart = nil })
             }
         }
         .clipped()
+    }
+
+    /// Keeps the playhead in view when the zoom changes.
+    private func centerPlayhead(scale: TimelineScale, width: CGFloat) {
+        position.scrollTo(x: max(0, scale.x(at: editor.playhead.time) - width / 2)) // grid: ok follows the playback time
+    }
+}
+
+/// Everything that scrolls: the ruler, the lanes, and the playhead.
+private struct TrackContent: View {
+    let editor: EditorModel
+    let scale: TimelineScale
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            VStack(spacing: 0) {
+                Ruler(scale: scale, duration: editor.duration)
+                    .frame(height: TrackArea.rulerHeight)
+                ForEach(TrackKind.allCases) { kind in
+                    Lane(kind: kind, editor: editor, scale: scale)
+                        .frame(height: Layout.trackHeight)
+                }
+            }
+            PlayheadLine(playhead: editor.playhead, scale: scale) { editor.jump(by: $0) }
+        }
+        .contentShape(Rectangle())
+        // Click or drag anywhere on the ruler or lanes to scrub (S-016).
+        .gesture(DragGesture(minimumDistance: 0)
+            .onChanged { value in
+                if editor.isPlaying { editor.player?.pause() }
+                editor.seek(to: scale.seconds(at: value.location.x))
+            })
     }
 }
 
@@ -254,9 +293,11 @@ private struct Block: View {
 }
 
 /// The playhead: a contrasting line with a cap, across the ruler and lanes.
+/// VoiceOver reads it as an adjustable control.
 private struct PlayheadLine: View {
     let playhead: Playhead
     let scale: TimelineScale
+    let jump: (Double) -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -267,6 +308,9 @@ private struct PlayheadLine: View {
         }
         .offset(x: scale.x(at: playhead.time) - Space.md / 2) // grid: ok follows the playback time
         .allowsHitTesting(false)
-        .accessibilityHidden(true)
+        .accessibilityElement()
+        .accessibilityLabel("Playhead")
+        .accessibilityValue(TimeText.spoken(playhead.time))
+        .accessibilityAdjustableAction { direction in jump(direction == .increment ? 1 : -1) }
     }
 }

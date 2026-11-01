@@ -51,6 +51,8 @@ final class EditorModel {
     private(set) var isPlaying = false
     var section: InspectorSection = .background
     var showsInspector = true
+    /// The timeline's zoom (S-017). Fit shows the whole recording.
+    var zoom = TimelineZoom()
 
     @ObservationIgnored private var timeObserver: Any?
     @ObservationIgnored private var rateObserver: NSKeyValueObservation?

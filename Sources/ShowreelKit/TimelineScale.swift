@@ -61,3 +61,28 @@ public enum PlayheadMove {
         min(max(time, 0), max(duration, 0))
     }
 }
+
+/// The timeline zoom (S-017). `level` 0 fits the whole recording; 1 is
+/// the closest view, about 600 points per second. The slider moves
+/// `level`, so each step zooms by the same factor.
+public struct TimelineZoom: Equatable, Sendable {
+    public static let closest = 600.0
+    public static let step = 0.125
+
+    public var level: Double {
+        didSet { level = min(max(level, 0), 1) }
+    }
+
+    public init(level: Double = 0) { self.level = min(max(level, 0), 1) }
+
+    public var isFit: Bool { level == 0 }
+
+    public func scale(fitting fit: TimelineScale) -> TimelineScale {
+        let most = max(1, Self.closest / fit.pointsPerSecond)
+        return TimelineScale(pointsPerSecond: fit.pointsPerSecond * pow(most, level))
+    }
+
+    public mutating func zoomIn() { level += Self.step }
+    public mutating func zoomOut() { level -= Self.step }
+    public mutating func fit() { level = 0 }
+}

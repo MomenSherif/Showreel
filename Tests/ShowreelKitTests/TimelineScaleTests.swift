@@ -44,3 +44,33 @@ struct PlayheadMoveTests {
         #expect(PlayheadMove.jump(from: 0.4, by: -1, duration: 10) == 0)
     }
 }
+
+@Suite("Timeline zoom")
+struct TimelineZoomTests {
+    let fit = TimelineScale.fit(duration: 60, width: 600)   // 10 pt/s
+
+    @Test func fitIsTheWholeRecording() {
+        #expect(TimelineZoom().scale(fitting: fit) == fit)
+    }
+
+    @Test func closestShowsTenths() {
+        let scale = TimelineZoom(level: 1).scale(fitting: fit)
+        #expect(abs(scale.pointsPerSecond - 600) < 0.001)
+        #expect(scale.labelStep() < 1)
+    }
+
+    @Test func stepsStayInRange() {
+        var zoom = TimelineZoom()
+        zoom.zoomOut()
+        #expect(zoom.level == 0)
+        for _ in 0..<20 { zoom.zoomIn() }
+        #expect(zoom.level == 1)
+        zoom.fit()
+        #expect(zoom.isFit)
+    }
+
+    @Test func shortRecordingsCannotZoomPastClosest() {
+        let short = TimelineScale.fit(duration: 0.5, width: 1000)   // 2000 pt/s already
+        #expect(TimelineZoom(level: 1).scale(fitting: short) == short)
+    }
+}

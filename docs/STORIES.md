@@ -301,7 +301,8 @@ Screens: editor
 Depends: S-015
 Acceptance:
 - [snap] The ruler labels adapt (seconds or tenths).
-Status: todo
+Status: done
+Note: snapshots `editor` (fit, labels every 5 s) and `editor-zoomed` (tenths). Pinch zooms too. Zoomed in, the playhead is kept in view. Seed movies now run their full length (2 fps).
 
 ### S-018 Trim the start and end
 As the user, I drag the clip's edges to trim it.
