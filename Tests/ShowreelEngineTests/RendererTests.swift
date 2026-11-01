@@ -70,6 +70,15 @@ struct RendererTests {
         try Self.styled { $0.background = .gradient("sunrise"); $0.padding = 0.1 }.expectMatches(golden: "style-gradient")
     }
 
+    /// S-023: corners are cut round; the background shows in them.
+    @Test func roundingMatchesGolden() throws {
+        let frame = Self.styled { $0.background = .color(RGB(1, 1, 1)); $0.padding = 0.1; $0.rounding = 40 }
+        // 40 px at 1080p is 7.4 px here. The recording's corner pixel is background.
+        let corner = frame.pixel(x: 20 + 1, y: 20 + 1)
+        #expect(corner.r > 240 && corner.g > 240 && corner.b > 240, "the corner is cut, got \(corner)")
+        try frame.expectMatches(golden: "style-rounding")
+    }
+
     @Test func solidColorShowsAroundTheRecording() {
         let frame = Self.styled { $0.background = .color(RGB(1, 0, 0)); $0.padding = 0.1 }
         let corner = frame.pixel(x: 4, y: 4)

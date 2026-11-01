@@ -45,6 +45,12 @@ private struct SectionPage: View {
             BackgroundSection(editor: editor)
         case .screen:
             Form {
+                Section("Size") {
+                    StyleSlider(title: "Padding", editor: editor, value: \.padding, range: 0...0.3,
+                                format: StyleSlider.percent, undoName: "Padding")
+                    StyleSlider(title: "Rounding", editor: editor, value: \.rounding, range: 0...40,
+                                format: StyleSlider.pixels, undoName: "Rounding")
+                }
                 Section("Recording") {
                     LabeledContent("Source", value: project.sourceName.isEmpty ? "Unknown" : project.sourceName)
                     LabeledContent("Size", value: "\(project.videoWidth) × \(project.videoHeight)")

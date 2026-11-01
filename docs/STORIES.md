@@ -369,7 +369,8 @@ Depends: S-015
 Acceptance:
 - [snap] The canvas updates live, and each value is shown next to its
   slider.
-Status: todo
+Status: done
+Note: `StyleSlider` (InspectorControls.swift) previews while dragging and commits one undo step at the end; arrow keys apply each change. Rounding is in pixels at 1080p and scales with the canvas. Golden `style-rounding`.
 
 ### S-024 Add a shadow or glow
 As the user, I pick Shadow or Glow and set its amount.

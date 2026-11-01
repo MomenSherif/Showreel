@@ -99,7 +99,7 @@ final class RecordController {
         switch state {
         case .idle: newRecording(fromShortcut: true)
         case .panel: start()
-        case .countdown: cancelCountdown()
+        case .countdown: cancelCountdown(reason: "shortcut")
         case .recording, .paused: stop()
         case .saving: break
         }
@@ -293,8 +293,11 @@ final class RecordController {
         lowDisk = free < 2_000_000_000
     }
 
-    func cancelCountdown() {
+    /// `reason` says what cancelled it ("click", "Escape", "shortcut"); a
+    /// self-test run prints it, since a stray click on the real screen cancels too.
+    func cancelCountdown(reason: String = "shortcut") {
         guard state == .countdown else { return }
+        if SelfTest.requested { print("INFO Countdown cancelled by \(reason)") }
         countdownTask?.cancel()
         Countdown.shared.hide()
         Task {

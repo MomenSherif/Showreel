@@ -61,6 +61,8 @@ public struct Style: Codable, Equatable, Sendable {
     public var backgroundBlur: Double = 0
     /// Space around the recording, as a share of the canvas's shorter side, 0...0.3.
     public var padding: Double = 0.06
+    /// Corner radius of the recording, in pixels of a 1080-pixel-tall canvas, 0...40.
+    public var rounding: Double = 12
 
     public init() {}
 
@@ -69,10 +71,11 @@ public struct Style: Codable, Equatable, Sendable {
         var style = Style()
         style.background = .none
         style.padding = 0
+        style.rounding = 0
         return style
     }()
 
-    enum CodingKeys: String, CodingKey { case background, backgroundBlur, padding }
+    enum CodingKeys: String, CodingKey { case background, backgroundBlur, padding, rounding }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -80,6 +83,7 @@ public struct Style: Codable, Equatable, Sendable {
         background = (try? c.decodeIfPresent(Background.self, forKey: .background)) ?? d.background
         backgroundBlur = (try? c.decodeIfPresent(Double.self, forKey: .backgroundBlur)) ?? d.backgroundBlur
         padding = (try? c.decodeIfPresent(Double.self, forKey: .padding)) ?? d.padding
+        rounding = (try? c.decodeIfPresent(Double.self, forKey: .rounding)) ?? d.rounding
     }
 
     public func encoded() -> Data { (try? JSONEncoder().encode(self)) ?? Data() }
@@ -93,6 +97,11 @@ public struct Style: Codable, Equatable, Sendable {
 
 /// Where the recording sits on the canvas.
 public enum CanvasLayout {
+    /// `rounding` (pixels at 1080p) in pixels of a canvas `height` tall.
+    public static func cornerRadius(_ rounding: Double, canvasHeight height: CGFloat) -> CGFloat {
+        CGFloat(min(max(rounding, 0), 40)) * height / 1080
+    }
+
     /// The recording's rectangle: aspect-fit inside the canvas, inset on every
     /// side by `padding` times the canvas's shorter side.
     public static func screenRect(content: CGSize, canvas: CGSize, padding: Double) -> CGRect {

@@ -26,6 +26,12 @@ struct StyleTests {
         #expect(style.background == Style().background)
     }
 
+    @Test func roundingScalesWithTheCanvas() {
+        #expect(CanvasLayout.cornerRadius(20, canvasHeight: 1080) == 20)
+        #expect(CanvasLayout.cornerRadius(20, canvasHeight: 2160) == 40)
+        #expect(CanvasLayout.cornerRadius(90, canvasHeight: 1080) == 40)
+    }
+
     @Test func paddingInsetsAndCenters() {
         let canvas = CGSize(width: 1000, height: 500)
         let rect = CanvasLayout.screenRect(content: CGSize(width: 1600, height: 1000), canvas: canvas, padding: 0.1)

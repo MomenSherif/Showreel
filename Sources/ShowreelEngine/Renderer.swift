@@ -67,6 +67,8 @@ public enum Renderer {
             .transformed(by: CGAffineTransform(translationX: -screen.extent.minX, y: -screen.extent.minY))
             .transformed(by: CGAffineTransform(scaleX: rect.width / screen.extent.width, y: rect.height / screen.extent.height))
             .transformed(by: CGAffineTransform(translationX: rect.minX, y: rect.minY))
+        let radius = CanvasLayout.cornerRadius(style.style.rounding, canvasHeight: size.height)
+        if radius > 0 { image = rounded(image, rect: rect, radius: radius) }
         if let camera, !scene.isHidden(at: t) {
             image = bubble(camera, over: image, center: scene.center(at: t), diameter: scene.diameter * rect.width,
                            cornerRatio: scene.cornerRatio, in: rect)
@@ -75,6 +77,19 @@ public enum Renderer {
             image = image.composited(over: background)
         }
         return image.cropped(to: canvas)
+    }
+
+    /// `image` cut to a rounded rectangle; the corners become clear.
+    static func rounded(_ image: CIImage, rect: CGRect, radius: CGFloat) -> CIImage {
+        guard let mask = CIFilter(name: "CIRoundedRectangleGenerator", parameters: [
+            "inputExtent": CIVector(cgRect: rect),
+            "inputRadius": radius,
+            "inputColor": CIColor.white,
+        ])?.outputImage else { return image }
+        return image.applyingFilter("CIBlendWithAlphaMask", parameters: [
+            kCIInputBackgroundImageKey: CIImage.empty(),
+            kCIInputMaskImageKey: mask,
+        ])
     }
 
     /// The canvas behind the recording, or nil for none.

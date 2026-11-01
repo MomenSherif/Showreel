@@ -9,7 +9,7 @@ struct BackgroundSection: View {
     let editor: EditorModel
     @State private var wallpapers: [Wallpaper] = []
     @State private var choosingImage = false
-    /// The style when a slider drag or a run of color changes began.
+    /// The style when a run of color changes began.
     @State private var changeStart: Style?
     @State private var colorCommit: Task<Void, Never>?
 
@@ -59,18 +59,8 @@ struct BackgroundSection: View {
                 } label: {
                     if case .image = background { Text("Your image") } else { Text("None").foregroundStyle(.secondary) }
                 }
-                LabeledContent {
-                    Slider(value: blurBinding, in: 0...1) { editing in dragging(editing, named: "Background Blur") }
-                        .frame(maxWidth: .infinity)
-                } label: {
-                    HStack {
-                        Text("Blur")
-                        Spacer()
-                        Text(editor.style.backgroundBlur, format: .percent.precision(.fractionLength(0)))
-                            .monospacedDigit()
-                            .foregroundStyle(.secondary)
-                    }
-                }
+                StyleSlider(title: "Blur", editor: editor, value: \.backgroundBlur, range: 0...1,
+                            format: StyleSlider.percent, undoName: "Background Blur")
                 .disabled(!showsPicture)
                 .help(showsPicture ? "Blur the wallpaper or image" : "Blur works on a wallpaper or an image")
             }
@@ -93,24 +83,6 @@ struct BackgroundSection: View {
         var style = editor.style
         style.background = new
         withMotion(Motion.select) { editor.applyStyle(style, named: name) }
-    }
-
-    private var blurBinding: Binding<Double> {
-        Binding(get: { editor.style.backgroundBlur }, set: { value in
-            var style = editor.style
-            style.backgroundBlur = value
-            editor.previewStyle(style)
-        })
-    }
-
-    /// A slider drag is one undo step: remember the start, commit at the end.
-    private func dragging(_ editing: Bool, named name: String) {
-        if editing {
-            changeStart = editor.style
-        } else if let start = changeStart {
-            editor.commitStyle(from: start, named: name)
-            changeStart = nil
-        }
     }
 
     /// The color well sends a stream of changes while the color panel is

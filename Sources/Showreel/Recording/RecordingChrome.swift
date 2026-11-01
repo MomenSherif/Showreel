@@ -14,7 +14,7 @@ final class Countdown {
         guard let screen = NSScreen.screens.first(where: { $0.displayID == displayID }) ?? NSScreen.main else { return }
         var options = FloatingPanel.Options()
         options.level = .screenSaver
-        options.onCancel = { RecordController.shared.cancelCountdown() }
+        options.onCancel = { RecordController.shared.cancelCountdown(reason: "Escape") }
         let panel = FloatingPanel(size: screen.frame.size, options: options, content: CountdownView())
         panel.setFrame(screen.frame, display: true)
         panel.present()
@@ -54,7 +54,7 @@ struct CountdownView: View {
             .animation(Motion.resolved(Motion.countdownTick), value: recorder.countdown)
         }
         .contentShape(Rectangle())
-        .onTapGesture { RecordController.shared.cancelCountdown() }
+        .onTapGesture { RecordController.shared.cancelCountdown(reason: "click") }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Recording starts in \(recorder.countdown)")
     }

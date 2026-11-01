@@ -222,6 +222,20 @@ extension SelfTest {
         check("the padding shows the background", pixel[0] > 250 && pixel[1] < 5 && pixel[2] < 5, "\(pixel)")
         undo.undo()
         check("choosing a background is one undo step", editor.style == before)
+        // S-023: a Padding drag sends many values and is one undo step.
+        undo.beginUndoGrouping()
+        let start = editor.style
+        for step in 1...12 {
+            var dragged = editor.style
+            dragged.padding = Double(step) * 0.02
+            editor.previewStyle(dragged)
+        }
+        editor.commitStyle(from: start, named: "Padding")
+        undo.endUndoGrouping()
+        check("a Padding drag lands on its last value and is saved",
+              editor.style.padding == 0.24 && Style.decode(editor.project.styleData).padding == 0.24)
+        undo.undo()
+        check("one Undo reverts the whole Padding drag", editor.style.padding == before.padding, "\(editor.style.padding)")
         // Back to grouping by event: registering undo outside a group with it
         // off leaves NSUndoManager broken (it crashed SwiftUI later).
         undo.groupsByEvent = true
