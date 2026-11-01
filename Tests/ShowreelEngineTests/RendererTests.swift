@@ -79,6 +79,19 @@ struct RendererTests {
         try frame.expectMatches(golden: "style-rounding")
     }
 
+    /// S-024: a shadow darkens the background below the recording; a glow lightens it.
+    @Test func shadowAndGlowMatchGoldens() throws {
+        let plain = Self.styled { $0.background = .color(RGB(0.5, 0.5, 0.5)); $0.padding = 0.2; $0.effectAmount = 0 }
+        let shadow = Self.styled { $0.background = .color(RGB(0.5, 0.5, 0.5)); $0.padding = 0.2; $0.effect = .shadow; $0.effectAmount = 1 }
+        let glow = Self.styled { $0.background = .color(RGB(0.5, 0.5, 0.5)); $0.padding = 0.2; $0.effect = .glow; $0.effectAmount = 1 }
+        // Just below the recording's bottom edge, in the middle.
+        let below = (x: 160, y: 200 - 40 + 6)
+        #expect(shadow.pixel(x: below.x, y: below.y).r < plain.pixel(x: below.x, y: below.y).r - 10)
+        #expect(glow.pixel(x: below.x, y: below.y).r > plain.pixel(x: below.x, y: below.y).r + 10)
+        try shadow.expectMatches(golden: "style-shadow")
+        try glow.expectMatches(golden: "style-glow")
+    }
+
     @Test func solidColorShowsAroundTheRecording() {
         let frame = Self.styled { $0.background = .color(RGB(1, 0, 0)); $0.padding = 0.1 }
         let corner = frame.pixel(x: 4, y: 4)

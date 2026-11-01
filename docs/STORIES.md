@@ -378,7 +378,8 @@ Screens: editor-screen
 Depends: S-023
 Acceptance:
 - [snap] A segmented Shadow / Glow control and an Amount slider (0–100%).
-Status: todo
+Status: done
+Note: drawn from the recording's rounded shape, sized to the canvas (goldens `style-shadow`, `style-glow`). Off when there is no background. New projects get a 50% shadow.
 
 ### S-025 Crop the recording
 As the user, I click Crop Screen and drag the handles to cut away the

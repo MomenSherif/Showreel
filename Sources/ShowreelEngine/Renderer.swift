@@ -73,6 +73,9 @@ public enum Renderer {
             image = bubble(camera, over: image, center: scene.center(at: t), diameter: scene.diameter * rect.width,
                            cornerRatio: scene.cornerRatio, in: rect)
         }
+        if let lift = lift(style.style, rect: rect, radius: radius, canvas: size) {
+            image = image.composited(over: lift)
+        }
         if let background = background(style, canvas: canvas) {
             image = image.composited(over: background)
         }
@@ -90,6 +93,33 @@ public enum Renderer {
             kCIInputBackgroundImageKey: CIImage.empty(),
             kCIInputMaskImageKey: mask,
         ])
+    }
+
+    /// The shadow or glow under the recording (S-024): its rounded shape,
+    /// blurred, and for a shadow moved down a little. Sizes follow the canvas.
+    static func lift(_ style: Style, rect: CGRect, radius: CGFloat, canvas: CGSize) -> CIImage? {
+        let amount = min(max(style.effectAmount, 0), 1)
+        guard amount > 0, style.background != .none else { return nil }
+        let unit = Double(canvas.height) / 1080
+        let color: CIColor, blur: Double, drop: CGFloat
+        switch style.effect {
+        case .shadow:
+            color = CIColor(red: 0, green: 0, blue: 0, alpha: 0.25 + 0.45 * amount)
+            blur = (10 + 50 * amount) * unit
+            drop = CGFloat((4 + 20 * amount) * unit)
+        case .glow:
+            color = CIColor(red: 1, green: 1, blue: 1, alpha: 0.3 + 0.6 * amount)
+            blur = (12 + 60 * amount) * unit
+            drop = 0
+        }
+        guard let shape = CIFilter(name: "CIRoundedRectangleGenerator", parameters: [
+            "inputExtent": CIVector(cgRect: rect),
+            "inputRadius": radius,
+            "inputColor": color,
+        ])?.outputImage else { return nil }
+        return shape.applyingGaussianBlur(sigma: blur / 2)
+            .transformed(by: CGAffineTransform(translationX: 0, y: -drop))
+            .cropped(to: CGRect(origin: .zero, size: canvas))
     }
 
     /// The canvas behind the recording, or nil for none.

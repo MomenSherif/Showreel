@@ -51,6 +51,18 @@ private struct SectionPage: View {
                     StyleSlider(title: "Rounding", editor: editor, value: \.rounding, range: 0...40,
                                 format: StyleSlider.pixels, undoName: "Rounding")
                 }
+                Section("Shadow") {
+                    Picker("Effect", selection: effectBinding) {
+                        Label("Shadow", systemImage: "shadow").tag(Style.Effect.shadow)
+                        Label("Glow", systemImage: "sun.max").tag(Style.Effect.glow)
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    StyleSlider(title: "Amount", editor: editor, value: \.effectAmount, range: 0...1,
+                                format: StyleSlider.percent, undoName: editor.style.effect == .glow ? "Glow" : "Shadow")
+                }
+                .disabled(editor.style.background == .none)
+                .help(editor.style.background == .none ? "Pick a background to show a shadow or glow" : "")
                 Section("Recording") {
                     LabeledContent("Source", value: project.sourceName.isEmpty ? "Unknown" : project.sourceName)
                     LabeledContent("Size", value: "\(project.videoWidth) × \(project.videoHeight)")
@@ -96,6 +108,16 @@ private struct SectionPage: View {
                       line: "Turn on the mic or system audio for your next recording.")
             }
         }
+    }
+}
+
+extension SectionPage {
+    var effectBinding: Binding<Style.Effect> {
+        Binding(get: { editor.style.effect }, set: { effect in
+            var style = editor.style
+            style.effect = effect
+            editor.applyStyle(style, named: effect == .glow ? "Glow" : "Shadow")
+        })
     }
 }
 
