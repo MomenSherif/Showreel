@@ -110,3 +110,47 @@ down from 471), `SelfTest` (312), and `RecordPanel` (291). Nothing is near
 - **Writers report counters**: done. `TrackWriter.stats` counts appended,
   dropped, and late samples; the self-test fails on any drop. Its new unit
   test found a clock bug (docs/FIXLOG.md), fixed in its own commit.
+
+---
+
+# Check-in at the end of M3 (commit 854b40f)
+
+6,876 lines. Largest: `SelfTest` (506), `RecordController` (446),
+`EditorTimeline` (405), `RecordPanel` (291), `EditorModel` (274).
+
+## Split SelfTest by area  [Strong — done]
+
+Signal: the 450-line trigger set at the end of M2 (506 lines).
+Done: `SelfTest.swift` keeps the runner, `check`, and `finish`; the checks
+moved to `SelfTest+Library`, `+Bubble`, `+Recording`, and `+Editor`.
+Proof: the self-test prints the same 78 check names in the same order.
+
+## Timeline lanes in their own file  [Strong — done]
+
+Signal: `EditorTimeline.swift` at 405 lines, over the 300-line limit for view
+files (improve-loop). `TrackKind`, `Lane`, `ClipBlock`, and `Block` moved to
+`EditorTracks.swift`.
+Proof: the timeline region of the editor, trim, split, and zoomed snapshots
+is pixel-identical (only the zoom slider's active-window tint differs, which
+also differs between two runs of one build).
+
+## Snapshots are not byte-stable  [Worth exploring]
+
+Two snapshot runs of one build differ in the dark captures, and the window
+is active in a full run but not in a subset run. Byte comparison cannot
+prove a refactor; this check-in used a pixel diff of a region. Proposal:
+make the snapshot window key before each capture and add
+`tools/pixdiff.swift <a> <b> [rect]` for refactor proofs.
+
+## EditSession out of EditorModel  [Speculative]
+
+`EditorModel` holds playback, seeking, the cut, and undo (274 lines). M4 adds
+style edits that need the same undo and save path. If it passes 400 lines,
+move `apply`, undo, and saving into an `EditSession` that owns the
+`EditList` and the style, and keep playback in `EditorModel`.
+
+## Rebuilding the player item per edit  [Speculative]
+
+Every edit builds a new `AVPlayerItem` from `PlayerSources`. That is
+instant for a handful of segments. Measure it on a 30-minute recording with
+50 cuts before M5 adds zoom segments.

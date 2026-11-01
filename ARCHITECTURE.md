@@ -47,7 +47,8 @@ EditorWindow (finds the Project) -> EditorView
   ├─ EditorModel (@Observable, one per window): player, duration, isPlaying, inspector section
   │    └─ Playhead (@Observable): the time, 30 Hz, observed only by the time label and playhead line
   ├─ EditorCanvas      AVPlayerLayer on the canvas backdrop, frames from BubbleCompositor
-  ├─ EditorTimeline    transport row, ruler (TimelineScale in Kit), one lane per TrackKind
+  ├─ EditorTimeline    transport row, ruler (TimelineScale in Kit), playhead
+  │    └─ EditorTracks  one lane per TrackKind; ClipBlock trims, selects, and splits
   └─ EditorInspector   segmented section picker, one grouped Form per section
 ```
 
