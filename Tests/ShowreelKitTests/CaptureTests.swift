@@ -28,6 +28,23 @@ struct RecordingClockTests {
         #expect(clock.elapsed(at: 31) == 5)
     }
 
+    /// A sample is often handled a moment after it was captured. Its time
+    /// must not change if a pause began or ended in that moment.
+    @Test func lateSamplesKeepTheirCaptureTime() {
+        var clock = RecordingClock()
+        clock.begin(at: 10)
+        clock.pause(at: 12)
+        clock.resume(at: 20)
+        clock.pause(at: 22)
+        clock.resume(at: 30)
+        #expect(clock.mediaTime(at: 11) == 1)       // before both pauses
+        #expect(clock.mediaTime(at: 15) == nil)     // inside the first pause
+        #expect(clock.mediaTime(at: 21) == 3)       // between the pauses
+        #expect(clock.mediaTime(at: 25) == nil)     // inside the second
+        #expect(clock.mediaTime(at: 31) == 5)
+        #expect(clock.pausedTotal == 16)
+    }
+
     @Test func doublePauseIsIgnored() {
         var clock = RecordingClock()
         clock.begin(at: 0)

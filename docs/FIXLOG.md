@@ -1,5 +1,14 @@
 # Fix log
 
+## 2026-11-01 Samples handled after Resume got the wrong time
+Symptom: (found by the new TrackWriter test) a frame captured before a pause but written
+after Resume was placed earlier than it happened, even at a negative time.
+Cause: `RecordingClock` kept only the total paused time, so it applied the newest pause to
+every sample, including ones captured before it. Writers handle samples on their own queue,
+a moment after capture.
+Fix: the clock keeps every pause and subtracts only the pauses that ended before the sample.
+Rule: a clock that maps past timestamps must keep its history, not a running total.
+
 ## 2026-11-01 Snapshot and self-test runs hang with no output
 Symptom: `tools/snap.sh` and `tools/selftest.sh` sometimes never finished and printed
 nothing; the process sat idle with `NSApp.windows` empty.
