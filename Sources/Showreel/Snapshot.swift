@@ -117,6 +117,19 @@ enum Snapshot {
                            },
                            window: window,
                            hide: {})
+        // S-019: split twice, the middle piece selected.
+        let split = Surface(name: "editor-split", show: {
+                                guard let editor = EditorModel.newest else { return }
+                                editor.selectedSegment = nil
+                                editor.apply(EditList(sourceDuration: editor.edits.sourceDuration))
+                                editor.seek(to: 12)
+                                editor.splitAtPlayhead()
+                                editor.seek(to: 24)
+                                editor.splitAtPlayhead()
+                                editor.selectedSegment = editor.edits.segments[1].id
+                            },
+                            window: window,
+                            hide: {})
         return InspectorSection.allCases.map { section in
             Surface(name: section == .background ? "editor" : "editor-\(section.rawValue)", show: {
                         let project = (try? model.context.fetch(FetchDescriptor<Project>()))?.first { $0.title == title }
@@ -126,7 +139,7 @@ enum Snapshot {
                     },
                     window: window,
                     hide: {})
-        } + [trim, zoomed]
+        } + [trim, split, zoomed]
     }
 
     static func runIfRequested(model: AppModel, openSettings: OpenSettingsAction) {

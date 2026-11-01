@@ -24,6 +24,12 @@ struct EditorCommands: Commands {
         }
         CommandMenu("Clip") {
             Group {
+                Button("Split at Playhead") { act(.text("s")) { $0.splitAtPlayhead() } }
+                    .keyboardShortcut("s", modifiers: [])
+                Button("Delete Section") { act(.deleteBackward) { $0.deleteSelection() } }
+                    .keyboardShortcut(.delete, modifiers: [])
+                    .disabled(editor?.canDeleteSelection != true)
+                Divider()
                 Button("Trim Start to Playhead") { act(nil) { $0.trimStartToPlayhead() } }
                     .keyboardShortcut("[", modifiers: .option)
                 Button("Trim End to Playhead") { act(nil) { $0.trimEndToPlayhead() } }
@@ -72,6 +78,7 @@ struct EditorCommands: Commands {
 enum TextKey {
     case space, left, right, shiftLeft, shiftRight, home, end
     case text(String)
+    case deleteBackward
 
     @MainActor func send(to text: NSTextView) {
         switch self {
@@ -83,6 +90,7 @@ enum TextKey {
         case .home: text.moveToBeginningOfLine(nil)
         case .end: text.moveToEndOfLine(nil)
         case .text(let string): text.insertText(string, replacementRange: text.selectedRange())
+        case .deleteBackward: text.deleteBackward(nil)
         }
     }
 }

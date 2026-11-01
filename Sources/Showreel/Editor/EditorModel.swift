@@ -144,6 +144,29 @@ final class EditorModel {
         draft = nil
     }
 
+    /// Clip > Split at Playhead (S): two pieces where there was one (S-019).
+    var canSplit: Bool {
+        var probe = edits
+        return probe.split(atEditTime: playhead.time) != nil
+    }
+
+    func splitAtPlayhead() {
+        var new = edits
+        guard new.split(atEditTime: playhead.time) != nil else { return }
+        apply(new)
+    }
+
+    /// Clip > Delete Section (⌫): removes the selected piece and closes the gap.
+    var canDeleteSelection: Bool { selectedSegment != nil && edits.segments.count > 1 }
+
+    func deleteSelection() {
+        guard let selectedSegment else { return }
+        var new = edits
+        guard new.delete(selectedSegment) else { return }
+        self.selectedSegment = nil
+        apply(new)
+    }
+
     /// Clip > Trim Start to Playhead (⌥[).
     func trimStartToPlayhead() {
         guard let (segment, _) = edits.segment(atEditTime: playhead.time),

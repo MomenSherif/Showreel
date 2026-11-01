@@ -324,7 +324,8 @@ Depends: S-018
 Acceptance:
 - [unit] Deleting a section closes the gap, and zooms and captions after
   it shift with it.
-Status: todo
+Status: done
+Note: zooms and captions will be stored in source time, so `EditList.editTime(atSourceTime:)` shifts them (EditListTests). Clip > Split at Playhead (S), Delete Section (⌫), and the clip's context menu. Snapshot `editor-split`.
 
 ### S-020 Undo and redo every edit
 As the user, I press ⌘Z or ⇧⌘Z to undo or redo any edit in the editor.

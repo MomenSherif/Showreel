@@ -393,6 +393,23 @@ enum SelfTest {
               menu.contains("Trim Start to Playhead") && menu.contains("Trim End to Playhead"), menu.joined(separator: ", "))
         editor.apply(EditList(sourceDuration: source))
         await editor.seeksSettled()
+
+        // S-019: split, select the first piece, delete it.
+        editor.seek(to: 0.8)
+        await editor.seeksSettled()
+        editor.splitAtPlayhead()
+        check("Split at Playhead makes two pieces", editor.edits.segments.count == 2)
+        editor.selectedSegment = editor.edits.segments.first?.id
+        editor.deleteSelection()
+        await editor.seeksSettled()
+        check("Delete Section removes the piece and closes the gap",
+              editor.edits.segments.count == 1 && abs(editor.duration - (source - 0.8)) < 0.01, "\(editor.duration)")
+        check("the playhead stays on the same moment of the recording", abs(editor.playhead.time) < 0.02, "\(editor.playhead.time)")
+        let clip = NSApp.mainMenu?.item(withTitle: "Clip")?.submenu?.items.map(\.title) ?? []
+        check("the Clip menu has Split at Playhead and Delete Section",
+              clip.contains("Split at Playhead") && clip.contains("Delete Section"), clip.joined(separator: ", "))
+        editor.apply(EditList(sourceDuration: source))
+        await editor.seeksSettled()
     }
 
     private static func check(_ name: String, _ ok: Bool, _ detail: String = "") {

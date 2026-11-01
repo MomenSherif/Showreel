@@ -16,6 +16,8 @@ enum Layout {
     static let playheadWidth: CGFloat = 2
     static let selectionRing: CGFloat = 2
     static let zoomSliderWidth: CGFloat = 96
+    /// The seam between two pieces of the clip after a split.
+    static let clipSeam: CGFloat = 2
 
     // Floating recording chrome
     static let recordPanel = CGSize(width: 600, height: 56)

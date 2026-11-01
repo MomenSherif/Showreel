@@ -59,9 +59,9 @@ private struct TransportRow: View {
     var body: some View {
         HStack(spacing: Space.sm) {
             HStack(spacing: Space.sm) {
-                Button("Split", systemImage: "scissors") {}
+                Button("Split", systemImage: "scissors") { editor.splitAtPlayhead() }
                     .help("Split at Playhead (S)")
-                    .disabled(true) // S-019
+                    .disabled(editor.player == nil)
                 Button("Add Zoom", systemImage: "plus.magnifyingglass") {}
                     .help("Add Zoom (Z)")
                     .disabled(true) // S-032
@@ -307,12 +307,22 @@ private struct ClipBlock: View {
                 }
         }
         .frame(width: max(scale.x(at: segment.length), 1), alignment: .leading)
+        // A seam after every piece but the last, so a split shows.
+        .padding(.trailing, segment.id == editor.edits.segments.last?.id ? 0 : Layout.clipSeam)
         .overlay(alignment: .leading) { handle(.start) }
         .overlay(alignment: .trailing) { handle(.end) }
         .offset(x: scale.x(at: start)) // grid: ok position from time
         .onTapGesture { location in
             withMotion(Motion.select) { editor.selectedSegment = segment.id }
             editor.seek(to: start + scale.seconds(at: location.x))
+        }
+        .contextMenu {
+            Button("Split at Playhead") { editor.splitAtPlayhead() }
+            Button("Delete Section") {
+                editor.selectedSegment = segment.id
+                editor.deleteSelection()
+            }
+            .disabled(editor.edits.segments.count < 2)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Clip, \(Self.length(kept.length))")
