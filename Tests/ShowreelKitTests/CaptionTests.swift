@@ -55,4 +55,53 @@ struct CaptionTests {
         #expect(CaptionTrack.decode(track.encoded()) == track)
         #expect(CaptionTrack.decode(nil) == nil)
     }
+
+    /// S-040: fixing a word keeps every word's time.
+    @Test func editedTextKeepsWordTimes() throws {
+        let caption = Caption(words: words("click the recrod button"))
+        let fixed = try #require(caption.withText("click the record  button"))
+        #expect(fixed.text == "click the record button")
+        #expect(fixed.words.map(\.start) == caption.words.map(\.start))
+        #expect(fixed.start == caption.start && fixed.end == caption.end)
+    }
+
+    @Test func editedTextWithMoreWordsSharesTheTime() throws {
+        let caption = Caption(words: words("hello there"))
+        let fixed = try #require(caption.withText("hello over there"))
+        #expect(fixed.words.count == 3)
+        #expect(fixed.words.first?.start == caption.start)
+        #expect(abs((fixed.words.last?.end ?? 0) - caption.end) < 0.0001)
+        #expect(caption.withText("   ") == nil)
+    }
+
+    private func track() -> CaptionTrack {
+        CaptionTrack(captions: [Caption(words: words("one two", from: 1)), Caption(words: words("three four", from: 4))])
+    }
+
+    @Test func resizingStopsAtTheNeighbor() {
+        let t = track(), first = t.captions[0], second = t.captions[1]
+        let longer = t.resizing(first.id, edge: .end, by: 10, duration: 20)
+        #expect(longer.captions[0].end == second.start)
+        let shorter = t.resizing(first.id, edge: .end, by: -10, duration: 20)
+        #expect(abs(shorter.captions[0].length - CaptionTrack.minLength) < 0.0001)
+        let earlier = t.resizing(first.id, edge: .start, by: -5, duration: 20)
+        #expect(earlier.captions[0].start == 0)
+        // Words stretch with the caption.
+        #expect(earlier.captions[0].words.first?.start == 0)
+        #expect(abs((earlier.captions[0].words.last?.end ?? 0) - first.end) < 0.0001)
+    }
+
+    @Test func movingStopsAtTheNeighborAndKeepsLength() {
+        let t = track(), first = t.captions[0], second = t.captions[1]
+        let moved = t.moving(first.id, by: 10, duration: 20)
+        #expect(abs(moved.captions[0].end - second.start) < 0.0001)
+        #expect(abs(moved.captions[0].length - first.length) < 0.0001)
+        let last = t.moving(second.id, by: 100, duration: 20)
+        #expect(abs(last.captions[1].end - 20) < 0.0001)
+    }
+
+    @Test func changingToNilRemovesTheCaption() {
+        let t = track()
+        #expect(t.changing(t.captions[0].id) { _ in nil }.captions.map(\.id) == [t.captions[1].id])
+    }
 }

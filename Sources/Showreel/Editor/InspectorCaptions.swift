@@ -80,3 +80,58 @@ private struct JobView: View {
         .formStyle(.grouped)
     }
 }
+
+/// The selected caption in the inspector (S-040): its text, timing, and
+/// Delete. Return or leaving the field applies the text as one undo step.
+struct CaptionInspector: View {
+    let editor: EditorModel
+    let caption: Caption
+    @State private var text = ""
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        Form {
+            Section {
+                TextField("Caption text", text: $text, axis: .vertical)
+                    .labelsHidden()
+                    .lineLimit(2...4)
+                    .focused($focused)
+                    .onSubmit(commit)
+                    .onChange(of: focused) { _, isFocused in if !isFocused { commit() } }
+            } footer: {
+                Text("Return applies the text.").foregroundStyle(.secondary)
+            }
+            Section("Timing") {
+                LabeledContent("Starts", value: editor.editStart(of: caption).map(TimeText.precise) ?? "Cut")
+                LabeledContent("Length", value: ClipBlock.length(caption.length))
+            }
+            Section {
+                Button("Delete Caption", role: .destructive) { editor.deleteSelectedCaption() }
+                    .help("Remove this caption (⌫)")
+            }
+        }
+        .formStyle(.grouped)
+        .onAppear {
+            text = caption.text
+            if editor.editsCaptionText {
+                editor.editsCaptionText = false
+                focused = true
+            }
+        }
+        // Done, Esc, or another selection also applies what was typed.
+        .onDisappear(perform: commit)
+        .onChange(of: caption.text) { _, new in if !focused { text = new } }
+        .onChange(of: editor.editsCaptionText) { _, edit in
+            if edit {
+                editor.editsCaptionText = false
+                focused = true
+            }
+        }
+    }
+
+    /// Empty text goes back to the caption's text.
+    private func commit() {
+        editor.setText(text, ofCaption: caption.id)
+        if caption.withText(text) == nil { text = caption.text }
+    }
+}

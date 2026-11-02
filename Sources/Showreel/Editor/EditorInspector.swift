@@ -23,17 +23,17 @@ struct EditorInspector: View {
 
             if let zoom = editor.selectedZoomSegment {
                 // A selected zoom takes the section's place (docs/DESIGN.md, "Inspector").
-                HStack {
-                    Label("Zoom", systemImage: TrackKind.zoom.symbol)
-                        .font(.headline)
-                        .accessibilityAddTraits(.isHeader)
-                    Spacer()
-                    Button("Done") { withMotion(Motion.ui) { editor.selectZoom(nil) } }
-                        .keyboardShortcut(.cancelAction)
-                        .help("Back to \(editor.section.title) (Esc)")
+                SelectionHeader(title: "Zoom", symbol: TrackKind.zoom.symbol, editor: editor) {
+                    editor.selectZoom(nil)
                 }
-                .padding(.horizontal, Space.xl)
                 ZoomInspector(editor: editor, zoom: zoom)
+                    .frame(maxHeight: .infinity, alignment: .top)
+            } else if let caption = editor.selectedCaptionItem {
+                SelectionHeader(title: "Caption", symbol: TrackKind.captions.symbol, editor: editor) {
+                    editor.selectCaption(nil)
+                }
+                CaptionInspector(editor: editor, caption: caption)
+                    .id(caption.id)
                     .frame(maxHeight: .infinity, alignment: .top)
             } else {
                 Text(editor.section.title)
@@ -52,6 +52,7 @@ struct EditorInspector: View {
     private var sectionBinding: Binding<InspectorSection> {
         Binding(get: { editor.section }, set: { section in
             editor.selectZoom(nil)
+            editor.selectCaption(nil)
             editor.section = section
         })
     }
@@ -205,6 +206,27 @@ private struct AddressField: View {
         var style = editor.style
         style.url = url
         editor.applyStyle(style, named: "Address")
+    }
+}
+
+/// "Zoom" or "Caption" over the selected item, with Done (Esc) back to the section.
+private struct SelectionHeader: View {
+    let title: String
+    let symbol: String
+    let editor: EditorModel
+    let done: () -> Void
+
+    var body: some View {
+        HStack {
+            Label(title, systemImage: symbol)
+                .font(.headline)
+                .accessibilityAddTraits(.isHeader)
+            Spacer()
+            Button("Done") { withMotion(Motion.ui) { done() } }
+                .keyboardShortcut(.cancelAction)
+                .help("Back to \(editor.section.title) (Esc)")
+        }
+        .padding(.horizontal, Space.xl)
     }
 }
 

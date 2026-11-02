@@ -257,6 +257,16 @@ enum Snapshot {
         }
         let captionsProgress = captionJob("editor-captions-progress", .running(.listening(0.35)))
         let captionsFailed = captionJob("editor-captions-failed", .failed("No speech found in the microphone recording."))
+        // S-040: the second caption selected, its text being edited.
+        let captionSelected = Surface(name: "editor-caption-selected", show: {
+                                          guard let editor = await openEditor() else { return }
+                                          editor.zoom = TimelineZoom()
+                                          let caption = editor.captions.captions.dropFirst().first
+                                          editor.selectCaption(caption?.id, editText: true)
+                                          editor.seek(to: caption?.start ?? 0)
+                                      },
+                                      window: window,
+                                      hide: { EditorModel.newest?.selectCaption(nil) })
         // S-038: the finished export, with Share…, Show in Finder, and Copy.
         let done = Surface(name: "export-done", show: {
                                guard let editor = await openEditor() else { return }
@@ -278,7 +288,7 @@ enum Snapshot {
                     },
                     window: window,
                     hide: {})
-        } + [trim, split, crop, frame, aspect, savePreset, export, progress, done, zoomSelected, click, zoomed, captionsProgress, captionsFailed]
+        } + [trim, split, crop, frame, aspect, savePreset, export, progress, done, zoomSelected, click, zoomed, captionsProgress, captionsFailed, captionSelected]
     }
 
     static func runIfRequested(model: AppModel, openSettings: OpenSettingsAction) {

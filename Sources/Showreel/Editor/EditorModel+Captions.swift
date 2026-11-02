@@ -89,16 +89,68 @@ extension EditorModel {
 
     /// Replaces the captions as one undoable step called `name`, and saves them.
     func applyCaptions(_ new: CaptionTrack, named name: String) {
-        guard new != captions else { return }
-        let old = captions
+        commitCaptions(from: captions, to: new, named: name)
+    }
+
+    /// Shows `new` on the timeline without an undo step or a save, while dragging.
+    func previewCaptions(_ new: CaptionTrack) {
+        if new != captions { captions = new }
+    }
+
+    /// Ends a drag that started at `old`: one undo step for the whole drag.
+    func commitCaptions(from old: CaptionTrack, named name: String) {
+        commitCaptions(from: old, to: captions, named: name)
+    }
+
+    private func commitCaptions(from old: CaptionTrack, to new: CaptionTrack, named name: String) {
+        guard old != new else { return }
         undoManager?.registerUndo(withTarget: self) { editor in
-            MainActor.assumeIsolated { editor.applyCaptions(old, named: name) }
+            MainActor.assumeIsolated { editor.commitCaptions(from: editor.captions, to: old, named: name) }
         }
         undoManager?.setActionName(name)
         captions = new
         project.captionsData = new.captions.isEmpty && new.language.isEmpty ? nil : new.encoded()
         try? project.modelContext?.save()
+        if let id = selectedCaption, !new.captions.contains(where: { $0.id == id }) { selectedCaption = nil }
         refreshUndo()
+    }
+
+    // MARK: Editing one caption (S-040)
+
+    /// The selected caption, shown in the inspector in place of the section.
+    var selectedCaptionItem: Caption? {
+        selectedCaption.flatMap { id in captions.captions.first { $0.id == id } }
+    }
+
+    /// Selects a caption, or with nil, goes back to the inspector's section.
+    /// With `editText`, the inspector puts the cursor in its text.
+    func selectCaption(_ id: Caption.ID?, editText: Bool = false) {
+        selectedCaption = id
+        if id != nil {
+            selectedZoom = nil
+            selectedSegment = nil
+            section = .captions
+        }
+        editsCaptionText = id != nil && editText
+    }
+
+    /// Applies new text to the caption `id`. Empty text is not applied.
+    func setText(_ text: String, ofCaption id: Caption.ID) {
+        guard let caption = captions.captions.first(where: { $0.id == id }),
+              let edited = caption.withText(text), edited.text != caption.text else { return }
+        applyCaptions(captions.changing(id) { _ in edited }, named: "Edit Caption")
+    }
+
+    /// Clip > Delete Caption (⌫, the inspector's button, or the block's menu).
+    func deleteSelectedCaption() {
+        guard let id = selectedCaption else { return }
+        applyCaptions(captions.changing(id) { _ in nil }, named: "Delete Caption")
+        selectedCaption = nil
+    }
+
+    /// The caption's start in the edited video, or nil when the cut removed it.
+    func editStart(of caption: Caption) -> Double? {
+        edits.editRanges(fromSource: caption.start, to: caption.end).first?.lowerBound
     }
 
     /// "English (United States)" for "en_US".

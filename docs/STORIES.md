@@ -623,7 +623,19 @@ Screens: editor-captions
 Depends: S-039
 Acceptance:
 - [self] Edits are undoable, and captions shift with cuts (S-019).
-Status: todo
+UX:
+- Flow: click a caption block -> it is selected and the inspector shows "Caption" (text, Starts, Length,
+  Delete Caption) -> Return or leaving the field applies the text ("Undo Edit Caption") -> Done or Esc
+  goes back to Captions. Double-click a block selects it and puts the cursor in the text. Drag a block's
+  edges to change its timing ("Undo Change Caption Timing"), its middle to move it ("Undo Move
+  Caption"); a drag stops at the next caption. ⌫ or Clip > Delete Caption removes it.
+- Surface: inspector, in place of the section, like a selected zoom (shows details of the selection).
+- States: empty text is not applied (the field goes back to the old text); a caption removed by a cut
+  shows "Cut" for Starts.
+- Words: "Caption", "Delete Caption", "Done"; block tooltip "<text>. Double-click to edit, drag to move."
+- Access: VoiceOver reads "Caption, <text>, 1.8s", with an action to edit; the text field is labeled
+  "Caption text".
+Status: done
 
 ### S-041 Style captions
 As the user, I set the caption font size, position (bottom or top), and

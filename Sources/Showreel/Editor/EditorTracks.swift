@@ -89,8 +89,9 @@ struct Lane: View {
                 // Captions are kept in source time; a cut shows them in pieces (S-039).
                 ForEach(editor.captions.captions) { caption in
                     let ranges = editor.edits.editRanges(fromSource: caption.start, to: caption.end)
-                    ForEach(Array(ranges.enumerated()), id: \.offset) { _, range in
-                        CaptionBlock(caption: caption)
+                    ForEach(Array(ranges.enumerated()), id: \.offset) { i, range in
+                        CaptionBlock(editor: editor, caption: caption, scale: scale,
+                                     edges: (start: i == 0, end: i == ranges.count - 1))
                             .frame(width: max(scale.x(at: range.upperBound - range.lowerBound), 1))
                             .offset(x: scale.x(at: range.lowerBound)) // grid: ok position from time
                     }
@@ -151,6 +152,7 @@ struct ClipBlock: View {
             withMotion(Motion.select) {
                 editor.selectedSegment = segment.id
                 editor.selectedZoom = nil
+                editor.selectedCaption = nil
             }
             editor.seek(to: start + scale.seconds(at: location.x))
         }
@@ -216,17 +218,6 @@ struct Block: View {
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("\(kind.title), \(title)")
-    }
-}
-
-/// One caption on the captions lane, its text cut to fit; the tooltip has it all.
-struct CaptionBlock: View {
-    let caption: Caption
-
-    var body: some View {
-        Block(kind: .captions, title: caption.text)
-            .help(caption.text)
-            .accessibilityLabel("Caption, \(caption.text), \(ClipBlock.length(caption.length))")
     }
 }
 

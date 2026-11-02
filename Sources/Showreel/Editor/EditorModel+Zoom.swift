@@ -12,7 +12,10 @@ extension EditorModel {
     /// Selects a zoom, or with nil, goes back to the inspector's section.
     func selectZoom(_ id: ZoomSegment.ID?) {
         selectedZoom = id
-        if id != nil { selectedSegment = nil }
+        if id != nil {
+            selectedSegment = nil
+            selectedCaption = nil
+        }
     }
 
     /// Replaces the zooms as one undoable step called `name`, and saves them.

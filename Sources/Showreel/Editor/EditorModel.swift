@@ -82,6 +82,10 @@ final class EditorModel {
     var captions = CaptionTrack()
     /// Generate Captions while it runs, or when it failed (S-039).
     var captionJob: CaptionJob?
+    /// The caption selected on the timeline (S-040).
+    var selectedCaption: Caption.ID?
+    /// A double-click asked the inspector to put the cursor in the caption's text.
+    var editsCaptionText = false
     /// The zoom camera for the current zooms and speed, worked out once (S-033).
     @ObservationIgnored var zoomPathCache: (zooms: ZoomTrack, speed: ZoomSpeed, path: ZoomPath)?
     /// The drawn cursor for the current smoothing and idle setting (S-034).

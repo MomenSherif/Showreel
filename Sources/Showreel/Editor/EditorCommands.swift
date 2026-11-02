@@ -31,11 +31,19 @@ struct EditorCommands: Commands {
                     .keyboardShortcut("z", modifiers: [])
                 Button("Generate Captions") { act(nil) { $0.generateCaptions() } }
                     .disabled(editor?.canGenerateCaptions != true)
-                Button(editor?.selectedZoom != nil ? "Delete Zoom" : "Delete Section") {
-                    act(.deleteBackward) { $0.selectedZoom != nil ? $0.deleteSelectedZoom() : $0.deleteSelection() }
+                Button(deleteTitle) {
+                    act(.deleteBackward) { editor in
+                        if editor.selectedCaption != nil {
+                            editor.deleteSelectedCaption()
+                        } else if editor.selectedZoom != nil {
+                            editor.deleteSelectedZoom()
+                        } else {
+                            editor.deleteSelection()
+                        }
+                    }
                 }
                 .keyboardShortcut(.delete, modifiers: [])
-                .disabled(editor?.selectedZoom == nil && editor?.canDeleteSelection != true)
+                .disabled(editor?.selectedCaption == nil && editor?.selectedZoom == nil && editor?.canDeleteSelection != true)
                 Divider()
                 if let editor {
                     Picker("Aspect Ratio", selection: aspectBinding(editor)) {
@@ -83,6 +91,12 @@ struct EditorCommands: Commands {
             }
             .disabled(editor?.player == nil)
         }
+    }
+
+    /// Delete follows the selection: a caption, a zoom, or a section.
+    private var deleteTitle: String {
+        if editor?.selectedCaption != nil { return "Delete Caption" }
+        return editor?.selectedZoom != nil ? "Delete Zoom" : "Delete Section"
     }
 
     /// Runs `action` on the Editor, unless a text field is being edited:
