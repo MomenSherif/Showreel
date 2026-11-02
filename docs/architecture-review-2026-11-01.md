@@ -273,3 +273,60 @@ state behind (see the M3 note on snapshot stability).
 
 None is Strong, so no refactor in this check-in. M6 starts with
 "Render inputs outside the editor window" as the first commit of S-036.
+
+# Check-in at the end of M6 (commit 53d7ab4)
+
+Export went in as planned: `Exporter` (engine) reads the same video
+composition the preview plays, so `Renderer` stays the one drawing path,
+and `ExportSettings` (Kit) holds every rule with unit tests. The largest
+files are `RecordController` (449), `Snapshot.swift` (377), and
+`SelfTest+Editor` (341); nothing is near 600. Two fix-log entries this
+milestone: SwiftUI command placement and a stale `@State` read from an
+AppKit callback. Neither area has repeated.
+
+## Open-editor registry  [Worth exploring]
+
+Files: Editor/EditorModel.swift (`newest`, `live`, `open(_:)`, `runningExport(of:)`), AppServices.swift (`pendingExport`)
+Signal: the same kind of lookup grew three times (snapshot and self-test via
+`newest`, Library Export… via `open`, the close guard via `runningExport`),
+and one of them fixed a real bug (FIXLOG 2026-11-02, close guard).
+Problem: AppKit-facing code (menus, the close guard, AppServices) needs
+"the editor of project X" and gets it from statics spread over
+`EditorModel`, plus a pending flag in `AppServices`.
+Proposal:
+```swift
+@MainActor final class OpenEditors {
+    static let shared = OpenEditors()
+    func register(_ editor: EditorModel)          // in load()
+    func editor(for project: UUID) -> EditorModel?
+    func runningExport(of project: UUID) -> ExportRun?
+    func whenLoaded(_ project: UUID, _ action: @escaping (EditorModel) -> Void)  // replaces pendingExport
+}
+```
+Benefits: one place answers "which editor", `EditorModel` loses its
+statics, and the pending flag becomes a general hook for the next window
+command (M7's Generate Captions… from the Library).
+Proof: the self-test's 142 checks (Library Export…, close guard), snapshots.
+Why not Strong: three small callers work today. Do it when a fourth appears.
+
+## Snapshot surfaces  [Speculative, carried over]
+
+`Snapshot.swift` is at 377 lines (the M5 note said act at 400). M6 added three
+editor surfaces. Move the editor surfaces to `Snapshot+Editor.swift` with
+the first M7 surface.
+
+## Considered, not recommended
+
+- **Export without a window** (`ProjectLook`, from the M5 check-in): still
+  not needed, see the S-036 outcome above.
+- **Progress hops**: `Exporter` reports progress about 60 times a second,
+  each as a main-actor task. `ExportRun.report` keeps only whole percents,
+  and the 1-minute 1080p60 export takes 9.8 s, so this is not a cost worth
+  a throttle.
+- **CloseGuard as a protocol seam**: it has one adapter (the window
+  delegate stand-in) and the self-test drives it for real. A protocol
+  would add a hypothetical seam.
+
+## Top recommendation
+
+None is Strong, so no refactor in this check-in. Start M7 with S-039.
