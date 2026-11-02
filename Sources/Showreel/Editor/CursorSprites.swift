@@ -14,6 +14,35 @@ enum CursorSprites {
         return sprites
     }()
 
+    /// The cursors Showreel draws (S-055), drawn once, by id.
+    static let art: [String: CursorSprite] = Dictionary(uniqueKeysWithValues: CursorArt.all.compactMap { art in
+        art.sprite().map { (art.id, $0) }
+    })
+
+    /// The pictures for `look`: the system's three shapes, one drawn cursor
+    /// for all of them, or none. `picture` is the person's own, loaded.
+    static func sprites(for look: Style.CursorLook, picture: CursorSprite?) -> [EventLog.Shape.Kind: CursorSprite] {
+        let one: CursorSprite?
+        switch look {
+        case .system: return system
+        case .none: return [:]
+        case .art(let id): one = art[id]
+        case .picture: one = picture
+        }
+        // A missing drawing or picture falls back to the system cursor.
+        guard let one else { return system }
+        return Dictionary(uniqueKeysWithValues: EventLog.Shape.Kind.allCases.map { ($0, one) })
+    }
+
+    /// The person's picture as a cursor: its longer side 28 points, clicking at
+    /// its top-left corner or its middle.
+    static func sprite(picture: CGImage, centered: Bool) -> CursorSprite {
+        let w = CGFloat(picture.width), h = CGFloat(picture.height)
+        let pointHeight = 28 * h / max(w, h, 1)
+        return CursorSprite(image: CIImage(cgImage: picture), hotSpot: centered ? CGPoint(x: w / 2, y: h / 2) : .zero,
+                            pointHeight: pointHeight)
+    }
+
     static func cursor(for kind: EventLog.Shape.Kind) -> NSCursor {
         switch kind {
         case .arrow: .arrow

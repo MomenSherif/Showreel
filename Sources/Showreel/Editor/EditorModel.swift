@@ -135,6 +135,8 @@ final class EditorModel {
     /// The drawn cursor for the current smoothing and idle setting (S-034).
     @ObservationIgnored var cursorTrackCache: (smoothing: Double, hides: Bool, track: CursorTrack)?
     @ObservationIgnored var clickMarksCache: ClickMarks?
+    /// Cursor pictures the person chose (S-055), by file path.
+    @ObservationIgnored var cursorPictures: [String: CGImage] = [:]
 
     @ObservationIgnored var sources: PlayerSources?
     /// The current item's segments, so a style change can redraw without a rebuild.

@@ -141,6 +141,20 @@ public struct Style: Codable, Equatable, Sendable {
     /// Fades the cursor out when it has not moved for a while.
     public var cursorHidesWhenIdle: Bool = false
 
+    /// Which cursor the video shows (S-055).
+    public enum CursorLook: Codable, Hashable, Sendable {
+        /// The macOS cursor, changing to the I-beam and the hand like it did on screen.
+        case system
+        /// No cursor. Clicks still get their marks.
+        case none
+        /// A cursor Showreel draws, by its id (`CursorArt`). It keeps one shape.
+        case art(String)
+        /// The person's own picture, a file in the project folder. It clicks at
+        /// its middle when `centered`, else at its top-left corner.
+        case picture(String, centered: Bool)
+    }
+    public var cursorLook: CursorLook = .system
+
     /// A mark at each click (S-035): none, a filled ripple, or a ring.
     public enum ClickEffect: String, Codable, CaseIterable, Sendable { case none, ripple, ring }
     public var clickEffect: ClickEffect = .none
@@ -164,7 +178,7 @@ public struct Style: Codable, Equatable, Sendable {
 
     enum CodingKeys: String, CodingKey { case background, backgroundBlur, padding, rounding, effect, effectAmount, crop, frame, showsURLBar, url, aspect,
         cameraVisible, cameraScale, cameraShape, cameraBorder, cameraShadow, cameraPosition, zoomSpeed,
-        cursorScale, cursorSmoothing, cursorHidesWhenIdle, clickEffect, clickColor, captions }
+        cursorScale, cursorSmoothing, cursorHidesWhenIdle, cursorLook, clickEffect, clickColor, captions }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -190,6 +204,7 @@ public struct Style: Codable, Equatable, Sendable {
         cursorScale = (try? c.decodeIfPresent(Double.self, forKey: .cursorScale)) ?? d.cursorScale
         cursorSmoothing = (try? c.decodeIfPresent(Double.self, forKey: .cursorSmoothing)) ?? d.cursorSmoothing
         cursorHidesWhenIdle = (try? c.decodeIfPresent(Bool.self, forKey: .cursorHidesWhenIdle)) ?? d.cursorHidesWhenIdle
+        cursorLook = (try? c.decodeIfPresent(CursorLook.self, forKey: .cursorLook)) ?? d.cursorLook
         clickEffect = (try? c.decodeIfPresent(ClickEffect.self, forKey: .clickEffect)) ?? d.clickEffect
         clickColor = (try? c.decodeIfPresent(RGB.self, forKey: .clickColor)) ?? d.clickColor
         captions = (try? c.decodeIfPresent(CaptionStyle.self, forKey: .captions)) ?? d.captions

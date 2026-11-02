@@ -42,6 +42,27 @@ extension Snapshot {
                                 style.clickEffect = .none
                                 editor.previewStyle(style)
                             })
+        // S-055: the hand cursor picked, at a click with a ripple, shown without saving.
+        let cursorStyle = Surface(name: "editor-cursor", show: {
+                                      guard let editor = await openEditor() else { return }
+                                      editor.zoom = TimelineZoom()
+                                      editor.section = .effects
+                                      var style = editor.style
+                                      style.cursorLook = .art("hand")
+                                      style.cursorScale = 2.5
+                                      style.clickEffect = .ripple
+                                      editor.previewStyle(style)
+                                      editor.seek(to: 4.35)
+                                  },
+                                  window: window,
+                                  hide: {
+                                      guard let editor = EditorModel.newest else { return }
+                                      var style = editor.style
+                                      style.cursorLook = .system
+                                      style.cursorScale = Style().cursorScale
+                                      style.clickEffect = .none
+                                      editor.previewStyle(style)
+                                  })
         // S-031: the zoom around 0:12 selected, the playhead inside it.
         let zoomSelected = Surface(name: "editor-zoom-selected", show: {
                                        guard let editor = await openEditor() else { return }
@@ -298,7 +319,7 @@ extension Snapshot {
                     },
                     window: window,
                     hide: {})
-        } + [trim, split, crop, frame, aspect, savePreset, export, progress, done, zoomSelected, blurSelected, wallpapers, blend, click, zoomed, captionsProgress, captionsFailed, captionSelected, captionsArabic, audioMuted, noiseProgress]
+        } + [trim, split, crop, frame, aspect, savePreset, export, progress, done, zoomSelected, blurSelected, wallpapers, blend, click, cursorStyle, zoomed, captionsProgress, captionsFailed, captionSelected, captionsArabic, audioMuted, noiseProgress]
     }
 }
 

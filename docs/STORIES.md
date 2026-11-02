@@ -897,6 +897,35 @@ Status: done
 
 ---
 
+## M10 Cursor styles
+Done when the video can show the macOS cursor, no cursor, a cursor Showreel
+draws (a hand, a watermelon, and more), or a picture of your own.
+
+### S-055 Pick a cursor style, or none
+As the user, I pick how the cursor looks in the video in Inspector >
+Effects > Cursor: System, No Cursor, Light, Candy, Hand, Watermelon, Spot,
+or my own picture, and choose where my picture clicks.
+Screens: editor-effects, editor-cursor
+Depends: S-034
+Acceptance:
+- [unit] Each drawn style is made at 16 pixels a point with its click
+  point on the drawing; the hand and the watermelon match golden frames.
+- [unit] No Cursor draws nothing but keeps click marks; the look is saved,
+  and older projects load with System.
+- [selftest] A drawn style or a picture shows for the arrow, the I-beam, and
+  the pointer; a chosen picture is copied into the project, is 28 points on
+  its longer side, and clicks at its top-left corner or its middle; a
+  missing picture falls back to System; each change is one undo step.
+- [snap] The cursor tiles show each style; the hand shows at 2.5× with a
+  ripple under its fingertip.
+Notes: drawings are Core Graphics paths in `ShowreelEngine/CursorArt.swift`,
+so the preview and the export match. System keeps the recorded shape
+changes; every other style keeps one shape. Size, Smoothing, and Hide When
+Idle apply to every style and turn off with No Cursor.
+Status: done
+
+---
+
 ## Later
 - Speed changes for a section (1.5×, 2×, skip silence)
 - Multiple clips per project, intro and outro cards

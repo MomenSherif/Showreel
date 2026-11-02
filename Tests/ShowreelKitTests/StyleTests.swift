@@ -18,6 +18,16 @@ struct StyleTests {
         #expect(Style.decode(nil) == Style())
     }
 
+    /// S-055: the cursor look is saved, and older styles show the system cursor.
+    @Test func cursorLookSavesAndLoads() {
+        for look: Style.CursorLook in [.system, .none, .art("hand"), .picture("cursor-1.png", centered: true)] {
+            var style = Style()
+            style.cursorLook = look
+            #expect(Style.decode(style.encoded()).cursorLook == look)
+        }
+        #expect(Style.decode(Data(#"{"padding":0.2}"#.utf8)).cursorLook == .system)
+    }
+
     /// A style saved before a field existed still loads, with that field's default.
     @Test func missingFieldsGetDefaults() {
         let old = Data(#"{"padding":0.2}"#.utf8)

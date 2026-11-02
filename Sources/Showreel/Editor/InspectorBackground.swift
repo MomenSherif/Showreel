@@ -134,7 +134,7 @@ struct BackgroundSection: View {
 
 /// A square swatch, or with no size a 16:10 tile as wide as its grid
 /// column, with a selection ring.
-private struct Tile<Content: View>: View {
+struct Tile<Content: View>: View {
     let name: String
     let isSelected: Bool
     var size: CGSize? = CGSize(width: Layout.swatch, height: Layout.swatch)

@@ -1,4 +1,5 @@
 import AppKit
+import ShowreelEngine
 import ShowreelKit
 
 /// Self-test checks for zooms (M5).
@@ -145,5 +146,52 @@ extension SelfTest {
               editor.cursorScene(for: editor.style)?.clicks == ClickMarks(editor.sources?.events?.clicks ?? []))
         undo.undo()
         check("Undo turns the click effect off", editor.style.clickEffect == .none)
+        await cursorLook(editor, step: step)
+    }
+
+    /// S-055: a drawn cursor, no cursor, or the person's picture, saved with
+    /// the project and drawn the same for every shape.
+    static func cursorLook(_ editor: EditorModel, step: (() -> Void) -> Void) async {
+        guard let undo = editor.undoManager else { return }
+        check("every drawn cursor style is made", CursorArt.all.allSatisfy { CursorSprites.art[$0.id] != nil })
+        var hand = editor.style
+        hand.cursorLook = .art("hand")
+        step { editor.applyStyle(hand, named: "Hand Cursor") }
+        check("the cursor style is saved", Style.decode(editor.project.styleData).cursorLook == .art("hand"))
+        let sprites = editor.cursorScene(for: editor.style)?.sprites ?? [:]
+        check("the hand is drawn for the arrow, the I-beam, and the pointer",
+              EventLog.Shape.Kind.allCases.allSatisfy { sprites[$0]?.image.extent == CursorSprites.art["hand"]?.image.extent })
+        var none = editor.style
+        none.cursorLook = .none
+        step { editor.applyStyle(none, named: "No Cursor") }
+        check("No Cursor draws no cursor but keeps the clicks",
+              editor.cursorScene(for: editor.style).map { $0.sprites.isEmpty && $0.clicks == ClickMarks(editor.sources?.events?.clicks ?? []) } ?? false)
+
+        // The person's own picture: copied into the project, clicking where they chose.
+        let source = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("showreel-selftest-cursor.png")
+        let pixels = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 64, pixelsHigh: 32, bitsPerSample: 8, samplesPerPixel: 4,
+                                      hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)
+        try? pixels?.representation(using: .png, properties: [:])?.write(to: source)
+        step { editor.chooseCursorPicture(source) }
+        guard case .picture(let name, false) = editor.style.cursorLook else {
+            check("a chosen picture becomes the cursor", false, "\(editor.style.cursorLook)")
+            return
+        }
+        check("the picture is copied into the project", FileManager.default.fileExists(atPath: ProjectStore.file(name, of: editor.project.uuid).path))
+        let picture = editor.cursorPicture(editor.style.cursorLook)
+        check("a wide picture is 28 points across and clicks at its corner",
+              picture.map { abs($0.pointHeight - 14) < 0.01 && $0.hotSpot == .zero } ?? false)
+        step { editor.applyStyle({ var s = editor.style; s.cursorLook = .picture(name, centered: true); return s }(), named: "Cursor Click Point") }
+        check("Middle clicks at the picture's middle", editor.cursorPicture(editor.style.cursorLook)?.hotSpot == CGPoint(x: 32, y: 16))
+        var gone = editor.style
+        gone.cursorLook = .picture("cursor-missing.png", centered: false)
+        check("a missing picture falls back to the system cursor",
+              CursorSprites.sprites(for: gone.cursorLook, picture: editor.cursorPicture(gone.cursorLook)).count == CursorSprites.system.count
+                  && editor.cursorPicture(gone.cursorLook) == nil)
+        undo.undo()
+        undo.undo()
+        undo.undo()
+        undo.undo()
+        check("Undo puts the system cursor back", editor.style.cursorLook == .system)
     }
 }

@@ -42,6 +42,7 @@ titles, tooltips, errors, and VoiceOver labels.
 | Projects folder | Where recordings are kept (~/Movies/Showreel) | library folder, storage |
 | Exports folder | Where the Export save panel opens | save location, output folder |
 | Style for New Recordings | The preset every new project starts with | default preset, default style |
+| Cursor style | How the cursor looks in the video: System, No Cursor, a style Showreel draws, or your own picture | cursor theme, skin, pointer |
 
 ## Actions
 

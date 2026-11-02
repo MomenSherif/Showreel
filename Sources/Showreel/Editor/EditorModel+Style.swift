@@ -101,8 +101,42 @@ extension EditorModel {
             cursorTrackCache = (style.cursorSmoothing, style.cursorHidesWhenIdle, track)
         }
         let pixelsPerPoint = log.source.width > 0 ? sources.naturalSize.width / log.source.width : 2
-        return CursorScene(track: track, sprites: CursorSprites.system, pixelsPerPoint: pixelsPerPoint, scale: style.cursorScale,
+        return CursorScene(track: track, sprites: CursorSprites.sprites(for: style.cursorLook, picture: cursorPicture(style.cursorLook)),
+                           pixelsPerPoint: pixelsPerPoint, scale: style.cursorScale,
                            clicks: clickMarks(log))
+    }
+
+    /// The person's cursor picture (S-055), decoded once; nil for any other look
+    /// or when the file is gone.
+    func cursorPicture(_ look: Style.CursorLook) -> CursorSprite? {
+        guard case .picture(_, let centered) = look else { return nil }
+        return cursorPictureImage(look).map { CursorSprites.sprite(picture: $0, centered: centered) }
+    }
+
+    /// The picture behind a `.picture` look, at most 512 pixels.
+    func cursorPictureImage(_ look: Style.CursorLook) -> CGImage? {
+        guard case .picture(let name, _) = look else { return nil }
+        let path = ProjectStore.file(name, of: project.uuid).path
+        if cursorPictures[path] == nil {
+            cursorPictures[path] = PictureLoader.image(at: URL(fileURLWithPath: path), maxPixels: 512)
+        }
+        return cursorPictures[path]
+    }
+
+    /// Copies a picture into the project folder and makes it the cursor (S-055).
+    func chooseCursorPicture(_ url: URL) {
+        let name = "cursor-\(UUID().uuidString.prefix(8)).\(url.pathExtension.lowercased())"
+        let target = ProjectStore.file(name, of: project.uuid)
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        guard (try? FileManager.default.copyItem(at: url, to: target)) != nil,
+              PictureLoader.image(at: target, maxPixels: 64) != nil else {
+            try? FileManager.default.removeItem(at: target)
+            return
+        }
+        var new = style
+        new.cursorLook = .picture(name, centered: false)
+        applyStyle(new, named: "Cursor Picture")
     }
 
     /// The clicks of `log`, built once per window.
