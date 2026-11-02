@@ -95,7 +95,10 @@ extension EditorModel {
     var hasAudio: Bool { !(sources?.audio.isEmpty ?? true) }
 
     /// File > Export… (⌘E): opens the Export sheet, unless an export runs.
-    var canExport: Bool { sources != nil && export?.isRunning != true }
+    /// `sources` is not observed, so this also reads `player`, which load()
+    /// sets right after it: without that, an Export… drawn before the
+    /// project loaded stayed disabled.
+    var canExport: Bool { player != nil && sources != nil && export?.isRunning != true }
 
     func showExportSheet() {
         guard canExport else { return }

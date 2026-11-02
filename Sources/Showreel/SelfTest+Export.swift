@@ -2,6 +2,7 @@ import AppKit
 import AVFoundation
 import ImageIO
 import ShowreelKit
+import Synchronization
 
 /// Self-test checks for export (M6).
 extension SelfTest {
@@ -22,6 +23,17 @@ extension SelfTest {
         let item = file.first { $0.title == "Export…" }
         check("File > Export… has ⌘E", item?.keyEquivalent == "e" && item?.keyEquivalentModifierMask == .command,
               file.map { "\($0.title) [\($0.keyEquivalent)]" }.joined(separator: ", "))
+
+        // An Export… drawn before the project loaded must update when it has
+        // loaded: it stayed disabled after a fresh recording.
+        let fresh = EditorModel(project: editor.project)
+        let changed = Mutex(false)
+        let before = withObservationTracking { fresh.canExport } onChange: { changed.withLock { $0 = true } }
+        await fresh.load()
+        let redraws = changed.withLock { $0 }
+        check("Export… turns on when the project has loaded", !before && redraws && fresh.canExport,
+              "before \(before), redraws \(redraws), after \(fresh.canExport)")
+        fresh.stop()
 
         editor.showExportSheet()
         check("Export… opens the Export sheet", editor.showsExportSheet)
