@@ -42,13 +42,13 @@ extension Snapshot {
                                 style.clickEffect = .none
                                 editor.previewStyle(style)
                             })
-        // S-055: the hand cursor picked, at a click with a ripple, shown without saving.
+        // S-055: the watermelon cursor picked, at a click with a ripple, shown without saving.
         let cursorStyle = Surface(name: "editor-cursor", show: {
                                       guard let editor = await openEditor() else { return }
                                       editor.zoom = TimelineZoom()
                                       editor.section = .effects
                                       var style = editor.style
-                                      style.cursorLook = .art("hand")
+                                      style.cursorLook = .art("watermelon")
                                       style.cursorScale = 2.5
                                       style.clickEffect = .ripple
                                       editor.previewStyle(style)

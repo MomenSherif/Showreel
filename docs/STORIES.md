@@ -909,18 +909,21 @@ Screens: editor-effects, editor-cursor
 Depends: S-034
 Acceptance:
 - [unit] Each drawn style is made at 16 pixels a point with its click
-  point on the drawing; the hand and the watermelon match golden frames.
+  point on the drawing; the hand and the watermelon arrow and hand match
+  golden frames.
 - [unit] No Cursor draws nothing but keeps click marks; the look is saved,
   and older projects load with System.
 - [selftest] A drawn style or a picture shows for the arrow, the I-beam, and
   the pointer; a chosen picture is copied into the project, is 28 points on
   its longer side, and clicks at its top-left corner or its middle; a
   missing picture falls back to System; each change is one undo step.
-- [snap] The cursor tiles show each style; the hand shows at 2.5× with a
-  ripple under its fingertip.
+- [snap] The cursor tiles show each style; the watermelon shows at 2.5×
+  with a ripple under its tip.
 Notes: drawings are Core Graphics paths in `ShowreelEngine/CursorArt.swift`,
 so the preview and the export match. System keeps the recorded shape
-changes; every other style keeps one shape. Size, Smoothing, and Hide When
+changes; Watermelon has an arrow and a hand for links (drawn in our own
+sticker style, glossy flesh with seeds and a rind); every other style keeps
+one shape. Size, Smoothing, and Hide When
 Idle apply to every style and turn off with No Cursor.
 Status: done
 

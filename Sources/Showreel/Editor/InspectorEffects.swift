@@ -105,6 +105,7 @@ struct EffectsSection: View {
         switch look {
         case .system: "The cursor is drawn from the recording, so it stays sharp at any size."
         case .none: "The video shows no cursor. Clicks still get their marks."
+        case .art(let id) where CursorArt.named(id)?.pointer != nil: "An arrow, and a pointing hand over links."
         case .art, .picture: "One cursor all the time, even over text and links."
         }
     }

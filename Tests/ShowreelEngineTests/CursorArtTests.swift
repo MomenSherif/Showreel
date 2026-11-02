@@ -9,20 +9,27 @@ struct CursorArtTests {
     @Test func everyStyleIsDrawnSharpWithItsClickPointInside() throws {
         #expect(Set(CursorArt.all.map(\.id)).count == CursorArt.all.count)
         for art in CursorArt.all {
-            let sprite = try #require(art.sprite(), "\(art.id) did not draw")
-            let extent = sprite.image.extent
-            // 16 pixels a point: sharp at 3× on a zoomed 4K frame.
-            #expect(extent.height >= 16 * sprite.pointHeight - 1, "\(art.id)")
-            #expect(extent.contains(sprite.hotSpot), "\(art.id)")
+            for drawing in art.drawings {
+                let sprite = try #require(drawing.sprite(), "\(art.id) did not draw")
+                let extent = sprite.image.extent
+                // 16 pixels a point: sharp at 3× on a zoomed 4K frame.
+                #expect(extent.height >= 16 * sprite.pointHeight - 1, "\(art.id)")
+                #expect(extent.contains(sprite.hotSpot), "\(art.id)")
+            }
+            #expect(art.sprites().count == EventLog.Shape.Kind.allCases.count, "\(art.id)")
         }
+        // Watermelon has a hand for links; Hand is one shape for everything.
+        #expect(CursorArt.watermelon.pointer != nil && CursorArt.hand.pointer == nil)
     }
 
     /// The tip of the drawing is on the click point, so clicks land where they did.
     @Test func clickPointIsOnTheDrawing() throws {
         for art in CursorArt.all {
-            let image = try #require(art.image(pixelsPerPoint: 8))
-            let alpha = Self.alpha(image, x: Int(art.hotSpot.x * 8), y: Int(art.hotSpot.y * 8), within: 12)
-            #expect(alpha > 60, "\(art.id): nothing drawn at the click point")
+            for drawing in art.drawings {
+                let image = try #require(drawing.image(pixelsPerPoint: 8))
+                let alpha = Self.alpha(image, x: Int(drawing.hotSpot.x * 8), y: Int(drawing.hotSpot.y * 8), within: 12)
+                #expect(alpha > 60, "\(art.id): nothing drawn at the click point")
+            }
         }
     }
 
@@ -41,12 +48,11 @@ struct CursorArtTests {
         return best
     }
 
-    static func frame(with art: CursorArt, at point: (Double, Double)) throws -> Bitmap {
+    static func frame(with art: CursorArt, at point: (Double, Double), shape: EventLog.Shape.Kind = .arrow) throws -> Bitmap {
         var log = EventLog(source: CGRect(x: 0, y: 0, width: 160, height: 100))
         log.cursor = [EventLog.Point(t: 0, x: point.0, y: point.1)]
-        let sprite = try #require(art.sprite())
-        let cursor = CursorScene(track: CursorTrack(log: log, duration: 10, smoothing: 0),
-                                 sprites: Dictionary(uniqueKeysWithValues: EventLog.Shape.Kind.allCases.map { ($0, sprite) }),
+        log.cursorShapes = [EventLog.Shape(t: 0, kind: shape)]
+        let cursor = CursorScene(track: CursorTrack(log: log, duration: 10, smoothing: 0), sprites: art.sprites(),
                                  pixelsPerPoint: 1, scale: 2)
         return Bitmap(Renderer.frame(screen: RendererTests.screen, camera: nil, at: 5, scene: RendererTests.scene,
                                      style: RenderStyle(style: .plain, cursor: cursor), size: RendererTests.size))
@@ -55,6 +61,7 @@ struct CursorArtTests {
     @Test func handAndWatermelonMatchGoldens() throws {
         try Self.frame(with: CursorArt.hand, at: (0.3, 0.3)).expectMatches(golden: "cursor-hand")
         try Self.frame(with: CursorArt.watermelon, at: (0.3, 0.3)).expectMatches(golden: "cursor-watermelon")
+        try Self.frame(with: CursorArt.watermelon, at: (0.3, 0.3), shape: .pointer).expectMatches(golden: "cursor-watermelon-hand")
     }
 
     /// No cursor at all, while a click still gets its mark.

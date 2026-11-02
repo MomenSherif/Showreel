@@ -153,14 +153,22 @@ extension SelfTest {
     /// the project and drawn the same for every shape.
     static func cursorLook(_ editor: EditorModel, step: (() -> Void) -> Void) async {
         guard let undo = editor.undoManager else { return }
-        check("every drawn cursor style is made", CursorArt.all.allSatisfy { CursorSprites.art[$0.id] != nil })
+        check("every drawn cursor style is made for every shape",
+              CursorArt.all.allSatisfy { CursorSprites.art[$0.id]?.count == EventLog.Shape.Kind.allCases.count })
         var hand = editor.style
         hand.cursorLook = .art("hand")
         step { editor.applyStyle(hand, named: "Hand Cursor") }
         check("the cursor style is saved", Style.decode(editor.project.styleData).cursorLook == .art("hand"))
         let sprites = editor.cursorScene(for: editor.style)?.sprites ?? [:]
         check("the hand is drawn for the arrow, the I-beam, and the pointer",
-              EventLog.Shape.Kind.allCases.allSatisfy { sprites[$0]?.image.extent == CursorSprites.art["hand"]?.image.extent })
+              EventLog.Shape.Kind.allCases.allSatisfy { sprites[$0]?.image.extent == CursorSprites.art["hand"]?[.arrow]?.image.extent })
+        var melon = editor.style
+        melon.cursorLook = .art("watermelon")
+        let melonSprites = editor.cursorScene(for: melon)?.sprites ?? [:]
+        check("Watermelon has an arrow, and a hand over links",
+              melonSprites[.arrow]?.image.extent == melonSprites[.iBeam]?.image.extent
+                  && melonSprites[.pointer]?.image.extent == CursorArt.named("watermelon")?.pointer?.sprite()?.image.extent
+                  && melonSprites[.pointer]?.image.extent != melonSprites[.arrow]?.image.extent)
         var none = editor.style
         none.cursorLook = .none
         step { editor.applyStyle(none, named: "No Cursor") }

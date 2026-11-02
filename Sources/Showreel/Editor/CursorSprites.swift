@@ -14,24 +14,28 @@ enum CursorSprites {
         return sprites
     }()
 
-    /// The cursors Showreel draws (S-055), drawn once, by id.
-    static let art: [String: CursorSprite] = Dictionary(uniqueKeysWithValues: CursorArt.all.compactMap { art in
-        art.sprite().map { (art.id, $0) }
+    /// The cursor styles Showreel draws (S-055), drawn once, by id.
+    static let art: [String: [EventLog.Shape.Kind: CursorSprite]] = Dictionary(uniqueKeysWithValues: CursorArt.all.map { art in
+        (art.id, art.sprites())
     })
 
-    /// The pictures for `look`: the system's three shapes, one drawn cursor
-    /// for all of them, or none. `picture` is the person's own, loaded.
+    /// The pictures for `look`: the system's three shapes, a drawn style
+    /// (its hand over links when it has one), the person's picture for every
+    /// shape, or none. `picture` is the person's own, loaded.
     static func sprites(for look: Style.CursorLook, picture: CursorSprite?) -> [EventLog.Shape.Kind: CursorSprite] {
-        let one: CursorSprite?
         switch look {
-        case .system: return system
-        case .none: return [:]
-        case .art(let id): one = art[id]
-        case .picture: one = picture
+        case .system:
+            return system
+        case .none:
+            return [:]
+        case .art(let id):
+            // A style this version does not know falls back to the system cursor.
+            guard let drawn = art[id], !drawn.isEmpty else { return system }
+            return drawn
+        case .picture:
+            guard let picture else { return system }
+            return Dictionary(uniqueKeysWithValues: EventLog.Shape.Kind.allCases.map { ($0, picture) })
         }
-        // A missing drawing or picture falls back to the system cursor.
-        guard let one else { return system }
-        return Dictionary(uniqueKeysWithValues: EventLog.Shape.Kind.allCases.map { ($0, one) })
     }
 
     /// The person's picture as a cursor: its longer side 28 points, clicking at
