@@ -74,6 +74,8 @@ final class EditorModel {
     var selectedZoom: ZoomSegment.ID?
     /// The zoom camera for the current zooms and speed, worked out once (S-033).
     @ObservationIgnored var zoomPathCache: (zooms: ZoomTrack, speed: ZoomSpeed, path: ZoomPath)?
+    /// The drawn cursor for the current smoothing and idle setting (S-034).
+    @ObservationIgnored var cursorTrackCache: (smoothing: Double, hides: Bool, track: CursorTrack)?
 
     @ObservationIgnored private(set) var sources: PlayerSources?
     /// The current item's segments, so a style change can redraw without a rebuild.

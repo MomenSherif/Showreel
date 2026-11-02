@@ -107,5 +107,31 @@ extension SelfTest {
         check("Fast zooms in sooner than Slow", scaleSoon() > slowScale, "\(scaleSoon()) vs \(slowScale)")
         undo.undo()
         undo.undo()
+        await cursor(editor, step: step)
+    }
+
+    /// S-034: the cursor is drawn from events.json with the system's
+    /// pictures, and its size, smoothing, and idle fade are part of the style.
+    static func cursor(_ editor: EditorModel, step: (() -> Void) -> Void) async {
+        guard let undo = editor.undoManager else { return }
+        check("the system arrow, I-beam, and pointer are loaded at least 2×",
+              EventLog.Shape.Kind.allCases.allSatisfy { kind in
+                  CursorSprites.system[kind].map { $0.image.extent.height >= 2 * $0.pointHeight } ?? false
+              }, CursorSprites.system.map { "\($0.key): \($0.value.image.extent.height)px" }.joined(separator: ", "))
+        let scene = editor.cursorScene(for: editor.style)
+        // A recording where the cursor never crossed the recorded area has no cursor to draw.
+        let firstSeen = editor.sources?.events?.cursor.first?.t
+        check("the recording's cursor is drawn", scene != nil && firstSeen.map { scene?.track.frame(at: $0) != nil } != false)
+        var big = editor.style
+        big.cursorScale = 3
+        big.cursorSmoothing = 1
+        big.cursorHidesWhenIdle = true
+        step { editor.applyStyle(big, named: "Cursor Size") }
+        let saved = Style.decode(editor.project.styleData)
+        check("cursor size, smoothing, and Hide When Idle are saved",
+              saved.cursorScale == 3 && saved.cursorSmoothing == 1 && saved.cursorHidesWhenIdle)
+        check("the drawn cursor uses the new size", editor.renderStyle(for: editor.style).cursor?.scale == 3)
+        undo.undo()
+        check("Undo puts the cursor size back", editor.style.cursorScale == Style().cursorScale)
     }
 }

@@ -14,6 +14,10 @@ final class EventRecorder {
     private var lastCursor: CGPoint?
     private var hidden = HiddenRanges()
     private var lastCaretLookup = -Double.infinity
+    /// When the cursor is outside the recorded area (S-034).
+    private var away = HiddenRanges()
+    private var lastShape: EventLog.Shape.Kind?
+    private var lastShapeCheck = -Double.infinity
 
     init(source: CGRect, timeline: Timeline) {
         log = EventLog(source: source)
@@ -44,6 +48,8 @@ final class EventRecorder {
         monitors = []
         hidden.close(at: end)
         log.cameraHidden = hidden.ranges
+        away.close(at: end)
+        log.cursorAway = away.ranges
         return log
     }
 
@@ -64,10 +70,26 @@ final class EventRecorder {
 
     private func sampleCursor() {
         guard let t = now else { return }
+        sampleShape(at: t)
         let point = mouse
-        guard point != lastCursor, let n = log.normalized(point) else { return }
+        guard point != lastCursor else { return }
         lastCursor = point
+        guard let n = log.normalized(point) else {
+            away.hide(at: t)
+            return
+        }
+        away.show(at: t)
         log.cursor.append(.init(t: t, x: n.x, y: n.y))
+    }
+
+    /// The cursor's shape, 10 times a second; logged when it changes (S-034).
+    /// Other cursors keep the shape before them.
+    private func sampleShape(at t: Double) {
+        guard t - lastShapeCheck >= 0.1 else { return }
+        lastShapeCheck = t
+        guard let shape = CursorSprites.current(), shape != lastShape else { return }
+        lastShape = shape
+        log.cursorShapes.append(.init(t: t, kind: shape))
     }
 
     private func click(_ type: NSEvent.EventType) {

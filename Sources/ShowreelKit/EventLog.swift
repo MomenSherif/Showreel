@@ -30,6 +30,14 @@ public struct EventLog: Codable, Equatable, Sendable {
         public init(t: Double, keyCode: UInt16) { self.t = t; self.keyCode = keyCode }
     }
 
+    /// The system cursor's shape from time `t` on (S-034).
+    public struct Shape: Codable, Equatable, Sendable {
+        public enum Kind: String, Codable, CaseIterable, Sendable { case arrow, iBeam, pointer }
+        public var t: Double
+        public var kind: Kind
+        public init(t: Double, kind: Kind) { self.t = t; self.kind = kind }
+    }
+
     public struct Range: Codable, Equatable, Sendable {
         public var start: Double
         public var end: Double
@@ -53,10 +61,14 @@ public struct EventLog: Codable, Equatable, Sendable {
     /// The text caret while typing, at most 4 times a second (S-030).
     /// Empty without Accessibility access, or in logs made before S-030.
     public var caret: [Point] = []
+    /// Shape changes of the cursor, oldest first. Empty means the arrow (S-034).
+    public var cursorShapes: [Shape] = []
+    /// Ranges when the cursor was outside the recorded area (S-034).
+    public var cursorAway: [Range] = []
 
     public init(source: CGRect) { self.source = source }
 
-    enum CodingKeys: String, CodingKey { case version, source, cursor, clicks, keys, bubble, cameraHidden, caret }
+    enum CodingKeys: String, CodingKey { case version, source, cursor, clicks, keys, bubble, cameraHidden, caret, cursorShapes, cursorAway }
 
     /// Fields added after version 1 are optional, so older logs still load.
     public init(from decoder: Decoder) throws {
@@ -69,6 +81,8 @@ public struct EventLog: Codable, Equatable, Sendable {
         bubble = try c.decodeIfPresent([Point].self, forKey: .bubble) ?? []
         cameraHidden = try c.decodeIfPresent([Range].self, forKey: .cameraHidden) ?? []
         caret = try c.decodeIfPresent([Point].self, forKey: .caret) ?? []
+        cursorShapes = try c.decodeIfPresent([Shape].self, forKey: .cursorShapes) ?? []
+        cursorAway = try c.decodeIfPresent([Range].self, forKey: .cursorAway) ?? []
     }
 
     /// A global top-left point as a position inside the source, or nil when it is outside.

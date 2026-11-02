@@ -136,6 +136,58 @@ struct RendererTests {
         try withCamera.expectMatches(golden: "zoom-2x")
     }
 
+    // MARK: Cursor (S-034)
+
+    /// A cursor picture: red, 10 by 16 points drawn at 10× (100 × 160
+    /// pixels), its click point at the top-left corner.
+    static let sprite = CursorSprite(image: CIImage(color: CIColor(red: 1, green: 0, blue: 0)).cropped(to: CGRect(x: 0, y: 0, width: 100, height: 160)),
+                                     hotSpot: .zero, pointHeight: 16)
+
+    static func withCursor(at point: (Double, Double), zooms: ZoomTrack = ZoomTrack(), scale: Double = 1,
+                           screen: CIImage = screen, size: CGSize = size, pixelsPerPoint: CGFloat = 1) -> Bitmap {
+        var log = EventLog(source: CGRect(x: 0, y: 0, width: 100, height: 100))
+        log.cursor = [EventLog.Point(t: 0, x: point.0, y: point.1)]
+        let cursor = CursorScene(track: CursorTrack(log: log, duration: 10, smoothing: 0), sprites: [.arrow: sprite],
+                                 pixelsPerPoint: pixelsPerPoint, scale: scale)
+        return Bitmap(Renderer.frame(screen: screen, camera: nil, at: 5, scene: scene,
+                                     style: RenderStyle(style: .plain, zooms: zooms, cursor: cursor), size: size))
+    }
+
+    /// S-034: the cursor is drawn from the log, its click point on the spot,
+    /// at its size on screen times the recording's scale on the canvas.
+    @Test func cursorIsDrawnAtItsSpotAndSize() throws {
+        // The 160 × 100 screen fills 320 × 200: 2 output pixels per recorded pixel,
+        // so the cursor is 32 pixels tall and 20 wide, its corner at (160, 100).
+        let frame = Self.withCursor(at: (0.5, 0.5))
+        #expect(frame.pixel(x: 162, y: 102).r > 240 && frame.pixel(x: 162, y: 102).g < 15)
+        #expect(frame.pixel(x: 178, y: 130).r > 240)
+        #expect(frame.pixel(x: 158, y: 110).r < 200, "nothing left of the click point")
+        #expect(frame.pixel(x: 170, y: 134).r < 200, "32 pixels tall")
+        try frame.expectMatches(golden: "cursor")
+        // A 2× zoom on the spot doubles it.
+        let zoomed = Self.withCursor(at: (0.5, 0.5), zooms: ZoomTrack(segments: [ZoomSegment(start: 0, end: 10, x: 0.5, y: 0.5)]))
+        #expect(zoomed.pixel(x: 170, y: 160).r > 240 && zoomed.pixel(x: 170, y: 166).r < 200)
+        // Size 2× doubles it too.
+        #expect(Self.withCursor(at: (0.5, 0.5), scale: 2).pixel(x: 195, y: 160).r > 240)
+    }
+
+    /// S-034: a big cursor stays sharp on a 4K video.
+    @Test func largeCursorIsCrispAt4K() {
+        let screen = CIImage(color: CIColor(red: 0, green: 0, blue: 1)).cropped(to: CGRect(x: 0, y: 0, width: 1920, height: 1080))
+        let frame = Self.withCursor(at: (0.5, 0.5), scale: 3, screen: screen, size: CGSize(width: 3840, height: 2160), pixelsPerPoint: 2)
+        // 16 pt × 2 px/pt × 2 (to 4K) × 3 = 192 px tall, 120 wide, its corner at (1920, 1080).
+        #expect(frame.pixel(x: 1925, y: 1265).r > 240 && frame.pixel(x: 1925, y: 1275).r < 15)
+        // Across the cursor's left edge, at most 2 pixels are in between red and blue.
+        let row = (1915...1925).map { frame.pixel(x: $0, y: 1150).r }
+        #expect(row.filter { $0 > 15 && $0 < 240 }.count <= 2, "\(row)")
+    }
+
+    @Test func noCursorSceneDrawsNoCursor() {
+        let plain = Bitmap(Renderer.frame(screen: Self.screen, camera: nil, at: 5, scene: Self.scene,
+                                          style: RenderStyle(style: .plain), size: Self.size))
+        #expect(plain.pixel(x: 165, y: 105).r < 200)
+    }
+
     // MARK: Device frames (S-026)
 
     static func framed(_ frame: Style.DeviceFrame, size: CGSize = CGSize(width: 640, height: 400),

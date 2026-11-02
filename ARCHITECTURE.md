@@ -91,6 +91,14 @@ asks `RenderStyle.zoomPath.view(at:crop:)` for the visible part of the
 recording and draws it into the same screen rect; the frame, background,
 and camera stay put.
 
+The cursor (S-034) is never in screen.mov (`showsCursor = false`); it is
+drawn. events.json logs its position, its shape (arrow, I-beam, pointer,
+matched against `NSCursor` 10 times a second), and when it was outside the
+recorded area. `CursorTrack` (ShowreelKit) smooths the path with the same
+spring and fades it when idle or away; `CursorScene` (engine) adds the
+system's cursor pictures, which the app loads at their largest size
+(`CursorSprites`), and `Renderer` draws it through the crop and the zoom.
+
 ## Recording
 
 ```text

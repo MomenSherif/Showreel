@@ -504,7 +504,9 @@ Acceptance:
 - [unit] The cursor is redrawn from `events.json` using the right system
   cursor shape (arrow, I-beam, pointer).
 - [snap] A large smoothed cursor renders crisply at 4K.
-Status: todo
+Note: the arrow and I-beam come from macOS at 10×; the pointing hand only
+at 2×, so it is softer at the largest sizes in 4K.
+Status: done
 
 ### S-035 Show click effects
 As the user, I turn on a click ripple and pick its style and color.

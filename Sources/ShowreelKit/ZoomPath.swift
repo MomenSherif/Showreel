@@ -120,7 +120,7 @@ public struct ZoomPath: Equatable, Sendable {
 /// A critically damped spring: the fastest way to a target with no
 /// overshoot. `step` is the exact solution over `dt`, so it is stable at any
 /// frame rate.
-struct Spring {
+struct Spring: Sendable {
     var value: Double
     var velocity = 0.0
 

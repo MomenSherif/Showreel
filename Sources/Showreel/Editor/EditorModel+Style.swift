@@ -68,12 +68,27 @@ extension EditorModel {
         case .image(let name): ProjectStore.file(name, of: project.uuid)
         case .none, .gradient, .color: nil
         }
-        let path = zoomPath(for: style)
-        guard let url else { return RenderStyle(style: style, zooms: zooms, zoomPath: path) }
+        let path = zoomPath(for: style), cursor = cursorScene(for: style)
+        guard let url else { return RenderStyle(style: style, zooms: zooms, zoomPath: path, cursor: cursor) }
         if pictures[url.path] == nil, let sources {
             pictures[url.path] = Self.picture(at: url, maxPixels: max(sources.naturalSize.width, sources.naturalSize.height))
         }
-        return RenderStyle(style: style, backgroundImage: pictures[url.path], zooms: zooms, zoomPath: path)
+        return RenderStyle(style: style, backgroundImage: pictures[url.path], zooms: zooms, zoomPath: path, cursor: cursor)
+    }
+
+    /// The cursor drawn from events.json (S-034); nil without a log.
+    func cursorScene(for style: Style) -> CursorScene? {
+        guard let sources, let log = sources.events else { return nil }
+        let track: CursorTrack
+        if let cache = cursorTrackCache, cache.smoothing == style.cursorSmoothing, cache.hides == style.cursorHidesWhenIdle {
+            track = cache.track
+        } else {
+            track = CursorTrack(log: log, duration: sources.duration, smoothing: style.cursorSmoothing,
+                                hidesWhenIdle: style.cursorHidesWhenIdle)
+            cursorTrackCache = (style.cursorSmoothing, style.cursorHidesWhenIdle, track)
+        }
+        let pixelsPerPoint = log.source.width > 0 ? sources.naturalSize.width / log.source.width : 2
+        return CursorScene(track: track, sprites: CursorSprites.system, pixelsPerPoint: pixelsPerPoint, scale: style.cursorScale)
     }
 
     /// A picture decoded once at about the canvas size, so frames never

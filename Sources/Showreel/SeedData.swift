@@ -74,6 +74,9 @@ enum SeedData {
         let typing = 0.45 * duration
         log.keys = (0..<14).map { .init(t: typing + Double($0) * 0.18, keyCode: 0) }
         log.caret = [.init(t: typing + 0.1, x: 0.42, y: 0.58), .init(t: typing + 2, x: 0.5, y: 0.58)]
+        // Text fields while typing, a link before the last click.
+        log.cursorShapes = [.init(t: 0, kind: .arrow), .init(t: typing - 0.5, kind: .iBeam),
+                            .init(t: typing + 3, kind: .arrow), .init(t: 0.84 * duration, kind: .pointer)]
         log.cursor = stride(from: 0.0, to: duration, by: 0.5).map { .init(t: $0, x: 0.5 + 0.3 * sin($0 / 4), y: 0.5 + 0.2 * cos($0 / 5)) }
         return log
     }

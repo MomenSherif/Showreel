@@ -1,8 +1,8 @@
 import SwiftUI
 import ShowreelKit
 
-/// Effects (M5): how zooms move. The cursor and click effects join it in
-/// S-034 and S-035.
+/// Effects (M5): how zooms move and how the cursor is drawn. Click
+/// effects join it in S-035.
 struct EffectsSection: View {
     let editor: EditorModel
 
@@ -20,8 +20,41 @@ struct EffectsSection: View {
                 Text("How fast zooms move in, out, and from one spot to the next.")
                     .foregroundStyle(.secondary)
             }
+            Section {
+                StyleSlider(title: "Size", editor: editor, value: \.cursorScale, range: 1...3,
+                            format: Self.times, undoName: "Cursor Size")
+                StyleSlider(title: "Smoothing", editor: editor, value: \.cursorSmoothing, range: 0...1,
+                            format: Self.smoothing, undoName: "Cursor Smoothing")
+                Toggle("Hide When Idle", isOn: hidesBinding)
+                    .help("Fade the cursor out after it has been still for 2 seconds")
+            } header: {
+                Text("Cursor")
+            } footer: {
+                Text("The cursor is drawn from the recording, so it stays sharp at any size.")
+                    .foregroundStyle(.secondary)
+            }
+            .disabled(editor.sources?.events == nil)
         }
         .formStyle(.grouped)
+    }
+
+    static func times(_ value: Double) -> String { String(format: "%.1f×", value) }
+
+    static func smoothing(_ value: Double) -> String {
+        switch value {
+        case ..<0.01: "Off"
+        case ..<0.34: "Low"
+        case ..<0.67: "Medium"
+        default: "High"
+        }
+    }
+
+    private var hidesBinding: Binding<Bool> {
+        Binding(get: { editor.style.cursorHidesWhenIdle }, set: { hides in
+            var style = editor.style
+            style.cursorHidesWhenIdle = hides
+            editor.applyStyle(style, named: hides ? "Hide Idle Cursor" : "Show Idle Cursor")
+        })
     }
 
     private var zoomCount: String {

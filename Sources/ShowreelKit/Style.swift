@@ -132,6 +132,13 @@ public struct Style: Codable, Equatable, Sendable {
     /// How fast zooms ease in, out, and between spots (S-033).
     public var zoomSpeed: ZoomSpeed = .medium
 
+    /// The drawn cursor (S-034): 1...3 times its size on the screen.
+    public var cursorScale: Double = 1.5
+    /// 0 draws the cursor where it was; 1 glides the most.
+    public var cursorSmoothing: Double = 0.5
+    /// Fades the cursor out when it has not moved for a while.
+    public var cursorHidesWhenIdle: Bool = false
+
     public init() {}
 
     /// The recording edge to edge, nothing around it: how M1 to M3 played.
@@ -146,7 +153,8 @@ public struct Style: Codable, Equatable, Sendable {
     }()
 
     enum CodingKeys: String, CodingKey { case background, backgroundBlur, padding, rounding, effect, effectAmount, crop, frame, showsURLBar, url, aspect,
-        cameraVisible, cameraScale, cameraShape, cameraBorder, cameraShadow, cameraPosition, zoomSpeed }
+        cameraVisible, cameraScale, cameraShape, cameraBorder, cameraShadow, cameraPosition, zoomSpeed,
+        cursorScale, cursorSmoothing, cursorHidesWhenIdle }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -169,6 +177,9 @@ public struct Style: Codable, Equatable, Sendable {
         cameraShadow = (try? c.decodeIfPresent(Double.self, forKey: .cameraShadow)) ?? d.cameraShadow
         cameraPosition = (try? c.decodeIfPresent(Point.self, forKey: .cameraPosition)) ?? d.cameraPosition
         zoomSpeed = (try? c.decodeIfPresent(ZoomSpeed.self, forKey: .zoomSpeed)) ?? d.zoomSpeed
+        cursorScale = (try? c.decodeIfPresent(Double.self, forKey: .cursorScale)) ?? d.cursorScale
+        cursorSmoothing = (try? c.decodeIfPresent(Double.self, forKey: .cursorSmoothing)) ?? d.cursorSmoothing
+        cursorHidesWhenIdle = (try? c.decodeIfPresent(Bool.self, forKey: .cursorHidesWhenIdle)) ?? d.cursorHidesWhenIdle
     }
 
     /// The style as a preset (S-029): without what belongs to one recording

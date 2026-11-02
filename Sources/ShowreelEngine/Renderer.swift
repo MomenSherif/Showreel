@@ -47,8 +47,12 @@ public struct RenderStyle: @unchecked Sendable {
     /// The camera moving through `zooms` (S-033). Without one, it is worked
     /// out from `zooms` at the style's speed, with no cursor to follow.
     public var zoomPath: ZoomPath
+    /// The cursor to draw (S-034). Nil draws none.
+    public var cursor: CursorScene?
 
-    public init(style: Style, backgroundImage: CIImage? = nil, zooms: ZoomTrack = ZoomTrack(), zoomPath: ZoomPath? = nil) {
+    public init(style: Style, backgroundImage: CIImage? = nil, zooms: ZoomTrack = ZoomTrack(), zoomPath: ZoomPath? = nil,
+                cursor: CursorScene? = nil) {
+        self.cursor = cursor
         self.style = style
         self.backgroundImage = backgroundImage
         self.zooms = zooms
@@ -84,7 +88,12 @@ public enum Renderer {
             .transformed(by: CGAffineTransform(translationX: -visible.minX, y: -visible.minY))
             .transformed(by: CGAffineTransform(scaleX: rect.width / visible.width, y: rect.height / visible.height))
             .transformed(by: CGAffineTransform(translationX: rect.minX, y: rect.minY))
-        if zoom.isZoomed { image = image.cropped(to: rect) }
+        if let scene = style.cursor,
+           let pointer = cursor(scene, at: t, crop: crop, zoom: zoom, visible: visible, rect: rect) {
+            image = pointer.composited(over: image).cropped(to: rect)
+        } else if zoom.isZoomed {
+            image = image.cropped(to: rect)
+        }
         let radius = CanvasLayout.cornerRadius(style.style.rounding, canvasHeight: size.height)
         let device = DeviceChrome.parts(for: style.style, rect: rect, radius: radius, canvas: size)
         if let mask = device.screenMask { image = masked(image, by: mask) }

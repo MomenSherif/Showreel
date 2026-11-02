@@ -251,3 +251,67 @@ struct ZoomMotionTests {
         #expect(Style.decode(Data("{}".utf8)).zoomSpeed == .medium)
     }
 }
+
+@Suite("Cursor")
+struct CursorTrackTests {
+    func log(_ points: [(Double, Double, Double)], shapes: [EventLog.Shape] = [], away: [EventLog.Range] = []) -> EventLog {
+        var log = EventLog(source: CGRect(x: 0, y: 0, width: 100, height: 100))
+        log.cursor = points.map { .init(t: $0.0, x: $0.1, y: $0.2) }
+        log.cursorShapes = shapes
+        log.cursorAway = away
+        return log
+    }
+
+    /// S-034: the cursor is drawn with the shape it had: arrow, I-beam, or pointer.
+    @Test func shapeFollowsTheLog() {
+        let track = CursorTrack(log: log([(0, 0.5, 0.5)], shapes: [.init(t: 2, kind: .iBeam), .init(t: 4, kind: .pointer)]), duration: 10)
+        #expect(track.frame(at: 1)?.shape == .arrow)
+        #expect(track.frame(at: 3)?.shape == .iBeam)
+        #expect(track.frame(at: 5)?.shape == .pointer)
+    }
+
+    @Test func noSmoothingDrawsItWhereItWas() throws {
+        let track = CursorTrack(log: log([(0, 0.1, 0.1), (1, 0.9, 0.1)]), duration: 10, smoothing: 0)
+        let p = try #require(track.frame(at: 0.5)?.position)
+        #expect(abs(p.x - 0.5) < 1e-9)
+    }
+
+    /// Smoothing glides after the cursor and calms a shaky one.
+    @Test func smoothingGlidesAndCalms() throws {
+        var noise = SystemRandomNumberGenerator()
+        let points = (0..<300).map { i in (Double(i) / 60, 0.5 + Double.random(in: -0.02...0.02, using: &noise), 0.5) }
+        let rough = CursorTrack(log: log(points), duration: 5, smoothing: 0)
+        let smooth = CursorTrack(log: log(points), duration: 5, smoothing: 1)
+        func shake(_ track: CursorTrack) -> Double {
+            let xs = stride(from: 1.0, to: 4.9, by: 1.0 / 60).compactMap { track.frame(at: $0)?.position.x }
+            return zip(xs, xs.dropFirst()).map { abs($1 - $0) }.reduce(0, +)
+        }
+        #expect(shake(smooth) < shake(rough) / 5, "\(shake(smooth)) vs \(shake(rough))")
+        // A jump is followed, a little later.
+        let jump = CursorTrack(log: log([(0, 0.1, 0.5), (1, 0.9, 0.5)]), duration: 5, smoothing: 1)
+        let x = try #require(jump.frame(at: 1.05)?.position.x)
+        #expect(x < 0.9 && x > 0.1)
+        #expect(abs((jump.frame(at: 3)?.position.x ?? 0) - 0.9) < 0.01)
+    }
+
+    @Test func idleCursorFadesOnlyWhenAsked() {
+        let points = [(0.0, 0.5, 0.5), (1.0, 0.6, 0.5)]
+        let hides = CursorTrack(log: log(points), duration: 10, hidesWhenIdle: true)
+        #expect(hides.frame(at: 2.5)?.opacity == 1)
+        #expect(hides.frame(at: 4)?.opacity == 0)
+        #expect(CursorTrack(log: log(points), duration: 10).frame(at: 4)?.opacity == 1)
+    }
+
+    @Test func awayCursorIsNotDrawn() {
+        let track = CursorTrack(log: log([(0, 0.5, 0.5)], away: [.init(start: 2, end: 3)]), duration: 10)
+        #expect(track.frame(at: 2.5)?.opacity == 0)
+        #expect(track.frame(at: 3.5)?.opacity == 1)
+        #expect(CursorTrack.none.frame(at: 1) == nil)
+    }
+
+    @Test func oldLogsHaveNoShapesOrAwayRanges() throws {
+        let json = #"{"version":1,"source":[[0,0],[100,100]]}"#
+        let log = try EventLog.decode(Data(json.utf8))
+        #expect(log.cursorShapes.isEmpty && log.cursorAway.isEmpty && log.cursor.isEmpty)
+    }
+}
