@@ -21,7 +21,15 @@ config=release
 # `find-identity -v` still lists them, and the kernel kills an app signed with
 # one (exit 137). The working hash is cached, because permissions like Screen
 # Recording belong to the signature: changing it makes macOS ask again.
+#
+# The release certificate comes first when it is trusted here
+# (tools/release-cert.sh --trust): then this build and the DMG share one
+# signature, so they share one Screen Recording permission instead of taking
+# it from each other.
 identity="${SIGN_IDENTITY:-}"
+if [[ -z "$identity" ]]; then
+  identity=$(security find-identity -v -p codesigning 2>/dev/null | grep '"Showreel Release Signing"' | awk '{print $2}' | head -1 || true)
+fi
 cache="$HOME/Library/Developer/$name/sign-identity"
 if [[ -z "$identity" && -f "$cache" ]]; then
   identity=$(<"$cache")

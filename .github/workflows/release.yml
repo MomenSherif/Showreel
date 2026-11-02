@@ -4,8 +4,12 @@
 # The newest DMG is always at
 #   https://github.com/MomenSherif/Showreel/releases/latest/download/Showreel.dmg
 #
-# Signing: without secrets the app is ad-hoc signed, so macOS asks people to
-# allow it once in System Settings > Privacy & Security. Add these repository
+# Signing: the app is not notarized yet, so macOS asks people to allow it once
+# in System Settings > Privacy & Security. It is signed with the self-signed
+# release certificate from tools/release-cert.sh --upload (secrets
+# SELF_SIGNED_CERTIFICATE and SELF_SIGNED_CERTIFICATE_PASSWORD), so updates
+# keep their Screen Recording permission. With neither secret it falls back to
+# ad hoc, and every update asks for permission again. Add these repository
 # secrets to sign with Developer ID and notarize instead:
 #   MACOS_CERTIFICATE           base64 of the "Developer ID Application" .p12
 #   MACOS_CERTIFICATE_PASSWORD  the .p12 password
@@ -52,6 +56,8 @@ jobs:
       NOTARY_APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
       NOTARY_PASSWORD: ${{ secrets.NOTARY_PASSWORD }}
       NOTARY_TEAM_ID: ${{ secrets.NOTARY_TEAM_ID }}
+      SELF_SIGNED_CERTIFICATE: ${{ secrets.SELF_SIGNED_CERTIFICATE }}
+      SELF_SIGNED_CERTIFICATE_PASSWORD: ${{ secrets.SELF_SIGNED_CERTIFICATE_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
 
@@ -78,6 +84,31 @@ jobs:
           [[ -n "$identity" ]] || { echo "no Developer ID Application identity in the certificate"; exit 1; }
           echo "SIGN_IDENTITY=$identity" >> "$GITHUB_ENV"
 
+      # Without a Developer ID, sign with the self-signed release certificate
+      # (tools/release-cert.sh). It never changes, so an update keeps the
+      # Screen Recording permission people gave the last version. Ad hoc
+      # signatures change every build, and macOS asked again after each update.
+      - name: Import self-signed certificate
+        if: env.MACOS_CERTIFICATE == '' && env.SELF_SIGNED_CERTIFICATE != ''
+        run: |
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          password=$(uuidgen)
+          echo "$SELF_SIGNED_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+          security import "$RUNNER_TEMP/cert.p12" -k "$keychain" -P "$SELF_SIGNED_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$password" "$keychain"
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          rm "$RUNNER_TEMP/cert.p12"
+          # codesign uses only trusted identities.
+          security find-certificate -c "Showreel Release Signing" -p "$keychain" > "$RUNNER_TEMP/cert.pem"
+          sudo security add-trusted-cert -d -r trustRoot -p codeSign -k /Library/Keychains/System.keychain "$RUNNER_TEMP/cert.pem"
+          identity=$(security find-identity -v -p codesigning "$keychain" | grep '"Showreel Release Signing"' | awk '{print $2}' | head -1)
+          [[ -n "$identity" ]] || { security find-identity -p codesigning "$keychain"; echo "the self-signed certificate is not usable for code signing"; exit 1; }
+          echo "SIGN_IDENTITY=$identity" >> "$GITHUB_ENV"
+          echo "SELF_SIGNED=1" >> "$GITHUB_ENV"
+
       - name: Build
         run: |
           [[ -n "${SIGN_IDENTITY:-}" ]] || export SIGN_IDENTITY=-
@@ -88,7 +119,7 @@ jobs:
         run: tools/make-dmg.sh "$RUNNER_TEMP/Showreel.dmg"
 
       - name: Notarize
-        if: env.SIGN_IDENTITY != '' && env.NOTARY_APPLE_ID != ''
+        if: env.SIGN_IDENTITY != '' && env.SELF_SIGNED == '' && env.NOTARY_APPLE_ID != ''
         run: |
           dmg="$RUNNER_TEMP/Showreel.dmg"
           codesign --force --timestamp --sign "$SIGN_IDENTITY" "$dmg"

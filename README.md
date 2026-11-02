@@ -70,7 +70,9 @@ You can change them any time in **System Settings → Privacy & Security**.
 
 Download the newest DMG and drag Showreel to Applications again, choosing **Replace**. Your projects and settings stay where they are.
 
-After an update, macOS may ask for Screen Recording permission again. If recording shows a black screen, open **System Settings → Privacy & Security → Screen & System Audio Recording**, remove Showreel with **–**, and reopen Showreel to allow it again.
+Updates keep your permissions: every release is signed with the same certificate, so macOS knows it's the same app.
+
+If Screen Recording is switched on but Showreel still asks for it, or recording shows a black screen, the permission belongs to a copy signed differently, such as 0.1.3 or earlier. Open **System Settings → Privacy & Security → Screen & System Audio Recording**, select Showreel, click **–** to remove it, then reopen Showreel and allow it again. This happens once.
 
 ### Uninstalling
 
