@@ -87,21 +87,23 @@ struct ShowreelCommands: Commands {
         // group, and SwiftUI silently drops what is placed after it.
         CommandGroup(after: .newItem) {
             Divider()
+            // Duplicate, Rename, and Move to Trash act on the Library's
+            // selection, so they are off while an editor is in front (S-044).
             Button("Duplicate") { if let p = selected { ProjectStore.duplicate(p, in: model, undo: AppServices.shared.undoManager) } }
                 .keyboardShortcut("d")
-                .disabled(selected == nil || selected?.isSaving == true)
+                .disabled(libraryTarget == nil || selected?.isSaving == true)
             Button("Rename…") { model.renaming = model.selection }
-                .disabled(selected == nil)
-            Button("Show in Finder") { if let p = selected { ProjectStore.showInFinder(p) } }
+                .disabled(libraryTarget == nil)
+            Button("Show in Finder") { if let p = editor?.project ?? selected { ProjectStore.showInFinder(p) } }
                 .keyboardShortcut("r", modifiers: [.command, .option])
-                .disabled(selected == nil)
+                .disabled(editor == nil && selected == nil)
             Button("Export…") { export() }
                 .keyboardShortcut("e")
                 .disabled(exportDisabled)
             Divider()
             Button("Move to Trash") { if let p = selected { ProjectStore.moveToTrash(p, in: model, undo: AppServices.shared.undoManager) } }
                 .keyboardShortcut(.delete)
-                .disabled(selected == nil)
+                .disabled(libraryTarget == nil)
         }
         CommandMenu("Record") {
             RecordMenu()
@@ -117,6 +119,8 @@ struct ShowreelCommands: Commands {
     }
 
     private var selected: Project? { model.selectedProject }
+    /// The Library's selection, when no editor is in front.
+    private var libraryTarget: Project? { editor == nil ? selected : nil }
     @FocusedValue(\.editor) private var editor
 
     /// The front editor's project, or the Library's selection (S-036).

@@ -20,6 +20,13 @@ struct EditorCommands: Commands {
                 Button("Zoom to Fit") { act(.text("Z")) { $0.zoom.fit() } }
                     .keyboardShortcut("z", modifiers: .shift)
                     .disabled(editor?.zoom.isFit == true)
+                Divider()
+                // S-044: the inspector's sections, ⌘1 to ⌘6, beside ⌘0 for the Library.
+                ForEach(Array(InspectorSection.allCases.enumerated()), id: \.element) { index, section in
+                    Toggle(section.title, isOn: Binding(get: { editor?.section == section },
+                                                        set: { _ in act(nil) { $0.showSection(section) } }))
+                        .keyboardShortcut(KeyEquivalent(Character(String(index + 1))), modifiers: .command)
+                }
             }
             .disabled(editor == nil)
         }
@@ -34,8 +41,26 @@ struct EditorCommands: Commands {
                 }
                 .keyboardShortcut("m", modifiers: [])
                 .disabled(editor?.canMuteSelection != true)
+                Button("Unmute All") { act(.text("M")) { $0.unmuteAll() } }
+                    .keyboardShortcut("m", modifiers: .shift)
+                    .disabled(editor?.audio.muted.isEmpty != false)
+                Toggle("Reduce Noise", isOn: Binding(get: { editor?.audio.reducesNoise == true },
+                                                     set: { on in act(nil) { $0.setReducesNoise(on) } }))
+                    .keyboardShortcut("n", modifiers: [.option, .command])
+                    .disabled(editor?.project.hasMicrophone != true || editor?.noiseJob?.isRunning == true)
+                Divider()
                 Button("Generate Captions") { act(nil) { $0.generateCaptions() } }
+                    .keyboardShortcut("g", modifiers: [.option, .command])
                     .disabled(editor?.canGenerateCaptions != true)
+                Button("Edit Caption") { act(.newline) { $0.selectCaption($0.selectedCaption, editText: true) } }
+                    .keyboardShortcut(.return, modifiers: [])
+                    .disabled(editor?.selectedCaption == nil)
+                Toggle("Show Captions", isOn: styleBinding(\.captions.isVisible, named: "Show Captions"))
+                    .keyboardShortcut("c", modifiers: [.shift, .command])
+                    .disabled(editor?.captions.captions.isEmpty != false)
+                Toggle("Show Camera", isOn: styleBinding(\.cameraVisible, named: "Show Camera"))
+                    .keyboardShortcut("k", modifiers: [.option, .command])
+                    .disabled(editor?.project.hasCamera != true)
                 Button(deleteTitle) {
                     act(.deleteBackward) { editor in
                         if editor.selectedCaption != nil {
@@ -99,6 +124,12 @@ struct EditorCommands: Commands {
     }
 
     /// Delete follows the selection: a caption, a zoom, or a section.
+    /// An on/off part of the style, flipped as one undo step.
+    private func styleBinding(_ key: WritableKeyPath<Style, Bool>, named name: String) -> Binding<Bool> {
+        Binding(get: { editor?.style[keyPath: key] == true },
+                set: { _ in act(nil) { $0.toggleStyle(key, named: name) } })
+    }
+
     private var deleteTitle: String {
         if editor?.selectedCaption != nil { return "Delete Caption" }
         return editor?.selectedZoom != nil ? "Delete Zoom" : "Delete Section"
@@ -122,6 +153,8 @@ enum TextKey {
     case space, left, right, shiftLeft, shiftRight, home, end
     case text(String)
     case deleteBackward
+    /// Return: ends the edit in a text field, as typing Return there would.
+    case newline
 
     @MainActor func send(to text: NSTextView) {
         switch self {
@@ -134,6 +167,7 @@ enum TextKey {
         case .end: text.moveToEndOfLine(nil)
         case .text(let string): text.insertText(string, replacementRange: text.selectedRange())
         case .deleteBackward: text.deleteBackward(nil)
+        case .newline: text.insertNewline(nil)
         }
     }
 }

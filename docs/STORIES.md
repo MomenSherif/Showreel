@@ -697,8 +697,9 @@ Status: done
 Depends: S-015
 Acceptance:
 - [snap] The Edit, View, Clip, and Playback menus list every editor action
-  with its shortcut.
-Status: todo
+  with its shortcut. (Pages menu-edit, menu-view, menu-clip, menu-playback, drawn from the
+  real menu bar items; the self-test fails on any item there with no shortcut.)
+Status: done
 
 ### S-045 Settings
 As the user, I set the save location, record shortcut, countdown length,

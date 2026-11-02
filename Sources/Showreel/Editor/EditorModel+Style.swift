@@ -12,6 +12,14 @@ extension EditorModel {
         commitStyle(from: style, to: new, named: name)
     }
 
+    /// Flips one on/off part of the style as one undo step: Clip > Show
+    /// Camera and Show Captions (S-044), the same step as the inspector switch.
+    func toggleStyle(_ key: WritableKeyPath<Style, Bool>, named name: String) {
+        var new = style
+        new[keyPath: key].toggle()
+        applyStyle(new, named: name)
+    }
+
     /// Shows `new` on the canvas without an undo step or a save: for a
     /// slider while it is dragged. `commitStyle(from:named:)` ends the drag.
     func previewStyle(_ new: Style) {

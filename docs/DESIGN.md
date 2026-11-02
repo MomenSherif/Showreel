@@ -161,7 +161,7 @@ Every command is in the menu bar. Toolbar and context menu items repeat it.
 | File | Close | ⌘W | — |
 | File | Duplicate | ⌘D | S-010 |
 | File | Rename… | — (Return on a card) | S-010 |
-| File | Show in Finder | ⌥⌘R | S-010 |
+| File | Show in Finder (the open project in an editor) | ⌥⌘R | S-010, S-044 |
 | File | Export… | ⌘E | S-036 |
 | File | Move to Trash | ⌘⌫ | S-010 |
 | Edit | Undo / Redo <action> | ⌘Z / ⇧⌘Z | S-020 |
@@ -169,6 +169,7 @@ Every command is in the menu bar. Toolbar and context menu items repeat it.
 | Clip | Delete Section / Delete Zoom (follows the selection) | ⌫ | S-019, S-031 |
 | View | Show/Hide Toolbar, Show/Hide Inspector | ⌥⌘T, ⌃⌘I | S-015 |
 | View | Zoom In / Zoom Out / Zoom to Fit (timeline) | ⌘+ / ⌘− / ⇧Z | S-017 |
+| View | Background, Screen, Effects, Camera, Captions, Audio (inspector section) | ⌘1–⌘6 | S-044 |
 | View | Enter Full Screen | ⌃⌘F | — |
 | Record | Start Recording / Stop Recording | ⌃⌥⌘R | S-007 |
 | Record | Pause Recording / Resume Recording | ⌃⌥⌘P | S-007 |
@@ -178,13 +179,26 @@ Every command is in the menu bar. Toolbar and context menu items repeat it.
 | Clip | Trim Start to Playhead / Trim End to Playhead | ⌥[ / ⌥] | S-018 |
 | Clip | Add Zoom | Z | S-032 |
 | Clip | Mute Section / Unmute Section (follows the selection) | M | S-042 |
-| Clip | Generate Captions | — | S-039 |
+| Clip | Unmute All | ⇧M | S-042, S-044 |
+| Clip | Reduce Noise (checkmark) | ⌥⌘N | S-043, S-044 |
+| Clip | Generate Captions | ⌥⌘G | S-039, S-044 |
+| Clip | Edit Caption (the selected caption's text) | Return | S-040, S-044 |
+| Clip | Show Captions (checkmark) | ⇧⌘C | S-041, S-044 |
+| Clip | Show Camera (checkmark) | ⌥⌘K | S-028, S-044 |
+| Clip | Aspect Ratio ▸, Save Style as Preset…, Apply Preset ▸ | — / ⇧⌘S / — | S-027, S-029 |
+| Clip | Crop Screen… | ⌥⌘C | S-025 |
 | Playback | Play / Pause | Space | S-016 |
 | Playback | Previous Frame / Next Frame | ← / → | S-016 |
 | Playback | Back 1 Second / Forward 1 Second | ⇧← / ⇧→ | S-016 |
 | Playback | Go to Start / Go to End | Home / End | S-016 |
 | Window | Library | ⌘0 | S-008 |
 | Help | Showreel Help, Check Access… | — | S-001 |
+
+- Duplicate, Rename…, and Move to Trash act on the Library's selection, so they are
+  off while an editor is in front. Rename an open project from its title in the toolbar.
+- Inspector fine-tuning (sliders, pickers, colors, Reset Position, Choose Image…) stays in
+  the inspector; the menu bar has its sections (⌘1–⌘6) and every on/off and one-shot action.
+- The self-test fails on any Edit, View, Clip, or Playback item with no shortcut.
 
 - **Menu bar extra:** New Recording (⌃⌥⌘R), Open Library, a separator, up to
   three recent projects, a separator, Settings…, Quit Showreel. While

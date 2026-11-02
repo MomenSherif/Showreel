@@ -52,6 +52,12 @@ final class EditorModel {
     private(set) var isPlaying = false
     var section: InspectorSection = .background
     var showsInspector = true
+
+    /// View > Background … Audio (⌘1–⌘6): shows the inspector at that section.
+    func showSection(_ new: InspectorSection) {
+        showsInspector = true
+        section = new
+    }
     /// Crop Screen is open (S-025).
     var showsCropSheet = false
     /// Save Style as Preset is open (S-029).

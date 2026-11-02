@@ -11,6 +11,7 @@ import ShowreelKit
 /// countdown, recording-controls, editor, editor-<section>), and settings-<tab>-light.png and
 /// settings-<tab>-dark.png for every Settings tab, then quits.
 /// Each PNG gets a <page>-<mode>-layout.json with the grid probes (tools/check-layout.swift).
+/// The editor's menus open: menu-edit, menu-view, menu-clip, menu-playback.
 /// APP_SNAPSHOT_PAGES=library,record-panel limits the pages. Add "settings" to include Settings.
 /// Add APP_ACCENT=<id> to see the pages in another accent.
 enum Snapshot {
@@ -134,6 +135,7 @@ enum Snapshot {
                 surface.hide()
                 try? await Task.sleep(for: .seconds(0.3))
             }
+            await captureMenus(model: model, dir: dir, only: only)
             if only == nil || only?.contains("settings") == true {
                 let main = NSApp.windows.first { $0.canBecomeMain && !$0.isSheet }
                 openSettings()
