@@ -1,5 +1,7 @@
-# Every push to main builds Showreel, packs it into Showreel.dmg, and publishes
-# it as a new GitHub release (v0.1.<run number>). The newest DMG is always at
+# A push to main that changes the app (see `paths` below) builds Showreel, packs
+# it into Showreel.dmg, and publishes it as a new GitHub release
+# (v0.1.<run number>). Run it by hand from the Actions tab for any other commit.
+# The newest DMG is always at
 #   https://github.com/MomenSherif/Showreel/releases/latest/download/Showreel.dmg
 #
 # Signing: without secrets the app is ad-hoc signed, so macOS asks people to
@@ -15,11 +17,19 @@ name: Release
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - "site/**"
-      - "docs/**"
-      - "design/**"
-      - "**.md"
+    # Only what goes into the app. The site deploys on Vercel (site/vercel.json).
+    paths:
+      - "Sources/**"
+      - "Package.swift"
+      - "Info.plist.in"
+      - "Showreel.entitlements"
+      - "Icon/**"
+      - "Resources/**"
+      - "build.sh"
+      - "tools/fetch-whisper.sh"
+      - "tools/make_icon.sh"
+      - "tools/make-dmg.sh"
+      - ".github/workflows/release.yml"
   workflow_dispatch:
 
 permissions:
