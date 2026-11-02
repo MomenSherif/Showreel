@@ -205,3 +205,66 @@ style change, so they will not add rebuilds.
 ## Top recommendation
 
 None is Strong, so no refactor in this check-in. M5 starts.
+
+---
+
+# Check-in at the end of M5 (commit 2a71fee)
+
+10,499 lines. Largest: `RecordController` (449), `Snapshot` (345),
+`SelfTest+Editor` (340), `Zoom.swift` (317, Kit), `EditorModel` (312),
+`EditorTracks` (292). Nothing is near 600. The M5 rules (`AutoZoom`,
+`ZoomTrack`, `ZoomPath`, `CursorPath`, `CursorTrack`, `ClickMarks`) went
+into ShowreelKit with unit tests, and the drawing has golden frames
+(zoom, cursor, click ripple and ring). The one-door refactor from the M4
+check-in was done before S-031 and carried zooms, cursor, and click edits.
+One fix-log entry this milestone (test runs used real settings).
+
+## Render inputs outside the editor window  [Worth exploring — first commit of S-036]
+
+Files: Editor/EditorModel+Style.swift (`renderStyle`, `cursorScene`), Editor/EditorModel+Zoom.swift (`zoomPath`), Editor/EditorModel.swift (4 caches)
+Signal: before a big feature. Export (M6) is the third caller of
+`Renderer`, and DESIGN.md puts Export… in the Library's context menu too,
+where no `EditorModel` exists.
+Problem: everything a frame needs besides the source pixels (background
+picture, zoom path, cursor track, click marks) is built by `EditorModel`
+and cached in four of its fields. Export from the Library would have to
+open an editor or copy that code, and the two copies could drift, which
+is the drift the engine target was made to prevent.
+Proposal:
+```swift
+/// Everything a project's frames are drawn with, besides the source pixels.
+@MainActor final class ProjectLook {
+    init(project: Project, sources: PlayerSources)
+    func renderStyle(_ style: Style, zooms: ZoomTrack) -> RenderStyle   // cached parts inside
+}
+// EditorModel: let look: ProjectLook; renderStyle(for:) forwards.
+// Export: ProjectLook(project:sources:) without a window.
+```
+Benefits: the preview and the export get the same inputs; `EditorModel`
+loses four cache fields; export from the Library needs no editor.
+Proof: golden frames, the self-test's 123 checks, editor snapshots.
+Why not Strong: export does not exist yet, so its needs are a guess until
+S-036. Do it as that story's first commit.
+
+## ZoomBlock in its own file  [Speculative]
+
+`EditorTracks.swift` is at 292 lines, near the 300-line limit for view
+files. Move `ZoomBlock` to `EditorZoomBlock.swift` when the captions lane
+(M7) adds its blocks.
+
+## Self-test file names  [Speculative]
+
+`SelfTest+Zoom.swift` now also checks the cursor and clicks. Rename it to
+`SelfTest+Effects.swift` when it is next touched.
+
+## Snapshot surfaces  [Speculative]
+
+`Snapshot.swift` grows by one editor surface per story (345 lines). Move the
+editor surfaces to `Snapshot+Editor.swift` at 400 lines. The full run also
+missed `source-picker` once while it passes alone: another surface leaves
+state behind (see the M3 note on snapshot stability).
+
+## Top recommendation
+
+None is Strong, so no refactor in this check-in. M6 starts with
+"Render inputs outside the editor window" as the first commit of S-036.
