@@ -96,10 +96,12 @@ final class Permissions {
     func request(_ kind: Kind) {
         switch kind {
         case .screen:
+            if !CGPreflightScreenCaptureAccess() { resetOnce(kind) }
             askedForScreen = true
             if !CGRequestScreenCaptureAccess() { NSWorkspace.shared.open(kind.settingsURL) }
         case .microphone, .camera:
             let media: AVMediaType = kind == .camera ? .video : .audio
+            if AVCaptureDevice.authorizationStatus(for: media) == .denied { resetOnce(kind) }
             if AVCaptureDevice.authorizationStatus(for: media) == .notDetermined {
                 AVCaptureDevice.requestAccess(for: media) { @Sendable _ in
                     Task { @MainActor in Permissions.shared.refresh() }
@@ -109,6 +111,34 @@ final class Permissions {
             }
         }
         refresh()
+    }
+
+    @ObservationIgnored private var reset: Set<Kind> = []
+
+    /// macOS keeps a permission for the signature that got it. A copy signed
+    /// differently (an older release, or a local build) leaves a row in
+    /// System Settings that is switched on but does not apply to this copy,
+    /// and while that row exists macOS never asks again. Clearing our own
+    /// row lets the request below add a fresh one for this copy.
+    ///
+    /// Once per launch only: a grant made after this launch reads as "not
+    /// allowed" until relaunch, and a second reset would throw it away.
+    private func resetOnce(_ kind: Kind) {
+        guard reset.insert(kind).inserted, let id = Bundle.main.bundleIdentifier else { return }
+        let service = switch kind {
+        case .screen: "ScreenCapture"
+        case .microphone: "Microphone"
+        case .camera: "Camera"
+        }
+        let tccutil = Process()
+        tccutil.executableURL = URL(fileURLWithPath: "/usr/bin/tccutil")
+        tccutil.arguments = ["reset", service, id]
+        tccutil.standardOutput = FileHandle.nullDevice
+        tccutil.standardError = FileHandle.nullDevice
+        do {
+            try tccutil.run()
+            tccutil.waitUntilExit()
+        } catch {}
     }
 
     /// Checks every second while a view that shows permissions is open.
