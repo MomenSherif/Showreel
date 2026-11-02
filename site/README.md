@@ -53,7 +53,7 @@ APP_SEED_LOOK=steel APP_ACCENT=graphite tools/snap.sh     # writes /tmp/Showreel
 cwebp -q 82 /tmp/Showreel-shots/editor-dark.png -o site/assets/shots/editor-dark.webp
 ```
 
-`assets/raw-frame.webp` and `assets/camera-frame.webp` are frames of the sample recording and its camera track (from `/tmp/Showreel-projects/*/screen.mov` and `camera.mov`). The before-and-after uses them. The `*-light.webp` files and `assets/cursors/` aren't used any more and can be deleted.
+`assets/raw-window.webp` (the sample recording cropped to its window: `cwebp -crop 168 118 1264 756` of a full frame) and `assets/camera-frame.webp` are frames of the sample recording and its camera track (from `/tmp/Showreel-projects/*/screen.mov` and `camera.mov`). The before-and-after uses them. The `*-light.webp` files and `assets/cursors/` aren't used any more and can be deleted.
 
 ## Deploy
 

@@ -118,14 +118,18 @@ document.querySelectorAll('[data-download]').forEach((a) => {
   const padOut = document.getElementById('pad-out');
   const roundOut = document.getElementById('round-out');
   const cam = document.getElementById('cam');
+  const zoom = document.getElementById('zoom');
+  const fill = (input) => input.style.setProperty('--fill', ((input.value - input.min) / (input.max - input.min)) * 100 + '%');
   const update = () => {
     box.style.setProperty('--pad', pad.value);
     box.style.setProperty('--round', round.value);
+    fill(pad); fill(round);
     padOut.innerHTML = pad.value + '<span class="u">&thinsp;%</span>';
     roundOut.innerHTML = round.value + '<span class="u">&thinsp;px</span>';
     const bg = document.querySelector('input[name="bg"]:checked');
-    box.style.setProperty('--bg-canvas', 'var(--bg-' + (bg ? bg.value : 'slate') + ')');
+    box.style.setProperty('--bg-canvas', 'var(--bg-' + (bg ? bg.value : 'ocean') + ')');
     box.classList.toggle('no-cam', !cam.checked);
+    box.classList.toggle('zoomed', zoom.checked);
   };
   const controls = document.getElementById('controls');
   controls.addEventListener('input', update);

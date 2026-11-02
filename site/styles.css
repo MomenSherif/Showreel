@@ -105,17 +105,24 @@ h3 { font-weight: 400; letter-spacing: -0.01em; }
 .layer { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--space-xs) var(--space-md); padding: var(--space-md) 0; border: 0; border-bottom: var(--rule-hair) solid var(--color-rule); margin: 0; min-inline-size: 0; }
 .layer > label, .layer legend { color: var(--color-ink); font-weight: 400; }
 .layer output { color: var(--color-ink); font-weight: 400; }
-.layer input[type="range"] { grid-column: 1 / -1; width: 100%; accent-color: var(--color-accent); min-height: 24px; }
-.layer input[type="range"]:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 4px; }
+.layer input[type="range"] { --fill: 50%; grid-column: 1 / -1; width: 100%; height: 24px; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; cursor: pointer; }
+.layer input[type="range"]::-webkit-slider-runnable-track { height: 4px; border-radius: var(--radius-pill); background: linear-gradient(var(--color-accent), var(--color-accent)) 0 0 / var(--fill) 100% no-repeat, var(--color-paper-3); }
+.layer input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; margin-top: -7px; border: 0; border-radius: 50%; background: var(--color-ink); box-shadow: 0 1px 6px var(--color-shadow); transition: transform var(--dur-short) var(--ease-out); }
+.layer input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.15); }
+.layer input[type="range"]::-moz-range-track { height: 4px; border-radius: var(--radius-pill); background: var(--color-paper-3); }
+.layer input[type="range"]::-moz-range-progress { height: 4px; border-radius: var(--radius-pill); background: var(--color-accent); }
+.layer input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border: 0; border-radius: 50%; background: var(--color-ink); box-shadow: 0 1px 6px var(--color-shadow); }
+.layer input[type="range"]:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 4px; border-radius: var(--radius-card); }
 .swatches { display: flex; flex-wrap: wrap; gap: var(--space-sm); padding-top: var(--space-md); }
 .swatches legend { float: left; width: 100%; padding: 0 0 var(--space-sm); }
 .swatches label { position: relative; display: inline-flex; cursor: pointer; }
 .swatches input { position: absolute; opacity: 0; width: 1px; height: 1px; }
-.sw { display: block; width: 40px; height: 40px; border-radius: var(--radius-card); box-shadow: inset 0 0 0 var(--rule-hair) var(--color-rule-2); }
+.sw { display: block; width: 32px; height: 32px; border-radius: 50%; box-shadow: inset 0 0 0 var(--rule-hair) var(--color-rule-2); }
 .sw-slate { background: var(--bg-slate); } .sw-graphite { background: var(--bg-graphite); } .sw-ocean { background: var(--bg-ocean); } .sw-forest { background: var(--bg-forest); } .sw-ember { background: var(--bg-ember); }
 .swatches input:checked + .sw { outline: 2px solid var(--color-ink); outline-offset: 3px; }
 .swatches input:focus-visible + .sw, .swatches label:has(input:focus-visible) .sw { outline: 2px solid var(--color-focus); outline-offset: 3px; }
-.swatches label:focus-within { outline: 2px solid var(--color-focus); outline-offset: 3px; border-radius: var(--radius-card); }
+.swatches label { padding: 6px; margin: -6px 0; }
+.swatches label:focus-within { outline: 0; }
 .switch { appearance: none; -webkit-appearance: none; position: relative; width: 44px; height: 26px; margin: 0; border-radius: var(--radius-pill); background: var(--color-paper-3); box-shadow: inset 0 0 0 var(--rule-hair) var(--color-rule-2); cursor: pointer; transition: background-color var(--dur-short) var(--ease-out); }
 .switch::after { content: ""; position: absolute; left: 3px; top: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--color-ink-2); transition: transform var(--dur-short) var(--ease-out); }
 .switch:checked { background: var(--color-accent); }
@@ -124,20 +131,26 @@ h3 { font-weight: 400; letter-spacing: -0.01em; }
 .switch:disabled { opacity: 0.55; cursor: not-allowed; }
 
 .compare-fig { margin: 0; }
-.compare { --pad: 8; --round: 24; --bg-canvas: var(--bg-slate); aspect-ratio: 16 / 10; border-radius: var(--radius-card); touch-action: pan-y; user-select: none; cursor: ew-resize; }
+.compare { --pad: 10; --round: 16; --bg-canvas: var(--bg-ocean); aspect-ratio: 1264 / 756; border-radius: var(--radius-card); touch-action: pan-y; user-select: none; cursor: ew-resize; }
 .cmp-raw, .cmp-polished { position: absolute; inset: 0; overflow: hidden; border-radius: var(--radius-card); }
 .cmp-raw img { width: 100%; height: 100%; object-fit: cover; }
 .cmp-polished { clip-path: inset(0 0 0 var(--split)); background: var(--bg-canvas); }
 .cmp-polished .canvas { position: absolute; inset: 0; transform: scale(calc(1 - var(--pad) / 50)); }
-.cmp-polished .shot { width: 100%; height: 100%; object-fit: cover; border-radius: calc(var(--round) * 1px); box-shadow: 0 24px 48px var(--color-shadow); }
+.cmp-polished .zoom { position: absolute; inset: 0; overflow: hidden; border-radius: calc(var(--round) * 1px); box-shadow: 0 24px 48px var(--color-shadow); }
+/* Zoom on click eases in on the sample's blue button; the camera bubble stays put, as in the app. */
+.cmp-polished .shot { display: block; width: 100%; height: 100%; object-fit: cover; transform-origin: 39% 16%; transition: transform var(--dur-long) var(--ease-out); }
+.compare.zoomed .cmp-polished .shot { transform: scale(1.9); }
 .cmp-polished .bubble { position: absolute; right: 4%; bottom: 6%; width: 20%; height: auto; aspect-ratio: 1; border-radius: 50%; object-fit: cover; box-shadow: 0 12px 28px var(--color-shadow); transition: opacity var(--dur-short) var(--ease-out), transform var(--dur-short) var(--ease-out); }
 .js .compare.no-cam .bubble { opacity: 0; transform: scale(0.9); }
 .cmp-tag { position: absolute; top: var(--space-md); z-index: var(--z-raised); padding: var(--space-2xs) var(--space-sm); border-radius: var(--radius-pill); background: var(--color-scrim); color: var(--color-ink); font-size: var(--text-sm); }
-.cmp-tag-l { left: var(--space-md); } .cmp-tag-r { right: var(--space-md); }
+/* Each tag sits on an empty part of its side: raw over the sidebar, Showreel over the background. */
+.cmp-tag-l { left: var(--space-md); top: auto; bottom: var(--space-md); } .cmp-tag-r { right: var(--space-md); }
 .handle { position: absolute; top: 0; bottom: 0; left: var(--split); z-index: var(--z-raised); width: 44px; transform: translateX(-50%); display: grid; place-items: center; cursor: ew-resize; }
-.handle::before { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: var(--color-ink); }
-.knob { position: relative; width: 14px; height: 14px; border-radius: 50%; background: var(--color-accent); box-shadow: 0 0 0 4px var(--color-paper); }
-.handle:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -2px; border-radius: var(--radius-card); }
+.handle::before { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; transform: translateX(-50%); background: var(--color-ink); box-shadow: 0 0 12px var(--color-shadow); }
+.knob { position: relative; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--color-ink); color: var(--color-paper); box-shadow: 0 4px 16px var(--color-shadow); transition: transform var(--dur-short) var(--ease-out); }
+.handle:hover .knob, .compare:active .knob { transform: scale(1.08); }
+.handle:focus-visible { outline: 0; }
+.handle:focus-visible .knob { outline: 2px solid var(--color-focus); outline-offset: 3px; }
 .compare-fig figcaption { margin-top: var(--space-lg); font-size: var(--text-sm); color: var(--color-muted); }
 
 /* The map: pinned steps beside the editor, one leader per step */
@@ -241,15 +254,24 @@ html:not(.js) .tv:not(:first-child) { display: none; }
   .rows > div { grid-template-columns: minmax(0, 1fr); gap: var(--space-xs); }
   .spec-table th { width: auto; white-space: normal; }
   .cap-note { max-width: none; }
+  /* The preview sits between the heading and the controls, so a change shows next to the thumb that made it. */
+  .polish-copy { display: contents; }
+  .polish-grid { row-gap: var(--space-lg); }
+  .polish .lead { margin-top: 0; }
+  .polish-grid > .compare-fig { order: 1; }
+  .polish-grid .layers { order: 2; margin-top: 0; }
 }
 @media (max-width: 40rem) {
   .hero-bar { flex-direction: column; align-items: flex-start; }
   .spec-table, .spec-table tbody, .spec-table tr, .spec-table th, .spec-table td { display: block; }
   .spec-table th { padding-bottom: 0; border-bottom: 0; }
   .spec-table tr:first-child td { border-top: 0; }
+  .cmp-tag { font-size: var(--text-xs, 0.75rem); padding: 2px var(--space-xs); }
+  .cmp-tag-l { bottom: var(--space-xs); left: var(--space-xs); } .cmp-tag-r { top: var(--space-xs); right: var(--space-xs); }
+  .knob { width: 32px; height: 32px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .js .tv { transition: none; }
-  .btn, .chip, .switch, .switch::after, .bubble, .faq-list summary::after { transition: none; }
+  .btn, .chip, .switch, .switch::after, .bubble, .faq-list summary::after, .cmp-polished .shot, .knob { transition: none; }
 }

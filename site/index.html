@@ -87,22 +87,26 @@
           <form class="layers" id="controls" aria-label="Try the style controls">
             <div class="layer">
               <label for="pad">Padding</label>
-              <output class="num" id="pad-out" for="pad">8<span class="u">&thinsp;%</span></output>
-              <input type="range" id="pad" min="0" max="30" value="8">
+              <output class="num" id="pad-out" for="pad">10<span class="u">&thinsp;%</span></output>
+              <input type="range" id="pad" min="0" max="30" value="10">
             </div>
             <div class="layer">
               <label for="round">Rounding</label>
-              <output class="num" id="round-out" for="round">24<span class="u">&thinsp;px</span></output>
-              <input type="range" id="round" min="0" max="40" value="24">
+              <output class="num" id="round-out" for="round">16<span class="u">&thinsp;px</span></output>
+              <input type="range" id="round" min="0" max="40" value="16">
             </div>
             <fieldset class="layer swatches">
               <legend>Background</legend>
-              <label><input type="radio" name="bg" value="slate" checked><span class="sw sw-slate"></span><span class="visually-hidden">Slate</span></label>
-              <label><input type="radio" name="bg" value="graphite"><span class="sw sw-graphite"></span><span class="visually-hidden">Graphite</span></label>
-              <label><input type="radio" name="bg" value="ocean"><span class="sw sw-ocean"></span><span class="visually-hidden">Ocean</span></label>
-              <label><input type="radio" name="bg" value="forest"><span class="sw sw-forest"></span><span class="visually-hidden">Forest</span></label>
-              <label><input type="radio" name="bg" value="ember"><span class="sw sw-ember"></span><span class="visually-hidden">Ember</span></label>
+              <label title="Ocean"><input type="radio" name="bg" value="ocean" checked><span class="sw sw-ocean"></span><span class="visually-hidden">Ocean</span></label>
+              <label title="Ember"><input type="radio" name="bg" value="ember"><span class="sw sw-ember"></span><span class="visually-hidden">Ember</span></label>
+              <label title="Forest"><input type="radio" name="bg" value="forest"><span class="sw sw-forest"></span><span class="visually-hidden">Forest</span></label>
+              <label title="Slate"><input type="radio" name="bg" value="slate"><span class="sw sw-slate"></span><span class="visually-hidden">Slate</span></label>
+              <label title="Graphite"><input type="radio" name="bg" value="graphite"><span class="sw sw-graphite"></span><span class="visually-hidden">Graphite</span></label>
             </fieldset>
+            <div class="layer">
+              <label for="zoom">Zoom on click</label>
+              <input class="switch" type="checkbox" id="zoom" role="switch">
+            </div>
             <div class="layer">
               <label for="cam">Camera bubble</label>
               <input class="switch" type="checkbox" id="cam" role="switch" checked>
@@ -113,11 +117,11 @@
         <figure class="compare-fig">
           <div class="compare ticks" id="compare" style="--split: 50%">
             <div class="cmp-raw" aria-hidden="true">
-              <img src="assets/raw-frame.webp" width="1600" height="1000" alt="" loading="lazy">
+              <img src="assets/raw-window.webp" width="1264" height="756" alt="" loading="lazy">
             </div>
             <div class="cmp-polished" aria-hidden="true">
               <div class="canvas">
-                <img class="shot" src="assets/raw-frame.webp" width="1600" height="1000" alt="" loading="lazy">
+                <div class="zoom"><img class="shot" src="assets/raw-window.webp" width="1264" height="756" alt="" loading="lazy"></div>
                 <img class="bubble" src="assets/camera-frame.webp" width="320" height="320" alt="" loading="lazy">
               </div>
             </div>
@@ -125,10 +129,10 @@
             <span class="cmp-tag cmp-tag-r" aria-hidden="true">With Showreel</span>
             <div class="handle" id="handle" role="slider" tabindex="0"
               aria-label="Compare raw recording and Showreel version" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" aria-valuetext="50% raw">
-              <span class="knob" aria-hidden="true"></span>
+              <span class="knob" aria-hidden="true"><svg viewBox="0 0 20 20" width="18" height="18" focusable="false"><path d="M8 6l-4 4 4 4M12 6l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
             </div>
           </div>
-          <figcaption>A frame of the app’s sample recording, framed here in CSS the way Showreel frames it.</figcaption>
+          <figcaption>Every control here is a setting in Showreel’s editor, applied to the same take.</figcaption>
         </figure>
       </div>
     </section>
