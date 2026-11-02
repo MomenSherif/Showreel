@@ -49,10 +49,10 @@ struct BackgroundSection: View {
                 if wallpapers.isEmpty {
                     Text("No wallpapers on this Mac").foregroundStyle(.secondary)
                 } else {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: Layout.wallpaperTile.width), spacing: Space.sm)], spacing: Space.sm) {
+                    // Three tiles a row, as wide as the inspector allows.
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Space.sm), count: 3), spacing: Space.sm) {
                         ForEach(wallpapers) { wallpaper in
-                            Tile(name: wallpaper.name, isSelected: background == .wallpaper(wallpaper.url.path),
-                                 size: Layout.wallpaperTile) {
+                            Tile(name: wallpaper.name, isSelected: background == .wallpaper(wallpaper.url.path), size: nil) {
                                 Thumbnail(url: wallpaper.url)
                             } action: { set(.wallpaper(wallpaper.url.path), named: "Background Wallpaper") }
                         }
@@ -116,18 +116,18 @@ struct BackgroundSection: View {
     }
 }
 
-/// A square or 16:10 tile with a selection ring.
+/// A square swatch, or with no size a 16:10 tile as wide as its grid
+/// column, with a selection ring.
 private struct Tile<Content: View>: View {
     let name: String
     let isSelected: Bool
-    var size = CGSize(width: Layout.swatch, height: Layout.swatch)
+    var size: CGSize? = CGSize(width: Layout.swatch, height: Layout.swatch)
     @ViewBuilder let content: Content
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            content
-                .frame(width: size.width, height: size.height)
+            shaped
                 .background(Surfaces.surface)
                 .clipShape(Radius.shape(Radius.sm))
                 .overlay {
@@ -140,6 +140,17 @@ private struct Tile<Content: View>: View {
         .help(name)
         .accessibilityLabel(name)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    @ViewBuilder private var shaped: some View {
+        if let size {
+            content.frame(width: size.width, height: size.height)
+        } else {
+            // The picture fills a 16:10 frame and never sets its size.
+            Color.clear
+                .aspectRatio(Layout.wallpaperTile.width / Layout.wallpaperTile.height, contentMode: .fit)
+                .overlay { content }
+        }
     }
 }
 
@@ -158,13 +169,7 @@ private struct Thumbnail: View {
         }
         .task(id: url) {
             let url = url
-            image = await Task.detached(priority: .utility) {
-                guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
-                return CGImageSourceCreateThumbnailAtIndex(source, 0, [
-                    kCGImageSourceCreateThumbnailFromImageAlways: true,
-                    kCGImageSourceThumbnailMaxPixelSize: 160,
-                ] as CFDictionary)
-            }.value
+            image = await Task.detached(priority: .utility) { PictureLoader.image(at: url, maxPixels: 160) }.value
         }
     }
 }

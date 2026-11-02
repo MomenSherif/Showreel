@@ -338,6 +338,16 @@ extension SelfTest {
         } else {
             check("a chosen image becomes the background", false, "\(editor.style.background)")
         }
+        // A video wallpaper draws its first frame, at full size.
+        let found = Wallpaper.available()
+        check("wallpapers include the system's full-size pictures", found.count >= 10, "\(found.count) found")
+        if let movie = found.first(where: { $0.url.pathExtension == "mov" }) {
+            var style = editor.style
+            style.background = .wallpaper(movie.url.path)
+            let picture = editor.renderStyle(for: style).backgroundImage
+            check("a video wallpaper draws its first frame", (picture?.extent.width ?? 0) >= 1000,
+                  "\(movie.name): \(picture?.extent.size ?? .zero)")
+        }
         try? FileManager.default.removeItem(at: picked)
         editor.applyStyle(before, named: "Reset")
         undo.removeAllActions()

@@ -116,13 +116,7 @@ extension EditorModel {
     /// A picture decoded once at about the canvas size, so frames never
     /// decode a 6K wallpaper again.
     nonisolated static func picture(at url: URL, maxPixels: CGFloat) -> CIImage? {
-        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
-              let image = CGImageSourceCreateThumbnailAtIndex(source, 0, [
-                  kCGImageSourceCreateThumbnailFromImageAlways: true,
-                  kCGImageSourceCreateThumbnailWithTransform: true,
-                  kCGImageSourceThumbnailMaxPixelSize: max(maxPixels, 64),
-              ] as CFDictionary) else { return nil }
-        return CIImage(cgImage: image)
+        PictureLoader.image(at: url, maxPixels: maxPixels).map { CIImage(cgImage: $0) }
     }
 
     /// Where things are on the preview, in the canvas view's points
@@ -184,26 +178,48 @@ extension EditorModel {
     }
 }
 
-/// macOS wallpapers that are on this Mac at full size (S-022).
+/// macOS wallpapers that are on this Mac at full size (S-022): pictures, and
+/// video wallpapers shown by their first frame. `WallpaperScan` finds them.
 struct Wallpaper: Identifiable, Hashable {
     let name: String
     let url: URL
     var id: String { url.path }
 
-    /// The current desktop pictures first, then the full-size system wallpapers.
+    /// The current desktop pictures first, then the system's videos and pictures.
     static func available() -> [Wallpaper] {
-        var urls: [URL] = NSScreen.screens.compactMap { NSWorkspace.shared.desktopImageURL(for: $0) }
-        let fm = FileManager.default
-        let system = URL(fileURLWithPath: "/System/Library/Desktop Pictures/.wallpapers")
-        for folder in (try? fm.contentsOfDirectory(at: system, includingPropertiesForKeys: nil)) ?? [] {
-            urls += ((try? fm.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? [])
-                .filter { $0.pathExtension == "heic" && !$0.lastPathComponent.contains("Thumbnail") }
+        let current = NSScreen.screens.compactMap { NSWorkspace.shared.desktopImageURL(for: $0) }
+        return WallpaperScan.find(current: current).map { Wallpaper(name: $0.name, url: $0.url) }
+    }
+}
+
+/// A wallpaper or background image as a CGImage of at most `maxPixels` on
+/// its long side. A video gives its first frame, so moving wallpapers
+/// (Tahoe Day, Sonoma Graphic) make still backgrounds.
+enum PictureLoader {
+    nonisolated static func image(at url: URL, maxPixels: CGFloat) -> CGImage? {
+        if ["mov", "mp4"].contains(url.pathExtension.lowercased()) { return frame(of: url, maxPixels: maxPixels) }
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
+        return CGImageSourceCreateThumbnailAtIndex(source, 0, [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: max(maxPixels, 64),
+        ] as CFDictionary)
+    }
+
+    /// The first frame, waited for: callers already run off the main thread or
+    /// once per picture, and the frame is cached by the caller.
+    nonisolated static func frame(of url: URL, maxPixels: CGFloat) -> CGImage? {
+        let generator = AVAssetImageGenerator(asset: AVURLAsset(url: url))
+        generator.appliesPreferredTrackTransform = true
+        generator.maximumSize = CGSize(width: maxPixels, height: maxPixels)
+        generator.requestedTimeToleranceAfter = CMTime(value: 1, timescale: 2)
+        let done = DispatchSemaphore(value: 0)
+        nonisolated(unsafe) var result: CGImage?
+        generator.generateCGImageAsynchronously(for: .zero) { image, _, _ in
+            result = image
+            done.signal()
         }
-        let downloaded = fm.homeDirectoryForCurrentUser.appending(path: "Library/Application Support/com.apple.mobileAssetDesktop")
-        urls += ((try? fm.contentsOfDirectory(at: downloaded, includingPropertiesForKeys: nil)) ?? []).filter { $0.pathExtension == "heic" }
-        let images = Set(["heic", "jpg", "jpeg", "png", "tiff"])
-        var seen = Set<String>()
-        return urls.filter { images.contains($0.pathExtension.lowercased()) && seen.insert($0.standardizedFileURL.path).inserted }
-            .map { Wallpaper(name: $0.deletingPathExtension().lastPathComponent, url: $0) }
+        guard done.wait(timeout: .now() + 10) == .success else { return nil }
+        return result
     }
 }

@@ -220,6 +220,26 @@ extension Snapshot {
                                          EditorModel.newest?.selectCaption(nil)
                                          if let arabicOriginal { EditorModel.newest?.previewCaptions(arabicOriginal) }
                                      })
+        // S-022: the wallpapers on this Mac, with a video wallpaper's first frame as the background.
+        var wallpaperOriginal: Style?
+        let wallpapers = Surface(name: "editor-wallpapers", show: {
+                                     guard let editor = await openEditor() else { return }
+                                     editor.section = .background
+                                     wallpaperOriginal = editor.style
+                                     if let movie = Wallpaper.available().first(where: { $0.url.pathExtension == "mov" }) {
+                                         var style = editor.style
+                                         style.background = .wallpaper(movie.url.path)
+                                         editor.previewStyle(style)
+                                     }
+                                     try? await Task.sleep(for: .seconds(1.5))
+                                     // Scroll the inspector to its Wallpaper section.
+                                     if let window = NSApp.windows.first(where: { $0.isVisible && $0.title == title }) {
+                                         scrollInspector(in: window.contentView, toward: 0.62)
+                                     }
+                                     try? await Task.sleep(for: .seconds(1))
+                                 },
+                                 window: window,
+                                 hide: { if let wallpaperOriginal { EditorModel.newest?.previewStyle(wallpaperOriginal) } })
         // S-042: a muted part on the audio track, shown without saving.
         let audioMuted = Surface(name: "editor-audio-muted", show: {
                                      guard let editor = await openEditor() else { return }
@@ -260,6 +280,25 @@ extension Snapshot {
                     },
                     window: window,
                     hide: {})
-        } + [trim, split, crop, frame, aspect, savePreset, export, progress, done, zoomSelected, blurSelected, click, zoomed, captionsProgress, captionsFailed, captionSelected, captionsArabic, audioMuted, noiseProgress]
+        } + [trim, split, crop, frame, aspect, savePreset, export, progress, done, zoomSelected, blurSelected, wallpapers, click, zoomed, captionsProgress, captionsFailed, captionSelected, captionsArabic, audioMuted, noiseProgress]
     }
 }
+
+/// Scrolls the inspector's form (the trailing scroll view) to `fraction` of
+/// its height, for snapshot pages of what is below the fold.
+@MainActor
+func scrollInspector(in view: NSView?, toward fraction: CGFloat) {
+    guard let view, let window = view.window else { return }
+    var views = [view]
+    while let next = views.popLast() {
+        if let scroll = next as? NSScrollView, let document = scroll.documentView,
+           next.convert(next.bounds, to: nil).minX > window.frame.width * 0.7 {
+            let room = max(document.frame.height - scroll.contentView.bounds.height, 0)
+            scroll.contentView.scroll(to: NSPoint(x: 0, y: room * fraction))
+            scroll.reflectScrolledClipView(scroll.contentView)
+            return
+        }
+        views += next.subviews
+    }
+}
+
