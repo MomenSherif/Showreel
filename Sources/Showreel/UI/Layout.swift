@@ -31,7 +31,16 @@ enum Layout {
     static let cropArea = CGSize(width: 640, height: 400)
 
     // Floating recording chrome
-    static let recordPanel = CGSize(width: 600, height: 56)
+    static let recordPanel = CGSize(width: 600, height: 64)
+    /// Display, Window, and Area: a symbol over its name.
+    static let sourceTile = CGSize(width: 64, height: 48)
+    /// Mic, Camera, and System Audio chips, and the close button.
+    static let chipHeight: CGFloat = 32
+    /// Longer device names truncate in the middle.
+    static let deviceNameWidth: CGFloat = 148
+    /// One display or window in the source picker popover.
+    static let sourcePickerTile: CGFloat = 152
+    static let sourcePickerMaxHeight: CGFloat = 420
     static let countdownCircle: CGFloat = 160
     /// Distance of the Recording Controls from the bottom of the display.
     static let controlsInset: CGFloat = 24

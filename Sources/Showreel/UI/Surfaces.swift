@@ -8,6 +8,8 @@ enum Surfaces {
     static let surface = Color.primary.opacity(0.05)
     /// The same surface under the pointer.
     static let surfaceHover = Color.primary.opacity(0.09)
+    /// A chosen tile or an input that is on, on floating glass.
+    static let selected = Color.primary.opacity(0.13)
     /// Thin lines between custom areas (timeline rows, the transport bar).
     static let hairline = Color(nsColor: .separatorColor)
     /// The one warning color. Always paired with an icon and words.

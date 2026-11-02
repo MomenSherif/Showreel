@@ -55,22 +55,29 @@ excludes the app's own windows. Our chrome never shows up in a recording.
 
 ## Record Panel (S-002 to S-006)
 
-A horizontal glass bar about 600 × 56 pt, centered near the top of the
-active display, which you can drag by its background. One
-`GlassEffectContainer`:
+A horizontal glass capsule 64 pt tall, laid out like the screenshot toolbar
+(⇧⌘5), centered near the top of the active display, which you can drag by
+its background. One `GlassEffectContainer`:
 
 ```text
-[ Display | Window | Area ▾ ]  ·  [🎙 Mic ▾ ▮▮▯]  [📷 Camera ▾]  [🔊 System Audio]  ·  [● Start Recording]  [×]
+( × | [▭ Display] [▢ Window] [⬚ Area] | (🎙 MacBook Pro ▮▮▯ ⌄) (📷 Camera off ⌄) (🔇 System Audio off) | (● Start Recording) )
 ```
 
-- The source is a segmented control. Display and Window open a popover with
-  thumbnails (Display shows when there is more than one display).
-- Toggles are glass buttons that show their state with a symbol (`mic` /
-  `mic.slash`) and a word. They never show state by tint alone. The chevron
-  opens a device `Menu`.
-- Start Recording is the only prominent control, tinted `.red` (red carries
-  the meaning "record"). It says "Start Recording", not just a dot.
-- The close button (`xmark`) is at the trailing edge. Escape closes.
+- The close button (`xmark`) is a quiet circle at the leading edge. Escape closes.
+- The source is three tiles, a symbol over its name (`Layout.sourceTile`).
+  The chosen tile gets `Surfaces.selected` and an accent symbol. ⌘1, ⌘2, ⌘3
+  choose. Window opens the thumbnail popover; Display opens it when there is
+  more than one display; clicking the chosen tile again reopens it (Area
+  drags out the area again). The popover is as wide as its tiles.
+- Mic, Camera, and System Audio are chips (`Layout.chipHeight`). The left
+  part turns the input on or off; the chevron inside the chip opens the
+  device `Menu`. On: a filled symbol in the accent, the device's short name
+  ("MacBook Pro", the full name in the help tag), and `Surfaces.selected`.
+  Off: a slashed symbol and "Mic off" in secondary text. State never rests
+  on color alone. Without access, the chip says "Allow Mic…" with an orange
+  symbol.
+- Start Recording is the only prominent control, large, tinted `.red` (red
+  carries the meaning "record"). It says "Start Recording", not just a dot.
 - Problems (no access, device lost) show inline under the bar in a second
   glass row. They are never alerts.
 
