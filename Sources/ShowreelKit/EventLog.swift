@@ -50,8 +50,26 @@ public struct EventLog: Codable, Equatable, Sendable {
     public var bubble: [Point] = []
     /// Ranges when the Camera Bubble was hidden.
     public var cameraHidden: [Range] = []
+    /// The text caret while typing, at most 4 times a second (S-030).
+    /// Empty without Accessibility access, or in logs made before S-030.
+    public var caret: [Point] = []
 
     public init(source: CGRect) { self.source = source }
+
+    enum CodingKeys: String, CodingKey { case version, source, cursor, clicks, keys, bubble, cameraHidden, caret }
+
+    /// Fields added after version 1 are optional, so older logs still load.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        version = try c.decode(Int.self, forKey: .version)
+        source = try c.decode(CGRect.self, forKey: .source)
+        cursor = try c.decodeIfPresent([Point].self, forKey: .cursor) ?? []
+        clicks = try c.decodeIfPresent([Click].self, forKey: .clicks) ?? []
+        keys = try c.decodeIfPresent([Key].self, forKey: .keys) ?? []
+        bubble = try c.decodeIfPresent([Point].self, forKey: .bubble) ?? []
+        cameraHidden = try c.decodeIfPresent([Range].self, forKey: .cameraHidden) ?? []
+        caret = try c.decodeIfPresent([Point].self, forKey: .caret) ?? []
+    }
 
     /// A global top-left point as a position inside the source, or nil when it is outside.
     public func normalized(_ point: CGPoint) -> CGPoint? {

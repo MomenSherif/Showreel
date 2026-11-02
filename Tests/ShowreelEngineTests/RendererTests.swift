@@ -103,6 +103,39 @@ struct RendererTests {
         try frame.expectMatches(golden: "style-crop")
     }
 
+    // MARK: Zoom (S-030)
+
+    /// A 2× zoom on the top-left quarter shows the same pixels as a crop of
+    /// it, in the same place; unlike a crop, the camera stays where it was.
+    @Test func zoomShowsPartOfTheRecordingInTheSamePlace() throws {
+        let zooms = ZoomTrack(segments: [ZoomSegment(start: 0, end: 10, scale: 2, x: 0.25, y: 0.25)])
+        func frame(_ style: Style, zooms: ZoomTrack = ZoomTrack(), camera: CIImage? = nil) -> Bitmap {
+            Bitmap(Renderer.frame(screen: Self.screen, camera: camera, at: 5, scene: Self.scene,
+                                  style: RenderStyle(style: style, zooms: zooms), size: Self.size))
+        }
+        var plain = Style()
+        plain.background = .color(RGB(1, 1, 1)); plain.padding = 0.1; plain.effectAmount = 0; plain.rounding = 0
+        var crop = plain
+        crop.crop = CropRect(x: 0, y: 0, width: 0.5, height: 0.5)
+        let zoomed = frame(plain, zooms: zooms), cropped = frame(crop)
+        // Inside the screen (256 × 160 at 32, 20); a crop's scaled edge is
+        // soft, so the outer 3 pixels are left out.
+        var maxDiff = 0
+        for y in 23..<177 { for x in 35..<285 {
+            let a = zoomed.pixel(x: x, y: y), b = cropped.pixel(x: x, y: y)
+            maxDiff = max(maxDiff, abs(a.r - b.r), abs(a.g - b.g), abs(a.b - b.b))
+        } }
+        #expect(maxDiff <= 3, "zoom and crop differ by \(maxDiff)")
+        // Before and after the zoom, the whole recording shows.
+        #expect(frame(plain, zooms: ZoomTrack(segments: [ZoomSegment(start: 6, end: 9)])).bytes == frame(plain).bytes)
+        // The camera keeps its spot on the canvas.
+        let withCamera = frame(plain, zooms: zooms, camera: Self.camera)
+        // At t = 5 the scene puts the bubble at (0.75, 0.7) of the 256 × 160 screen at (32, 20).
+        let bubble = withCamera.pixel(x: 32 + Int(0.75 * 256), y: 20 + Int(0.7 * 160) + 5)
+        #expect(bubble.g > 150 || bubble.r > 150, "the bubble did not move, got \(bubble)")
+        try withCamera.expectMatches(golden: "zoom-2x")
+    }
+
     // MARK: Device frames (S-026)
 
     static func framed(_ frame: Style.DeviceFrame, size: CGSize = CGSize(width: 640, height: 400),

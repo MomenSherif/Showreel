@@ -33,16 +33,19 @@ public struct BubbleScene: Sendable {
     public func isHidden(at t: Double) -> Bool { log.cameraIsHidden(at: t) }
 }
 
-/// A `Style` ready to draw: the style plus the background image it names,
-/// loaded once (a wallpaper or the person's image).
+/// Everything the editor changes without rebuilding the player: the style,
+/// the background image it names (loaded once), and the zooms.
 public struct RenderStyle: @unchecked Sendable {
     // @unchecked: CIImage is immutable and thread-safe.
     public var style: Style
     public var backgroundImage: CIImage?
+    /// In source time, like the scene (S-030).
+    public var zooms: ZoomTrack
 
-    public init(style: Style, backgroundImage: CIImage? = nil) {
+    public init(style: Style, backgroundImage: CIImage? = nil, zooms: ZoomTrack = ZoomTrack()) {
         self.style = style
         self.backgroundImage = backgroundImage
+        self.zooms = zooms
     }
 
     /// The recording edge to edge, as M1 to M3 played.
@@ -66,10 +69,15 @@ public enum Renderer {
         let chrome = CanvasLayout.chrome(for: style.style, canvasHeight: size.height)
         let top = CanvasLayout.screenRect(content: screen.extent.size, canvas: size, padding: style.style.padding, chrome: chrome)
         let rect = CGRect(x: top.minX, y: size.height - top.maxY, width: top.width, height: top.height)
+        // A zoom shows part of the recording in the same place (S-030); the
+        // frame, background, and camera stay put.
+        let zoom = style.zooms.view(at: t)
+        let visible = visibleRect(of: screen.extent, zoom)
         var image = screen
-            .transformed(by: CGAffineTransform(translationX: -screen.extent.minX, y: -screen.extent.minY))
-            .transformed(by: CGAffineTransform(scaleX: rect.width / screen.extent.width, y: rect.height / screen.extent.height))
+            .transformed(by: CGAffineTransform(translationX: -visible.minX, y: -visible.minY))
+            .transformed(by: CGAffineTransform(scaleX: rect.width / visible.width, y: rect.height / visible.height))
             .transformed(by: CGAffineTransform(translationX: rect.minX, y: rect.minY))
+        if zoom.isZoomed { image = image.cropped(to: rect) }
         let radius = CanvasLayout.cornerRadius(style.style.rounding, canvasHeight: size.height)
         let device = DeviceChrome.parts(for: style.style, rect: rect, radius: radius, canvas: size)
         if let mask = device.screenMask { image = masked(image, by: mask) }
@@ -103,6 +111,14 @@ public enum Renderer {
         // Top-left crop to Core Image's bottom-left extent.
         let rect = CGRect(x: e.minX + top.minX, y: e.minY + e.height - top.maxY, width: top.width, height: top.height)
         return screen.cropped(to: rect).transformed(by: CGAffineTransform(translationX: -rect.minX, y: -rect.minY))
+    }
+
+    /// The part of `extent` a zoom shows, in Core Image's bottom-left coordinates.
+    static func visibleRect(of extent: CGRect, _ zoom: ZoomView) -> CGRect {
+        guard zoom.isZoomed else { return extent }
+        let r = zoom.rect
+        return CGRect(x: extent.minX + r.minX * extent.width, y: extent.minY + (1 - r.maxY) * extent.height,
+                      width: r.width * extent.width, height: r.height * extent.height)
     }
 
     /// `image` where `mask` is white; clear elsewhere.

@@ -42,6 +42,8 @@ enum SeedData {
             let image = frame(hue: sample.hue)
             write(image, to: ProjectStore.file(ProjectFiles.thumbnail, of: project.uuid))
             writeMovie(image, seconds: Int(sample.duration), to: ProjectStore.file(ProjectFiles.screen, of: project.uuid))
+            // Clicks and typing like a real walkthrough's, so the Editor makes zooms from them (S-030).
+            try? events(duration: sample.duration).encoded().write(to: ProjectStore.file(ProjectFiles.events, of: project.uuid))
             // The first sample was recorded with the camera on (S-028 snapshots show it).
             if sample.title == samples[0].title {
                 project.hasCamera = true
@@ -60,6 +62,20 @@ enum SeedData {
         docs.effectAmount = 0.3
         model.savePreset(named: "Docs", style: docs)
         try? context.save()
+    }
+
+    /// Clicks, a typing burst, and the cursor, spread over the recording.
+    static func events(duration: Double) -> EventLog {
+        var log = EventLog(source: CGRect(x: 0, y: 0, width: 800, height: 500))
+        let clicks: [(Double, Double, Double)] = [
+            (0.10, 0.30, 0.25), (0.13, 0.36, 0.28), (0.30, 0.70, 0.40), (0.66, 0.60, 0.70), (0.69, 0.62, 0.66), (0.86, 0.22, 0.78),
+        ]
+        log.clicks = clicks.map { .init(t: $0.0 * duration, x: $0.1, y: $0.2, button: .left) }
+        let typing = 0.45 * duration
+        log.keys = (0..<14).map { .init(t: typing + Double($0) * 0.18, keyCode: 0) }
+        log.caret = [.init(t: typing + 0.1, x: 0.42, y: 0.58), .init(t: typing + 2, x: 0.5, y: 0.58)]
+        log.cursor = stride(from: 0.0, to: duration, by: 0.5).map { .init(t: $0, x: 0.5 + 0.3 * sin($0 / 4), y: 0.5 + 0.2 * cos($0 / 5)) }
+        return log
     }
 
     /// A desktop with one app window, like a frame of a real recording.

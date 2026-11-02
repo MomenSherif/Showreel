@@ -454,7 +454,7 @@ Acceptance:
   The default scale is 2×.
 - [unit] Typing bursts make a zoom on the caret's area.
 - [snap] Zoom segments show on the zoom track as purple blocks.
-Status: todo
+Status: done
 
 ### S-031 Edit a zoom segment
 As the user, I select a zoom and set its scale and its focus point (drag

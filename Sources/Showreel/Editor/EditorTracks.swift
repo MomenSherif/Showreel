@@ -59,12 +59,27 @@ struct Lane: View {
                             .offset(x: scale.x(at: editor.edits.editStart(of: segment.id) ?? 0)) // grid: ok position from time
                     }
                 }
-            case .zoom, .captions:
+            case .zoom:
+                // Zooms are kept in source time; a cut shows them in pieces.
+                ForEach(editor.zooms.segments) { zoom in
+                    ForEach(Array(editor.edits.editRanges(fromSource: zoom.start, to: zoom.end).enumerated()), id: \.offset) { _, range in
+                        Block(kind: kind, title: Self.scaleText(zoom.scale))
+                            .frame(width: max(scale.x(at: range.upperBound - range.lowerBound), 1))
+                            .offset(x: scale.x(at: range.lowerBound)) // grid: ok position from time
+                            .help("Zoom \(Self.scaleText(zoom.scale)), \(ClipBlock.length(zoom.length))")
+                    }
+                }
+            case .captions:
                 EmptyView()
             }
         }
         .padding(.vertical, Space.xs)
         .overlay(alignment: .bottom) { Surfaces.hairline.frame(height: 1) }
+    }
+
+    /// "2×", or "2.5×" for a scale between whole numbers.
+    static func scaleText(_ scale: Double) -> String {
+        scale.rounded() == scale ? "\(Int(scale))×" : String(format: "%.1f×", scale)
     }
 }
 

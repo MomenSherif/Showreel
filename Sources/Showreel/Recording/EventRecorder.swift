@@ -13,6 +13,7 @@ final class EventRecorder {
     private var monitors: [Any] = []
     private var lastCursor: CGPoint?
     private var hidden = HiddenRanges()
+    private var lastCaretLookup = -Double.infinity
 
     init(source: CGRect, timeline: Timeline) {
         log = EventLog(source: source)
@@ -82,6 +83,13 @@ final class EventRecorder {
     private func key(_ code: UInt16) {
         guard let t = now else { return }
         log.keys.append(.init(t: t, keyCode: code))
+        // Where the typing goes, for the zoom on it (S-030). At most 4 a second.
+        guard t - lastCaretLookup >= 0.25 else { return }
+        lastCaretLookup = t
+        Task { [weak self] in
+            guard let point = await Caret.location(), let self, let n = self.log.normalized(point) else { return }
+            self.log.caret.append(.init(t: t, x: n.x, y: n.y))
+        }
     }
 
     /// The Camera Bubble's center in global top-left points.
@@ -96,5 +104,31 @@ final class EventRecorder {
     func cameraHidden(_ isHidden: Bool) {
         guard let t = nowOrPausePoint else { return }
         if isHidden { hidden.hide(at: t) } else { hidden.show(at: t) }
+    }
+}
+
+/// The text caret of the focused app, through Accessibility.
+enum Caret {
+    /// The caret's center in global top-left points, or nil when the focused
+    /// element has no text caret or does not answer within 0.1 seconds.
+    @concurrent nonisolated static func location() async -> CGPoint? {
+        let system = AXUIElementCreateSystemWide()
+        AXUIElementSetMessagingTimeout(system, 0.1)
+        var focused: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(system, kAXFocusedUIElementAttribute as CFString, &focused) == .success,
+              let focused, CFGetTypeID(focused) == AXUIElementGetTypeID() else { return nil }
+        let element = focused as! AXUIElement
+        AXUIElementSetMessagingTimeout(element, 0.1)
+        var range: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &range) == .success,
+              let range else { return nil }
+        var bounds: CFTypeRef?
+        guard AXUIElementCopyParameterizedAttributeValue(element, kAXBoundsForRangeParameterizedAttribute as CFString,
+                                                         range, &bounds) == .success,
+              let bounds, CFGetTypeID(bounds) == AXValueGetTypeID() else { return nil }
+        var rect = CGRect.zero
+        // Some apps answer with an empty rect at the origin: no caret.
+        guard AXValueGetValue(bounds as! AXValue, .cgRect, &rect), rect.height > 0, rect.origin != .zero else { return nil }
+        return CGPoint(x: rect.midX, y: rect.midY)
     }
 }

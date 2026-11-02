@@ -53,11 +53,11 @@ extension EditorModel {
         case .image(let name): ProjectStore.file(name, of: project.uuid)
         case .none, .gradient, .color: nil
         }
-        guard let url else { return RenderStyle(style: style) }
+        guard let url else { return RenderStyle(style: style, zooms: zooms) }
         if pictures[url.path] == nil, let sources {
             pictures[url.path] = Self.picture(at: url, maxPixels: max(sources.naturalSize.width, sources.naturalSize.height))
         }
-        return RenderStyle(style: style, backgroundImage: pictures[url.path])
+        return RenderStyle(style: style, backgroundImage: pictures[url.path], zooms: zooms)
     }
 
     /// A picture decoded once at about the canvas size, so frames never

@@ -68,6 +68,8 @@ final class EditorModel {
     /// The look (M4): background, padding, and more. Changed through
     /// `applyStyle` (EditorModel+Style.swift), like the cut.
     var style = Style()
+    /// The zooms (M5), in source time. Drawn without a rebuild, like the style.
+    var zooms = ZoomTrack()
 
     @ObservationIgnored private(set) var sources: PlayerSources?
     /// The current item's segments, so a style change can redraw without a rebuild.
@@ -92,6 +94,7 @@ final class EditorModel {
         self.sources = sources
         edits = EditList.decode(project.editsData, sourceDuration: sources.duration)
         style = Style.decode(project.styleData)
+        zooms = Self.zooms(for: project, sources: sources)
         duration = edits.duration
         let built = sources.item(for: edits, style: renderStyle(for: style))
         slots = built.slots
@@ -110,6 +113,16 @@ final class EditorModel {
         }
         self.player = player
         Self.newest = self
+    }
+
+    /// The saved zooms, or on the first open, zooms made from the clicks and
+    /// typing in events.json, saved so they can be edited (S-030).
+    static func zooms(for project: Project, sources: PlayerSources) -> ZoomTrack {
+        if let saved = ZoomTrack.decode(project.zoomsData) { return saved }
+        let made = ZoomTrack(segments: sources.events.map { AutoZoom.segments(from: $0, duration: sources.duration) } ?? [])
+        project.zoomsData = made.encoded()
+        try? project.modelContext?.save()
+        return made
     }
 
     func togglePlay() {

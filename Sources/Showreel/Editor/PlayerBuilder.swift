@@ -29,6 +29,8 @@ struct PlayerSources {
     /// Length of screen.mov, in seconds.
     let duration: Double
     let scene: BubbleScene
+    /// events.json: clicks, keys, and the cursor. Nil when it is missing.
+    let events: EventLog?
 
     /// Loads the files in the project's folder. Nil when screen.mov cannot be read.
     static func load(for project: Project) async -> PlayerSources? {
@@ -58,7 +60,7 @@ struct PlayerSources {
                                 hidden: log?.cameraHidden ?? [], diameter: diameter,
                                 cornerRatio: project.bubbleShape == BubbleStyle.Shape.roundedSquare.rawValue
                                     ? Radius.bubbleSquareRatio : 0.5)
-        return PlayerSources(screen: screen, audio: audio, camera: camera, naturalSize: natural, duration: duration, scene: scene)
+        return PlayerSources(screen: screen, audio: audio, camera: camera, naturalSize: natural, duration: duration, scene: scene, events: log)
     }
 
     /// One kept segment's place in a built item: what its instruction needs.

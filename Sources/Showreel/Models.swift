@@ -36,6 +36,9 @@ final class Project {
     var editsData: Data? = nil
     /// The Editor's style (background, padding, …), a `Style` as JSON. Nil means the default style.
     var styleData: Data? = nil
+    /// The zooms, a `ZoomTrack` as JSON. Nil means not made yet: the editor
+    /// makes them from the recording's clicks and typing the first time it opens (S-030).
+    var zoomsData: Data? = nil
 
     init(title: String, duration: Double = 0, uuid: UUID = UUID()) {
         self.title = ProjectTitle.clean(title)
@@ -73,6 +76,7 @@ struct ProjectRecord {
     var bubbleX, bubbleY: Double
     var editsData: Data?
     var styleData: Data?
+    var zoomsData: Data?
 
     init(_ p: Project) {
         title = p.title; sourceKind = p.sourceKind; sourceName = p.sourceName
@@ -83,6 +87,7 @@ struct ProjectRecord {
         bubbleShape = p.bubbleShape
         editsData = p.editsData
         styleData = p.styleData
+        zoomsData = p.zoomsData
     }
 
     /// A model with these fields. With `newID`, a duplicate made now.
@@ -96,6 +101,7 @@ struct ProjectRecord {
         p.bubbleShape = bubbleShape
         p.editsData = editsData
         p.styleData = styleData
+        p.zoomsData = zoomsData
         return p
     }
 }

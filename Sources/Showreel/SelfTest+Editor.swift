@@ -22,6 +22,11 @@ extension SelfTest {
         check("the Editor's length matches the recording", abs(editor.duration - project.duration) < 0.2,
               "\(editor.duration) vs \(project.duration)")
         check("the inspector is shown with six sections", editor.showsInspector && InspectorSection.allCases.count == 6)
+        // S-030: zooms are made on the first open and saved, so edits to them stick.
+        let made = editor.sources?.events.map { AutoZoom.segments(from: $0, duration: editor.sources?.duration ?? 0) }
+        check("zooms are made from the recording's clicks and saved on first open",
+              made != nil && ZoomTrack.decode(project.zoomsData) == editor.zooms && editor.zooms.segments.count == made?.count,
+              "\(editor.zooms.segments.count) zooms, \(made?.count ?? -1) expected")
         let window = NSApp.windows.first { $0.title == project.title && $0.isVisible }
         let items = window?.toolbar?.items.compactMap { $0.label.isEmpty ? $0.paletteLabel : $0.label } ?? []
         check("the toolbar has Undo, Redo, and Export…",

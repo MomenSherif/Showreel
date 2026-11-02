@@ -11,7 +11,7 @@ ShowreelEngineTests -> ShowreelEngine   (golden frames in Tests/ShowreelEngineTe
 ShowreelKit knows nothing about SwiftUI, AppKit, or AVFoundation. It holds
 `ProjectFiles`, `SourceKind`, `EventLog` (events.json), `RecordingClock`
 (pauses removed), `AreaRules`, `DeviceChoice`, `TimeText`, `ProjectTitle`,
-and the bubble rules.
+the bubble rules, `Style`, and the zoom rules (`ZoomTrack`, `AutoZoom`).
 
 ShowreelEngine holds the media code, with no SwiftUI or AppKit, so
 `swift test` can run it:
@@ -76,6 +76,15 @@ padding, rounding, shadow or glow, crop (`CropRect`), device frame
 cached), aspect ratio (`CanvasLayout.canvasSize` sets the render size), and
 camera overrides. Presets are a second model, `StylePreset`, holding
 `Style.asPreset`; the default one styles new projects in `AppModel.addProject`.
+
+Zooms (M5) are a `ZoomTrack` (ShowreelKit) in source time, stored as JSON
+in `Project.zoomsData`. Nil means never made: on the first open the editor
+runs `AutoZoom.segments(from: events, duration:)` over the clicks, typing
+bursts, and caret in events.json, and saves the result. They travel to the
+engine in `RenderStyle.zooms`, so a zoom edit only swaps the video
+composition, like a style change. `Renderer` asks `ZoomTrack.view(at:)` for
+the visible part of the recording and draws it into the same screen rect;
+the frame, background, and camera stay put.
 
 ## Recording
 
