@@ -29,7 +29,7 @@ ffmpeg -i ~/Downloads/showreel-product-tour.mp4 -c:v libx264 -preset slow -crf 2
 ffmpeg -ss 0.5 -i assets/tour.mp4 -frames:v 1 /tmp/poster.png && cwebp -q 82 /tmp/poster.png -o assets/tour-poster.webp
 ```
 
-The video plays muted while it's on screen. It pauses when it scrolls away, on hover and on keyboard focus, and with Reduce Motion on. The Pause and Turn sound on buttons sit under it. If the file is missing, the first frame shows and both buttons stay hidden.
+The video plays with sound while it's on screen. Browsers refuse sound until the visitor has clicked or pressed a key, so until then it plays muted and the sound comes on with the first click or key press anywhere on the page. It pauses when it scrolls away and with Reduce Motion on, never on hover. The Pause and Turn sound off buttons sit under it. If the file is missing, the first frame shows and both buttons stay hidden.
 
 ## Download link
 

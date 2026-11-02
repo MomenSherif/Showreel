@@ -8,8 +8,10 @@ document.querySelectorAll('[data-download]').forEach((a) => {
   if (/\.(dmg|zip|pkg)$/i.test(DOWNLOAD_URL)) a.setAttribute('download', '');
 });
 
-// The tour video: plays muted on screen, pauses off screen, on hover and focus,
-// and under reduced motion. Without assets/tour.mp4 the poster stays and the
+// The tour video: plays with sound while on screen, pauses off screen and
+// under reduced motion. Browsers refuse sound before the visitor has touched
+// the page, so then it plays muted and the sound comes on with the first
+// click or key press. Without assets/tour.mp4 the poster stays and the
 // controls stay hidden.
 (() => {
   const video = document.getElementById('tour-video');
@@ -17,33 +19,54 @@ document.querySelectorAll('[data-download]').forEach((a) => {
   const sound = document.getElementById('sound');
   if (!video || !frame) return;
   const toggle = frame.querySelector('[data-loop-toggle]');
-  const s = { ready: false, seen: false, hover: false, focus: false, held: reduceMotion.matches };
+  const s = { ready: false, seen: false, held: reduceMotion.matches, wantSound: true };
+
+  const setMuted = (muted) => {
+    video.muted = muted;
+    sound.setAttribute('aria-pressed', String(!muted));
+    sound.querySelector('.sound-label').textContent = muted ? 'Turn sound on' : 'Turn sound off';
+  };
+
+  // Sound was refused: unmute on the first gesture anywhere, unless that
+  // gesture is on the sound button, which decides for itself.
+  const gestures = ['pointerdown', 'keydown'];
+  const unmuteOnGesture = (e) => {
+    gestures.forEach((t) => document.removeEventListener(t, unmuteOnGesture, true));
+    if (e.target.closest && e.target.closest('#sound')) return;
+    if (s.wantSound) setMuted(false);
+  };
+  const armUnmute = () => gestures.forEach((t) => document.addEventListener(t, unmuteOnGesture, true));
 
   const sync = () => {
-    const run = s.ready && s.seen && !s.hover && !s.focus && !s.held;
-    if (run) video.play().catch(() => {}); else video.pause();
+    const run = s.ready && s.seen && !s.held;
     toggle.textContent = s.held ? 'Play' : 'Pause';
+    if (!run) { video.pause(); return; }
+    video.play().catch((err) => {
+      if (err.name !== 'NotAllowedError' || video.muted) return;
+      setMuted(true);
+      armUnmute();
+      video.play().catch(() => {});
+    });
   };
   const fail = () => { s.ready = false; toggle.hidden = true; sound.hidden = true; frame.classList.add('no-video'); };
   video.addEventListener('error', fail);
   if (video.error || video.networkState === 3) fail();
   const ready = () => {
+    if (s.ready) return;
     s.ready = true; toggle.hidden = false; sound.hidden = false; frame.classList.remove('no-video'); sync();
   };
   video.addEventListener('loadedmetadata', ready);
   if (video.readyState >= 1) ready();
 
   toggle.addEventListener('click', () => { s.held = !s.held; sync(); });
-  [['pointerenter', 'hover', true], ['pointerleave', 'hover', false], ['focusin', 'focus', true], ['focusout', 'focus', false]]
-    .forEach(([t, k, v]) => frame.addEventListener(t, () => { s[k] = v; sync(); }));
   new IntersectionObserver(([e]) => { s.seen = e.isIntersecting; sync(); }).observe(frame);
   reduceMotion.addEventListener('change', () => { s.held = reduceMotion.matches; sync(); });
 
   sound.addEventListener('click', () => {
-    video.muted = !video.muted;
-    sound.setAttribute('aria-pressed', String(!video.muted));
-    sound.querySelector('.sound-label').textContent = video.muted ? 'Turn sound on' : 'Turn sound off';
+    s.wantSound = video.muted;
+    setMuted(!s.wantSound);
   });
+  setMuted(false);
 })();
 
 // Before and after: the handle and the layers.
