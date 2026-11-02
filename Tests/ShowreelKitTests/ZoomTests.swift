@@ -315,3 +315,22 @@ struct CursorTrackTests {
         #expect(log.cursorShapes.isEmpty && log.cursorAway.isEmpty && log.cursor.isEmpty)
     }
 }
+
+@Suite("Click marks")
+struct ClickMarkTests {
+    /// S-035: a mark shows at each click for 400 ms.
+    @Test func aMarkShowsFor400Milliseconds() throws {
+        let marks = ClickMarks([.init(t: 2, x: 0.3, y: 0.4, button: .left), .init(t: 2.1, x: 0.6, y: 0.4, button: .right)])
+        #expect(marks.marks(at: 1.99).isEmpty)
+        let first = try #require(marks.marks(at: 2).first)
+        #expect(first.position == CGPoint(x: 0.3, y: 0.4) && first.progress == 0)
+        #expect(marks.marks(at: 2.2).count == 2)
+        #expect(marks.marks(at: 2.45).count == 1)
+        #expect(marks.marks(at: 2.5).isEmpty)
+    }
+
+    @Test func clicksAreOffUntilTurnedOn() {
+        #expect(Style().clickEffect == .none)
+        #expect(Style.decode(Data("{}".utf8)).clickEffect == .none)
+    }
+}

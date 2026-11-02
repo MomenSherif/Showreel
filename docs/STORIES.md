@@ -514,7 +514,7 @@ Screens: editor-effects
 Depends: S-034
 Acceptance:
 - [snap] A ripple appears at each click for 400 ms.
-Status: todo
+Status: done
 
 ---
 

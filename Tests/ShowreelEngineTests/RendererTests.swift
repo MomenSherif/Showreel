@@ -182,6 +182,33 @@ struct RendererTests {
         #expect(row.filter { $0 > 15 && $0 < 240 }.count <= 2, "\(row)")
     }
 
+    /// S-035: a ripple shows at a click for 400 ms, then is gone.
+    @Test func clickRippleShowsFor400Milliseconds() throws {
+        var log = EventLog(source: CGRect(x: 0, y: 0, width: 100, height: 100))
+        log.cursor = [EventLog.Point(t: 0, x: 0.9, y: 0.9)]
+        let click = EventLog.Click(t: 1, x: 0.25, y: 0.5, button: .left)
+        func frame(at t: Double, _ effect: Style.ClickEffect) -> Bitmap {
+            var style = Style.plain
+            style.clickEffect = effect
+            style.clickColor = RGB(1, 1, 1)
+            let cursor = CursorScene(track: CursorTrack(log: log, duration: 10, smoothing: 0), sprites: [:],
+                                     pixelsPerPoint: 1, scale: 1, clicks: ClickMarks([click]))
+            return Bitmap(Renderer.frame(screen: Self.screen, camera: nil, at: t, scene: Self.scene,
+                                         style: RenderStyle(style: style, cursor: cursor), size: Self.size))
+        }
+        // The click is at (80, 100) on the 320 × 200 canvas.
+        let plain = frame(at: 1.2, .none).pixel(x: 80, y: 100)
+        let ripple = frame(at: 1.2, .ripple)
+        #expect(ripple.pixel(x: 80, y: 100).g > plain.g + 40, "lighter at the click")
+        #expect(frame(at: 1.41, .ripple).pixel(x: 80, y: 100) == plain, "gone after 400 ms")
+        #expect(frame(at: 0.9, .ripple).pixel(x: 80, y: 100) == plain, "not before the click")
+        // A ring leaves its middle clear once it has grown.
+        let ring = frame(at: 1.2, .ring)
+        #expect(ring.pixel(x: 80, y: 100) == plain)
+        try ripple.expectMatches(golden: "click-ripple")
+        try ring.expectMatches(golden: "click-ring")
+    }
+
     @Test func noCursorSceneDrawsNoCursor() {
         let plain = Bitmap(Renderer.frame(screen: Self.screen, camera: nil, at: 5, scene: Self.scene,
                                           style: RenderStyle(style: .plain), size: Self.size))

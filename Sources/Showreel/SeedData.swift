@@ -77,7 +77,14 @@ enum SeedData {
         // Text fields while typing, a link before the last click.
         log.cursorShapes = [.init(t: 0, kind: .arrow), .init(t: typing - 0.5, kind: .iBeam),
                             .init(t: typing + 3, kind: .arrow), .init(t: 0.84 * duration, kind: .pointer)]
-        log.cursor = stride(from: 0.0, to: duration, by: 0.5).map { .init(t: $0, x: 0.5 + 0.3 * sin($0 / 4), y: 0.5 + 0.2 * cos($0 / 5)) }
+        // The cursor moves to each click and the caret, as a hand would; the
+        // drawn cursor glides between these points.
+        let stops = [(0.0, 0.5, 0.5)] + clicks.map { ($0.0 * duration, $0.1, $0.2) }
+            + [(typing - 0.6, 0.44, 0.6), (typing + 3, 0.5, 0.62)]
+        log.cursor = stops.sorted { $0.0 < $1.0 }.flatMap { stop in
+            // Arrive a little early and rest there, like a real cursor.
+            [EventLog.Point(t: max(0, stop.0 - 0.35), x: stop.1, y: stop.2), EventLog.Point(t: stop.0, x: stop.1, y: stop.2)]
+        }
         return log
     }
 

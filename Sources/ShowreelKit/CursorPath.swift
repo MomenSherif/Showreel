@@ -117,3 +117,26 @@ public struct CursorTrack: Equatable, Sendable {
         return CursorFrame(position: position, shape: shape, opacity: opacity)
     }
 }
+
+/// The marks drawn at clicks (S-035): each one shows for `length` seconds
+/// after its click.
+public struct ClickMarks: Equatable, Sendable {
+    public static let length = 0.4
+
+    /// One mark now: where, and how far through (0 just clicked, 1 gone).
+    public struct Mark: Equatable, Sendable {
+        public var position: CGPoint
+        public var progress: Double
+    }
+
+    let clicks: [EventLog.Click]
+
+    public init(_ clicks: [EventLog.Click]) {
+        self.clicks = clicks.sorted { $0.t < $1.t }
+    }
+
+    public func marks(at t: Double) -> [Mark] {
+        clicks.filter { $0.t <= t && t < $0.t + Self.length }
+            .map { Mark(position: CGPoint(x: $0.x, y: $0.y), progress: (t - $0.t) / Self.length) }
+    }
+}

@@ -133,5 +133,17 @@ extension SelfTest {
         check("the drawn cursor uses the new size", editor.renderStyle(for: editor.style).cursor?.scale == 3)
         undo.undo()
         check("Undo puts the cursor size back", editor.style.cursorScale == Style().cursorScale)
+
+        // S-035: the click effect and its color are part of the style.
+        var ring = editor.style
+        ring.clickEffect = .ring
+        ring.clickColor = RGB(1, 0.5, 0)
+        step { editor.applyStyle(ring, named: "Click Effect") }
+        let clicks = Style.decode(editor.project.styleData)
+        check("the click effect and its color are saved", clicks.clickEffect == .ring && clicks.clickColor == RGB(1, 0.5, 0))
+        check("the recording's clicks reach the drawing",
+              editor.cursorScene(for: editor.style)?.clicks == ClickMarks(editor.sources?.events?.clicks ?? []))
+        undo.undo()
+        check("Undo turns the click effect off", editor.style.clickEffect == .none)
     }
 }

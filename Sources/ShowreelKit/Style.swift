@@ -139,6 +139,11 @@ public struct Style: Codable, Equatable, Sendable {
     /// Fades the cursor out when it has not moved for a while.
     public var cursorHidesWhenIdle: Bool = false
 
+    /// A mark at each click (S-035): none, a filled ripple, or a ring.
+    public enum ClickEffect: String, Codable, CaseIterable, Sendable { case none, ripple, ring }
+    public var clickEffect: ClickEffect = .none
+    public var clickColor: RGB = RGB(0.2, 0.5, 1)
+
     public init() {}
 
     /// The recording edge to edge, nothing around it: how M1 to M3 played.
@@ -154,7 +159,7 @@ public struct Style: Codable, Equatable, Sendable {
 
     enum CodingKeys: String, CodingKey { case background, backgroundBlur, padding, rounding, effect, effectAmount, crop, frame, showsURLBar, url, aspect,
         cameraVisible, cameraScale, cameraShape, cameraBorder, cameraShadow, cameraPosition, zoomSpeed,
-        cursorScale, cursorSmoothing, cursorHidesWhenIdle }
+        cursorScale, cursorSmoothing, cursorHidesWhenIdle, clickEffect, clickColor }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -180,6 +185,8 @@ public struct Style: Codable, Equatable, Sendable {
         cursorScale = (try? c.decodeIfPresent(Double.self, forKey: .cursorScale)) ?? d.cursorScale
         cursorSmoothing = (try? c.decodeIfPresent(Double.self, forKey: .cursorSmoothing)) ?? d.cursorSmoothing
         cursorHidesWhenIdle = (try? c.decodeIfPresent(Bool.self, forKey: .cursorHidesWhenIdle)) ?? d.cursorHidesWhenIdle
+        clickEffect = (try? c.decodeIfPresent(ClickEffect.self, forKey: .clickEffect)) ?? d.clickEffect
+        clickColor = (try? c.decodeIfPresent(RGB.self, forKey: .clickColor)) ?? d.clickColor
     }
 
     /// The style as a preset (S-029): without what belongs to one recording

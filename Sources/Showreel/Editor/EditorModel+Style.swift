@@ -88,7 +88,16 @@ extension EditorModel {
             cursorTrackCache = (style.cursorSmoothing, style.cursorHidesWhenIdle, track)
         }
         let pixelsPerPoint = log.source.width > 0 ? sources.naturalSize.width / log.source.width : 2
-        return CursorScene(track: track, sprites: CursorSprites.system, pixelsPerPoint: pixelsPerPoint, scale: style.cursorScale)
+        return CursorScene(track: track, sprites: CursorSprites.system, pixelsPerPoint: pixelsPerPoint, scale: style.cursorScale,
+                           clicks: clickMarks(log))
+    }
+
+    /// The clicks of `log`, built once per window.
+    private func clickMarks(_ log: EventLog) -> ClickMarks {
+        if let clickMarksCache { return clickMarksCache }
+        let marks = ClickMarks(log.clicks)
+        clickMarksCache = marks
+        return marks
     }
 
     /// A picture decoded once at about the canvas size, so frames never

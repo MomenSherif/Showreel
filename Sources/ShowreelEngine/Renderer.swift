@@ -88,12 +88,20 @@ public enum Renderer {
             .transformed(by: CGAffineTransform(translationX: -visible.minX, y: -visible.minY))
             .transformed(by: CGAffineTransform(scaleX: rect.width / visible.width, y: rect.height / visible.height))
             .transformed(by: CGAffineTransform(translationX: rect.minX, y: rect.minY))
-        if let scene = style.cursor,
-           let pointer = cursor(scene, at: t, crop: crop, zoom: zoom, visible: visible, rect: rect) {
-            image = pointer.composited(over: image).cropped(to: rect)
-        } else if zoom.isZoomed {
-            image = image.cropped(to: rect)
+        // Click marks under the cursor, both clipped to the recording (S-034, S-035).
+        var drawn = false
+        if let scene = style.cursor {
+            if let marks = clickMarks(scene, effect: style.style.clickEffect, color: style.style.clickColor, at: t, crop: crop,
+                                      zoom: zoom, visible: visible, rect: rect) {
+                image = marks.composited(over: image)
+                drawn = true
+            }
+            if let pointer = cursor(scene, at: t, crop: crop, zoom: zoom, visible: visible, rect: rect) {
+                image = pointer.composited(over: image)
+                drawn = true
+            }
         }
+        if drawn || zoom.isZoomed { image = image.cropped(to: rect) }
         let radius = CanvasLayout.cornerRadius(style.style.rounding, canvasHeight: size.height)
         let device = DeviceChrome.parts(for: style.style, rect: rect, radius: radius, canvas: size)
         if let mask = device.screenMask { image = masked(image, by: mask) }

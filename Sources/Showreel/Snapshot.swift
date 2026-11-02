@@ -112,6 +112,23 @@ enum Snapshot {
                              },
                              window: window,
                              hide: { window()?.close() })
+        // S-035: a ripple 0.15 s after the first click, shown without saving.
+        let click = Surface(name: "editor-click", show: {
+                                guard let editor = await openEditor() else { return }
+                                editor.zoom = TimelineZoom()
+                                editor.section = .effects
+                                var style = editor.style
+                                style.clickEffect = .ripple
+                                editor.previewStyle(style)
+                                editor.seek(to: 4.35)
+                            },
+                            window: window,
+                            hide: {
+                                guard let editor = EditorModel.newest else { return }
+                                var style = editor.style
+                                style.clickEffect = .none
+                                editor.previewStyle(style)
+                            })
         // S-031: the zoom around 0:12 selected, the playhead inside it.
         let zoomSelected = Surface(name: "editor-zoom-selected", show: {
                                        guard let editor = await openEditor() else { return }
@@ -217,7 +234,7 @@ enum Snapshot {
                     },
                     window: window,
                     hide: {})
-        } + [trim, split, crop, frame, aspect, savePreset, zoomSelected, zoomed]
+        } + [trim, split, crop, frame, aspect, savePreset, zoomSelected, click, zoomed]
     }
 
     static func runIfRequested(model: AppModel, openSettings: OpenSettingsAction) {

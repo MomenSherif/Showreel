@@ -1,10 +1,14 @@
 import SwiftUI
 import ShowreelKit
 
-/// Effects (M5): how zooms move and how the cursor is drawn. Click
-/// effects join it in S-035.
+/// Effects (M5): how zooms move, how the cursor is drawn, and the marks at
+/// clicks.
 struct EffectsSection: View {
     let editor: EditorModel
+    /// A color change in progress: the well sends many values; one undo step
+    /// is made when they stop.
+    @State private var changeStart: Style?
+    @State private var colorCommit: Task<Void, Never>?
 
     var body: some View {
         Form {
@@ -34,6 +38,22 @@ struct EffectsSection: View {
                     .foregroundStyle(.secondary)
             }
             .disabled(editor.sources?.events == nil)
+            Section {
+                Picker("Effect", selection: clickBinding) {
+                    Text("None").tag(Style.ClickEffect.none)
+                    Text("Ripple").tag(Style.ClickEffect.ripple)
+                    Text("Ring").tag(Style.ClickEffect.ring)
+                }
+                .pickerStyle(.segmented)
+                ColorPicker("Color", selection: colorBinding, supportsOpacity: false)
+                    .disabled(editor.style.clickEffect == .none)
+            } header: {
+                Text("Clicks")
+            } footer: {
+                Text("A mark at each click, for 0.4 seconds.")
+                    .foregroundStyle(.secondary)
+            }
+            .disabled(editor.sources?.events == nil)
         }
         .formStyle(.grouped)
     }
@@ -47,6 +67,31 @@ struct EffectsSection: View {
         case ..<0.67: "Medium"
         default: "High"
         }
+    }
+
+    private var clickBinding: Binding<Style.ClickEffect> {
+        Binding(get: { editor.style.clickEffect }, set: { effect in
+            var style = editor.style
+            style.clickEffect = effect
+            editor.applyStyle(style, named: "Click Effect")
+        })
+    }
+
+    private var colorBinding: Binding<Color> {
+        Binding(get: { Color(editor.style.clickColor) }, set: { color in
+            let start = changeStart ?? editor.style
+            changeStart = start
+            var style = editor.style
+            style.clickColor = RGB(color)
+            editor.previewStyle(style)
+            colorCommit?.cancel()
+            colorCommit = Task {
+                try? await Task.sleep(for: .seconds(0.6))
+                guard !Task.isCancelled else { return }
+                editor.commitStyle(from: start, named: "Click Color")
+                changeStart = nil
+            }
+        })
     }
 
     private var hidesBinding: Binding<Bool> {

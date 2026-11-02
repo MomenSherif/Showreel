@@ -76,6 +76,7 @@ final class EditorModel {
     @ObservationIgnored var zoomPathCache: (zooms: ZoomTrack, speed: ZoomSpeed, path: ZoomPath)?
     /// The drawn cursor for the current smoothing and idle setting (S-034).
     @ObservationIgnored var cursorTrackCache: (smoothing: Double, hides: Bool, track: CursorTrack)?
+    @ObservationIgnored var clickMarksCache: ClickMarks?
 
     @ObservationIgnored private(set) var sources: PlayerSources?
     /// The current item's segments, so a style change can redraw without a rebuild.
