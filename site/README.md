@@ -1,6 +1,6 @@
 # Showreel landing page
 
-A static page made of `index.html`, `styles.css` (which imports `tokens.css` and `base.css`), `main.js`, and `assets/`. There is no build step and no framework. The only outside request is the Geologica font from Google Fonts.
+A static page made of `index.html`, `styles.css` (which imports `tokens.css` and `base.css`), `main.js`, and `assets/`. There is no build step and no framework. The only outside requests are the Geologica font from Google Fonts and, once a token is set, Mixpanel analytics (see Analytics below).
 
 The design is Hallmark's Vantage theme (the skill is in `.claude/skills/hallmark` at the repo root. Its `--render` check needs Puppeteer, which git ignores: run `npm install puppeteer` in `.claude/skills/hallmark/scripts/` once on a fresh clone). The first lines of `styles.css` record every design decision. To check the page again, run this from `Showreel/`:
 
@@ -42,6 +42,19 @@ const GITHUB_URL = '#github';     // the repository
 ```
 
 Set them before publishing. A download link that ends in `.dmg`, `.zip`, or `.pkg` also gets the `download` attribute. Donate and GitHub open in a new tab once they're `https://` links.
+
+## Analytics
+
+The page sends visits and link clicks to Mixpanel once `MIXPANEL_TOKEN` at the top of `main.js` holds the project token (Mixpanel > Settings > Project Settings > Project Token). While the token is empty, the Mixpanel library never loads and nothing is sent. For a project stored in the EU, also set `MIXPANEL_HOST` to `https://api-eu.mixpanel.com`.
+
+| Event | When | Properties |
+| --- | --- | --- |
+| `$mp_web_page_view` | Each time the page opens | Mixpanel's own: URL, referrer, UTM tags, browser, country, city |
+| `Download Clicked` | Any Download button | `placement` (`nav`, `hero`, `download`), `url` |
+| `Donate Clicked` | Any Donate link | `placement` (`nav`, `sponsor`), `url` |
+| `GitHub Clicked` | The GitHub icon | `placement` (`nav`), `url` |
+
+Each visitor gets an anonymous id kept in local storage, so Mixpanel counts unique visitors as well as visits. Ad blockers often block Mixpanel, so the real numbers are somewhat higher than the ones shown.
 
 ## Screenshots
 

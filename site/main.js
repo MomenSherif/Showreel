@@ -2,18 +2,55 @@
 const DOWNLOAD_URL = '#download'; // a .dmg or a store page
 const DONATE_URL = '#donate';     // GitHub Sponsors, Buy Me a Coffee, Ko-fi, …
 const GITHUB_URL = '#github';     // the repository
+const MIXPANEL_TOKEN = '';        // the Mixpanel project token; empty turns analytics off
+const MIXPANEL_HOST = 'https://api-js.mixpanel.com'; // api-eu.mixpanel.com for an EU project
 
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
-document.querySelectorAll('[data-download]').forEach((a) => {
-  a.href = DOWNLOAD_URL;
-  if (/\.(dmg|zip|pkg)$/i.test(DOWNLOAD_URL)) a.setAttribute('download', '');
-});
-// Donate and GitHub open in a new tab once they point somewhere real.
-[['[data-donate]', DONATE_URL], ['[data-github]', GITHUB_URL]].forEach(([sel, url]) => {
+// Mixpanel loads only once a token is set. Until the library arrives,
+// window.mixpanel is the stub its loader snippet expects: an array that
+// queues calls, which the library replays and then replaces with itself.
+// sendBeacon lets a click event leave even when the link leaves the page.
+const track = (() => {
+  if (!MIXPANEL_TOKEN) return () => {};
+  const stub = Object.assign([], {
+    __SV: 1.2,
+    people: [],
+    _i: [[MIXPANEL_TOKEN, {
+      api_host: MIXPANEL_HOST,
+      api_transport: 'sendBeacon',
+      persistence: 'localStorage',
+      track_pageview: true,
+    }, 'mixpanel']],
+  });
+  stub.track = (...args) => { stub.push(['track', ...args]); };
+  window.mixpanel = stub;
+  const script = document.createElement('script');
+  script.src = 'https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js';
+  script.async = true;
+  document.head.append(script);
+  return (event, props) => window.mixpanel.track(event, props);
+})();
+
+// Where on the page a link sits, sent with each click.
+const placeOf = (a) =>
+  a.closest('header') ? 'nav' : a.closest('.hero') ? 'hero' : a.closest('section[id]')?.id || 'page';
+
+// Download gets the download attribute for a file link. Donate and GitHub
+// open in a new tab once they point somewhere real.
+[
+  ['[data-download]', DOWNLOAD_URL, 'Download Clicked'],
+  ['[data-donate]', DONATE_URL, 'Donate Clicked'],
+  ['[data-github]', GITHUB_URL, 'GitHub Clicked'],
+].forEach(([sel, url, event]) => {
   document.querySelectorAll(sel).forEach((a) => {
     a.href = url;
-    if (/^https?:/i.test(url)) { a.target = '_blank'; a.rel = 'noopener'; }
+    if (sel === '[data-download]') {
+      if (/\.(dmg|zip|pkg)$/i.test(url)) a.setAttribute('download', '');
+    } else if (/^https?:/i.test(url)) {
+      a.target = '_blank'; a.rel = 'noopener';
+    }
+    a.addEventListener('click', () => track(event, { placement: placeOf(a), url }));
   });
 });
 
