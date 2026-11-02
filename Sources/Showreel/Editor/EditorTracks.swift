@@ -54,7 +54,7 @@ struct Lane: View {
                 if editor.project.hasMicrophone || editor.project.hasSystemAudio {
                     // Audio is cut with the clip, so it shows the same pieces.
                     ForEach(editor.edits.segments) { segment in
-                        Block(kind: kind, title: editor.project.hasMicrophone ? "Microphone" : "System Audio")
+                        AudioBlock(editor: editor, segment: segment)
                             .frame(width: max(scale.x(at: segment.length), 1))
                             .offset(x: scale.x(at: editor.edits.editStart(of: segment.id) ?? 0)) // grid: ok position from time
                     }
@@ -158,6 +158,13 @@ struct ClipBlock: View {
         }
         .contextMenu {
             Button("Split at Playhead") { editor.splitAtPlayhead() }
+            Button(editor.audio.isMuted(from: segment.start, to: segment.end) ? "Unmute Section" : "Mute Section") {
+                editor.selectedSegment = segment.id
+                editor.selectedZoom = nil
+                editor.selectedCaption = nil
+                editor.toggleMuteSelection()
+            }
+            .disabled(editor.sources?.audio.isEmpty ?? true)
             Button("Delete Section") {
                 editor.selectedSegment = segment.id
                 editor.deleteSelection()

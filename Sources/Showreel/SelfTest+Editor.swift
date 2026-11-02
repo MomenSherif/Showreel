@@ -73,6 +73,7 @@ extension SelfTest {
         await background(editor)
         await zooms(editor)
         await captions(editor)
+        await audio(editor)
         await autosave(editor)
         await export(editor)
 

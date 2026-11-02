@@ -50,7 +50,7 @@ enum SeedData {
                 writeMovie(cameraFrame(), seconds: Int(sample.duration), to: ProjectStore.file(ProjectFiles.camera, of: project.uuid))
                 // …and the mic, with captions made from it (S-039).
                 project.hasMicrophone = true
-                speak(narration.map(\.text).joined(separator: " "), to: ProjectStore.file(ProjectFiles.microphone, of: project.uuid))
+                speak(narrationScript, to: ProjectStore.file(ProjectFiles.microphone, of: project.uuid))
                 project.captionsData = CaptionTrack(captions: CaptionTrack.lines(from: narrationWords), language: "en_US").encoded()
             }
         }
@@ -77,6 +77,17 @@ enum SeedData {
         (28.0, "Then pick a plan, and you are ready to go."),
         (35.0, "That is the whole setup, in under a minute."),
     ]
+
+    /// The narration for `say`, with a silence before each sentence so it
+    /// starts near its caption (`say` speaks about a third of a second a word).
+    static var narrationScript: String {
+        var at = 0.0
+        return narration.map { sentence in
+            let pause = max(0, sentence.start - at)
+            at = sentence.start + Double(sentence.text.split(separator: " ").count) * 0.34
+            return "[[slnc \(Int(pause * 1000))]] \(sentence.text)"
+        }.joined(separator: " ")
+    }
 
     /// The narration's words, a third of a second each.
     static var narrationWords: [CaptionWord] {

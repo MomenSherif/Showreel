@@ -51,13 +51,20 @@ struct ExporterTests {
     }
 
     /// The screen drawn with a style, as the editor builds it.
-    static func composition(screen url: URL, fps: Int32 = 30, output: CGSize = output) async throws -> (AVComposition, AVVideoComposition) {
+    static func composition(screen url: URL, audio: URL? = nil, fps: Int32 = 30,
+                            output: CGSize = output) async throws -> (AVComposition, AVVideoComposition) {
         let asset = AVURLAsset(url: url)
         let track = try #require(try await asset.loadTracks(withMediaType: .video).first)
         let range = try await track.load(.timeRange)
         let composition = AVMutableComposition()
         let screen = try #require(composition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid))
         try screen.insertTimeRange(range, of: track, at: .zero)
+        if let audio {
+            let file = AVURLAsset(url: audio)
+            let source = try #require(try await file.loadTracks(withMediaType: .audio).first)
+            let sound = try #require(composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid))
+            try sound.insertTimeRange(try await source.load(.timeRange).intersection(range), of: source, at: .zero)
+        }
         var style = Style()
         style.background = .gradient("sunrise")
         style.padding = 0.08
@@ -142,6 +149,38 @@ struct ExporterTests {
         let props = CGImageSourceCopyProperties(gif, nil) as? [CFString: Any]
         let loop = (props?[kCGImagePropertyGIFDictionary] as? [CFString: Any])?[kCGImagePropertyGIFLoopCount] as? Int
         #expect(loop == 0)
+    }
+
+    /// S-042: the export plays the audio at its volume and is silent where it is muted.
+    @Test func exportHonorsVolumeAndMutedParts() async throws {
+        let speech = FileManager.default.temporaryDirectory.appendingPathComponent("speech-\(UUID().uuidString).m4a")
+        let say = Process()
+        say.executableURL = URL(fileURLWithPath: "/usr/bin/say")
+        say.arguments = ["-o", speech.path, "--data-format=aac",
+                         "Hello there. This is a test of muting part of the export, and it keeps talking for a while."]
+        try say.run()
+        say.waitUntilExit()
+        let src = try await Self.makeScreen()
+        defer {
+            try? FileManager.default.removeItem(at: src)
+            try? FileManager.default.removeItem(at: speech)
+        }
+        let (asset, video) = try await Self.composition(screen: src, audio: speech)
+        let id = try #require(asset.tracks.first { $0.mediaType == .audio }?.trackID)
+        func export(_ levels: AudioLevels) async throws -> Waveform {
+            let out = FileManager.default.temporaryDirectory.appendingPathComponent("export-\(UUID().uuidString).mp4")
+            defer { try? FileManager.default.removeItem(at: out) }
+            try await Exporter.export(asset: asset, videoComposition: video, audioLevels: levels,
+                                      settings: ExportSettings(format: .mp4, resolution: .p720, fps: 30), to: out) { _ in }
+            return try #require(await WaveformReader.read(out))
+        }
+        let muted = try await export(AudioLevels(tracks: [.init(trackID: id, volume: 1)], muted: [1.5...3]))
+        #expect(muted.peak(from: 1.6, to: 2.9) < 0.01, "muted part peaks at \(muted.peak(from: 1.6, to: 2.9))")
+        let loud = muted.peak(from: 3.2, to: 4.5)
+        #expect(loud > 0.05, "after the muted part it plays again: \(loud)")
+        let half = try await export(AudioLevels(tracks: [.init(trackID: id, volume: 0.5)], muted: []))
+        let ratio = half.peak(from: 3.2, to: 4.5) / loud
+        #expect(ratio > 0.35 && ratio < 0.65, "half volume plays at \(ratio) of full")
     }
 
     @Test func cancellingDeletesThePartialFile() async throws {

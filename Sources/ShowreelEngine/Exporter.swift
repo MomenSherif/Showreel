@@ -25,14 +25,17 @@ public enum Exporter {
     /// `settings.format`. The composition's render size is the output size
     /// and its frame duration the frame rate. `progress` gets 0...1 from any
     /// thread. Cancelling the task stops the export and deletes the file.
-    public static func export(asset: AVAsset, videoComposition: AVVideoComposition, settings: ExportSettings,
+    /// `audioLevels` sets the tracks' volumes and muted parts, as the preview plays them (S-042).
+    public static func export(asset: AVAsset, videoComposition: AVVideoComposition, audioLevels: AudioLevels? = nil,
+                              settings: ExportSettings,
                               to url: URL, progress: @escaping @Sendable (Double) -> Void) async throws {
         try? FileManager.default.removeItem(at: url)
         do {
             if settings.format == .gif {
                 try await gif(asset: asset, videoComposition: videoComposition, settings: settings, to: url, progress: progress)
             } else {
-                try await movie(asset: asset, videoComposition: videoComposition, settings: settings, to: url, progress: progress)
+                try await movie(asset: asset, videoComposition: videoComposition, audioLevels: audioLevels, settings: settings,
+                                to: url, progress: progress)
             }
             try Task.checkCancellation()
         } catch {
@@ -43,7 +46,7 @@ public enum Exporter {
 
     // MARK: MP4 and MOV
 
-    private static func movie(asset: AVAsset, videoComposition: AVVideoComposition, settings: ExportSettings,
+    private static func movie(asset: AVAsset, videoComposition: AVVideoComposition, audioLevels: AudioLevels?, settings: ExportSettings,
                               to url: URL, progress: @escaping @Sendable (Double) -> Void) async throws {
         let duration = try await asset.load(.duration)
         let size = videoComposition.renderSize
@@ -64,6 +67,7 @@ public enum Exporter {
                 AVLinearPCMIsBigEndianKey: false,
                 AVLinearPCMIsNonInterleaved: false,
             ])
+            mix.audioMix = audioLevels?.audioMix()
             if reader.canAdd(mix) { reader.add(mix); audio = mix }
         }
 

@@ -138,13 +138,14 @@ extension EditorModel {
         // An immutable copy, which AVFoundation documents as safe to read
         // from any thread: the reader works on it off the main thread.
         nonisolated(unsafe) let asset = composition.copy() as! AVComposition
+        let levels = sources.audioLevels(for: asset, edits: edits, mix: audio)
         let run = ExportRun(url: url, projectID: project.uuid, settings: settings, size: size)
         export = run
         // The popover opens by itself, so the export is seen to start (S-037).
         showsExportPopover = true
         run.task = Task { [weak run, weak self] in
             do {
-                try await Exporter.export(asset: asset, videoComposition: video, settings: settings, to: url) { fraction in
+                try await Exporter.export(asset: asset, videoComposition: video, audioLevels: levels, settings: settings, to: url) { fraction in
                     Task { @MainActor in run?.report(fraction) }
                 }
                 run?.end(.finished)

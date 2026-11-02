@@ -41,6 +41,8 @@ final class Project {
     var zoomsData: Data? = nil
     /// The captions, a `CaptionTrack` as JSON. Nil means never made (S-039).
     var captionsData: Data? = nil
+    /// Track volumes and muted parts, an `AudioMix` as JSON. Nil plays as recorded (S-042).
+    var audioData: Data? = nil
 
     init(title: String, duration: Double = 0, uuid: UUID = UUID()) {
         self.title = ProjectTitle.clean(title)
@@ -80,6 +82,7 @@ struct ProjectRecord {
     var styleData: Data?
     var zoomsData: Data?
     var captionsData: Data?
+    var audioData: Data?
 
     init(_ p: Project) {
         title = p.title; sourceKind = p.sourceKind; sourceName = p.sourceName
@@ -92,6 +95,7 @@ struct ProjectRecord {
         styleData = p.styleData
         zoomsData = p.zoomsData
         captionsData = p.captionsData
+        audioData = p.audioData
     }
 
     /// A model with these fields. With `newID`, a duplicate made now.
@@ -107,6 +111,7 @@ struct ProjectRecord {
         p.styleData = styleData
         p.zoomsData = zoomsData
         p.captionsData = captionsData
+        p.audioData = audioData
         return p
     }
 }

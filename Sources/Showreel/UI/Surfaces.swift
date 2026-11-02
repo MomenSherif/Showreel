@@ -42,5 +42,7 @@ enum Media {
         static let label = Color.white
         /// The empty lane behind a track's blocks.
         static let lane = Color.primary.opacity(0.04)
+        /// Over the muted parts of the audio track (S-042).
+        static let mutedBand = Color.black.opacity(0.35)
     }
 }

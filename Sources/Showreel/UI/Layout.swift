@@ -15,6 +15,8 @@ enum Layout {
     static let trackHeight: CGFloat = 36
     static let playheadWidth: CGFloat = 2
     static let selectionRing: CGFloat = 2
+    /// Width of one waveform bar on the audio track; bars sit one width apart.
+    static let waveformBar: CGFloat = 2
     static let zoomSliderWidth: CGFloat = 96
     /// The seam between two pieces of the clip after a split.
     static let clipSeam: CGFloat = 2

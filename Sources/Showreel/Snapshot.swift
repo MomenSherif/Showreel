@@ -267,6 +267,17 @@ enum Snapshot {
                                       },
                                       window: window,
                                       hide: { EditorModel.newest?.selectCaption(nil) })
+        // S-042: a muted part on the audio track, shown without saving.
+        let audioMuted = Surface(name: "editor-audio-muted", show: {
+                                     guard let editor = await openEditor() else { return }
+                                     editor.zoom = TimelineZoom()
+                                     editor.section = .audio
+                                     var mix = AudioMix(microphone: 1.3)
+                                     mix.mute(from: 9, to: 12.5)
+                                     editor.previewAudio(mix)
+                                 },
+                                 window: window,
+                                 hide: { EditorModel.newest?.previewAudio(AudioMix()) })
         // S-038: the finished export, with Share…, Show in Finder, and Copy.
         let done = Surface(name: "export-done", show: {
                                guard let editor = await openEditor() else { return }
@@ -288,7 +299,7 @@ enum Snapshot {
                     },
                     window: window,
                     hide: {})
-        } + [trim, split, crop, frame, aspect, savePreset, export, progress, done, zoomSelected, click, zoomed, captionsProgress, captionsFailed, captionSelected]
+        } + [trim, split, crop, frame, aspect, savePreset, export, progress, done, zoomSelected, click, zoomed, captionsProgress, captionsFailed, captionSelected, audioMuted]
     }
 
     static func runIfRequested(model: AppModel, openSettings: OpenSettingsAction) {

@@ -82,6 +82,10 @@ final class EditorModel {
     var captions = CaptionTrack()
     /// Generate Captions while it runs, or when it failed (S-039).
     var captionJob: CaptionJob?
+    /// Track volumes and muted parts (S-042). Changed through `applyAudio`.
+    var audio = AudioMix()
+    /// Each recorded track's loudness, for the audio lane (S-042). Loaded after the player.
+    var waveforms: [AudioSource: Waveform] = [:]
     /// The caption selected on the timeline (S-040).
     var selectedCaption: Caption.ID?
     /// A double-click asked the inspector to put the cursor in the caption's text.
@@ -117,8 +121,9 @@ final class EditorModel {
         style = Style.decode(project.styleData)
         zooms = Self.zooms(for: project, sources: sources)
         captions = CaptionTrack.decode(project.captionsData) ?? CaptionTrack()
+        audio = AudioMix.decode(project.audioData)
         duration = edits.duration
-        let built = sources.item(for: edits, style: renderStyle(for: style))
+        let built = sources.item(for: edits, style: renderStyle(for: style), mix: audio)
         slots = built.slots
         let player = AVPlayer(playerItem: built.item)
         player.actionAtItemEnd = .pause
@@ -136,6 +141,7 @@ final class EditorModel {
         self.player = player
         Self.newest = self
         Self.live.append(Weak(self))
+        loadWaveforms()
         if AppServices.shared.pendingExport == project.uuid {
             AppServices.shared.pendingExport = nil
             showExportSheet()
@@ -210,7 +216,7 @@ final class EditorModel {
         try? project.modelContext?.save()
         if let selectedSegment, !new.segments.contains(where: { $0.id == selectedSegment }) { self.selectedSegment = nil }
         let wasPlaying = isPlaying
-        let built = sources.item(for: new, style: renderStyle(for: style))
+        let built = sources.item(for: new, style: renderStyle(for: style), mix: audio)
         slots = built.slots
         player.replaceCurrentItem(with: built.item)
         seek(to: source.flatMap { new.editTime(atSourceTime: $0) } ?? min(playhead.time, duration))

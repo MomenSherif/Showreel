@@ -29,6 +29,11 @@ struct EditorCommands: Commands {
                     .keyboardShortcut("s", modifiers: [])
                 Button("Add Zoom") { act(.text("z")) { $0.addZoom(atEditTime: $0.playhead.time) } }
                     .keyboardShortcut("z", modifiers: [])
+                Button(editor?.isSelectionMuted == true ? "Unmute Section" : "Mute Section") {
+                    act(.text("m")) { $0.toggleMuteSelection() }
+                }
+                .keyboardShortcut("m", modifiers: [])
+                .disabled(editor?.canMuteSelection != true)
                 Button("Generate Captions") { act(nil) { $0.generateCaptions() } }
                     .disabled(editor?.canGenerateCaptions != true)
                 Button(deleteTitle) {

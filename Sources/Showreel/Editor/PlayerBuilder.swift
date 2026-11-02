@@ -23,7 +23,8 @@ struct PlayerSources {
     }
 
     let screen: Track
-    let audio: [Track]
+    /// The mic and system audio that were recorded, in that order.
+    let audio: [(source: AudioSource, track: Track)]
     let camera: Track?
     let naturalSize: CGSize
     /// Length of screen.mov, in seconds.
@@ -39,13 +40,13 @@ struct PlayerSources {
               case let duration = screen.range.end.seconds, duration > 0 else { return nil }
         let natural = (try? await screen.track.load(.naturalSize)) ?? CGSize(width: project.videoWidth, height: project.videoHeight)
 
-        var audio: [Track] = []
-        for name in [ProjectFiles.microphone, ProjectFiles.systemAudio] {
-            let url = ProjectStore.file(name, of: id)
+        var audio: [(source: AudioSource, track: Track)] = []
+        for source in AudioSource.allCases {
+            let url = ProjectStore.file(source.file, of: id)
             guard FileManager.default.fileExists(atPath: url.path),
                   let track = await Track.load(url, .audio)
             else { continue }
-            audio.append(track)
+            audio.append((source, track))
         }
         let cameraURL = ProjectStore.file(ProjectFiles.camera, of: id)
         let camera = FileManager.default.fileExists(atPath: cameraURL.path)
@@ -74,11 +75,23 @@ struct PlayerSources {
 
     /// The kept segments, one after another, drawn with `style`. The slots
     /// let a style change swap the video composition without rebuilding the item.
-    func item(for edits: EditList, style: RenderStyle) -> (item: AVPlayerItem, slots: [Slot]) {
+    func item(for edits: EditList, style: RenderStyle, mix: AudioMix) -> (item: AVPlayerItem, slots: [Slot]) {
         let (composition, slots) = composition(for: edits)
         let item = AVPlayerItem(asset: composition)
         item.videoComposition = videoComposition(slots: slots, style: style)
+        item.audioMix = audioLevels(for: composition, edits: edits, mix: mix).audioMix()
         return (item, slots)
+    }
+
+    /// Each track at its volume, silent in the muted parts (S-042). The
+    /// preview and the export both play `audioMix()` of these levels, so
+    /// they sound the same.
+    func audioLevels(for composition: AVComposition, edits: EditList, mix: AudioMix) -> AudioLevels {
+        let tracks = composition.tracks.filter { $0.mediaType == .audio }
+        return AudioLevels(tracks: zip(audio, tracks).map { source, track in
+                               AudioLevels.Track(trackID: track.trackID, volume: Float(mix.volume(of: source.source)))
+                           },
+                           muted: mix.mutedEditRanges(in: edits))
     }
 
     /// The kept segments, one after another, with the slots that say where
@@ -86,7 +99,7 @@ struct PlayerSources {
     func composition(for edits: EditList) -> (composition: AVMutableComposition, slots: [Slot]) {
         let composition = AVMutableComposition()
         let screenTrack = composition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid)
-        let audioTracks = audio.map { ($0, composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid)) }
+        let audioTracks = audio.map { ($0.track, composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid)) }
         let cameraTrack = camera.map { ($0, composition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid)) }
 
         var slots: [Slot] = []

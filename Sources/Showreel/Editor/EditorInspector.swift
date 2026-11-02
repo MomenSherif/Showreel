@@ -136,13 +136,7 @@ private struct SectionPage: View {
             }
         case .audio:
             if project.hasMicrophone || project.hasSystemAudio {
-                Form {
-                    Section("Tracks") {
-                        LabeledContent("Microphone", value: project.hasMicrophone ? "Recorded" : "Off")
-                        LabeledContent("System Audio", value: project.hasSystemAudio ? "Recorded" : "Off")
-                    }
-                }
-                .formStyle(.grouped)
+                AudioSection(editor: editor)
             } else {
                 Empty(title: "No Audio in This Recording", symbol: "speaker.slash",
                       line: "Turn on the mic or system audio for your next recording.")

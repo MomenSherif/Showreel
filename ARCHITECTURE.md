@@ -27,6 +27,8 @@ ShowreelEngine holds the media code, with no SwiftUI or AppKit, so
 | `BubbleCompositor` | The AVVideoCompositing adapter that feeds AVPlayer frames through `Renderer` |
 | `Transcriber` | The mic file to timed words with SpeechAnalyzer (`SpeechTranscriber`, `.audioTimeRange`), on this Mac; downloads the speech model when it is missing |
 | `CaptionPainter` | The caption on screen at a time: Core Text at output size, in its box, the spoken word on a pill; cached per caption and word |
+| `AudioLevels` | Track volumes and muted ranges as plain values; `audioMix()` is the AVAudioMix the preview and the export both play |
+| `WaveformReader` | An audio file's peaks, 50 a second, for the audio lane |
 | `Exporter` | Reads a composition through its video composition (so `Renderer` draws every frame) and writes MP4 (H.264), MOV (HEVC), or GIF; cancelling deletes the file |
 
 The app keeps what needs AppKit or SwiftData: `CaptureSource` (the Record
@@ -113,6 +115,11 @@ words' times for the spoken-word highlight. Their look is `Style.captions`
 `RenderStyle.captions`, and `Renderer` draws them last, on the canvas, so
 zooms and crops leave them in place. A caption edit only swaps the video
 composition, like a zoom edit.
+
+Audio (S-042) is an `AudioMix` (ShowreelKit) in `Project.audioData`: a
+volume per track and muted spans in source time. `PlayerSources.audioLevels`
+turns it into `AudioLevels` for a composition (edit time), set on the player
+item and handed to `Exporter`. A change swaps only the item's audio mix.
 
 ## Recording
 

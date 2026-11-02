@@ -34,4 +34,16 @@ struct TranscriberTests {
         #expect(lines.allSatisfy { $0.text.count <= CaptionTrack.maxCharacters })
         #expect(lines.first?.text.hasSuffix(".") == true)
     }
+
+    /// S-042: the waveform is loud where the voice is, and spans the whole file.
+    @Test func waveformFollowsTheVoice() async throws {
+        let url = try speech("Hello there, this is a test of the waveform.")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let wave = try #require(await WaveformReader.read(url))
+        #expect(wave.peaksPerSecond == 50)
+        #expect(wave.peak(from: 0.3, to: 1.5) > 0.1)
+        #expect(wave.peaks.allSatisfy { $0 >= 0 && $0 <= 1 })
+        let seconds = Double(wave.peaks.count) / wave.peaksPerSecond
+        #expect(seconds > 1.5 && seconds < 8, "\(seconds) s")
+    }
 }

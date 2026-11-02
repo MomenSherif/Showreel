@@ -659,7 +659,17 @@ Screens: editor-audio
 Depends: S-015
 Acceptance:
 - [snap] Waveforms show on the audio track.
-Status: todo
+UX:
+- Flow: Audio inspector > Volume: a slider per recorded track, 0 to 200% (one undo step per drag).
+  Select a section on the timeline -> Clip > Mute Section (M) or the section's context menu -> the
+  audio lane shows it flat and dimmed -> M again or "Unmute Section" brings it back. Split first to
+  mute part of the video. "Unmute All" in the inspector.
+- Surface: inspector for volumes (values on what is on screen); the timeline selection for muting,
+  like Delete Section.
+- States: no audio "No Audio in This Recording" (unchanged); muted count with Unmute All.
+- Words: "Mute Section", "Unmute Section", "Unmute All", "Microphone Volume".
+- Access: sliders read "Microphone volume, 130%"; a muted section reads "Audio, Microphone, 3.5s, muted".
+Status: done
 
 ### S-043 Reduce background noise
 As the user, I turn on Noise Reduction for the mic.
