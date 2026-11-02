@@ -61,6 +61,9 @@ struct EditorView: View {
         }
         .inspector(isPresented: $editor.showsInspector) {
             EditorInspector(editor: editor)
+                // The column keeps its width whatever the section shows: without a
+                // fixed ideal, a wide control (Screen's Frame picker) pushed it 4 pt wider.
+                .frame(minWidth: Layout.inspectorWidth.min, idealWidth: Layout.inspectorWidth.ideal, maxWidth: .infinity)
                 .inspectorColumnWidth(min: Layout.inspectorWidth.min, ideal: Layout.inspectorWidth.ideal,
                                       max: Layout.inspectorWidth.max)
         }

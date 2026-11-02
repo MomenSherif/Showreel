@@ -145,3 +145,15 @@ Fix: the check opens and closes an undo group around Generate Captions, like eve
 Rule: with `groupsByEvent` off, every change that registers undo runs inside an explicit group;
 a crash in Swift's executor checks after unrelated work means look for an exception that
 unwound through Swift.
+
+## 2026-11-02 The inspector jumped wider on the Screen section
+Symptom: switching the inspector between Background and Screen made the column 4 pt wider and
+back, moving the canvas each time.
+Cause: the inspector column took its width from the ideal width of the section on screen. The
+Screen section's segmented Frame picker (None, Border, Browser, MacBook) asks for a little more
+than 300 pt, so the column grew to 304 pt while it showed.
+Fix: the inspector content has a fixed ideal width (`Layout.inspectorWidth.ideal`) with a
+flexible min and max, so the column keeps its width and the picker lays out inside it. Every
+section measures 300 pt in the snapshots.
+Rule: a column that swaps its content gets a fixed ideal width; never let the shown page's
+ideal size set the column's width.
