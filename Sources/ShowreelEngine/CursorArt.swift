@@ -56,7 +56,7 @@ public struct CursorArt: Identifiable, Sendable {
         self.pointer = pointer
     }
 
-    public static let all: [CursorArt] = [light, candy, hand, watermelon, dot]
+    public static let all: [CursorArt] = [light, candy, hand, watermelon, dot, holo, ice, midnight]
 
     public static func named(_ id: String) -> CursorArt? { all.first { $0.id == id } }
 
@@ -342,4 +342,134 @@ extension CursorArt {
         handCreases(c, color: rgb(melonEdge, 0.55))
         c.restoreGState()
     }
+
+    // MARK: 3D pixel
+
+    /// A pixel arrow, one character a pixel: its tip is the top-left corner.
+    static let pixelArrow = [
+        "X", "XX", "XXX", "XXXX", "XXXXX", "XXXXXX", "XXXXXXX", "XXXXXXXX", "XXXXXXXXX", "XXXXXXXXXX",
+        "XXXXXXXXXXX", "XXXXXXXXXXXX", "XXXXXXX", "XXX XXXX", "XX  XXXX", "X    XXXX", "     XXXX",
+        "      XXXX", "      XXX",
+    ]
+
+    /// A pixel hand pointing up; the finger's top is at x 6 (in pixels).
+    static let pixelHand = [
+        "     XX", "    XXXX", "    XXXX", "    XXXX", "    XXXX", "    XXXXXX", "    XXXXXXXXX",
+        "    XXXXXXXXXXX", "XX  XXXXXXXXXXXX", "XXX XXXXXXXXXXXX", "XXXXXXXXXXXXXXXX", " XXXXXXXXXXXXXXX",
+        " XXXXXXXXXXXXXXX", "  XXXXXXXXXXXXXX", "  XXXXXXXXXXXXXX", "   XXXXXXXXXXXXX", "   XXXXXXXXXXXX",
+        "    XXXXXXXXXXX", "    XXXXXXXXXXX", "    XXXXXXXXXXX",
+    ]
+
+    /// Lines between the hand's folded fingers, in pixels: (x, from y, to y).
+    static let pixelHandCreases: [(x: CGFloat, top: CGFloat, bottom: CGFloat)] = [(8, 6, 10), (11, 7, 11), (4, 10, 13)]
+
+    /// The filled pixels as one outline, `cell` points a pixel.
+    static func pixels(_ rows: [String], cell: CGFloat) -> CGPath {
+        var shape = CGPath(rect: .zero, transform: nil)
+        for (y, row) in rows.enumerated() {
+            var x = 0
+            let chars = Array(row)
+            while x < chars.count {
+                guard chars[x] == "X" else { x += 1; continue }
+                var end = x
+                while end < chars.count, chars[end] == "X" { end += 1 }
+                // A hair taller, so rows overlap and join without a seam.
+                let run = CGPath(rect: CGRect(x: CGFloat(x) * cell, y: CGFloat(y) * cell - 0.01, width: CGFloat(end - x) * cell,
+                                              height: cell + 0.02), transform: nil)
+                shape = shape.union(run)
+                x = end
+            }
+        }
+        return shape
+    }
+
+    /// The colors of one 3D pixel style.
+    struct PixelLook: Sendable {
+        /// The face, from its top-left to its bottom-right.
+        var face: [UInt32]
+        /// The sides, from just under the face to the back: stripes that
+        /// repeat, or one smooth blend from the first to the last.
+        var sides: [UInt32]
+        var striped = false
+        var edge: UInt32
+        /// How bright the shine across the face is.
+        var shine: CGFloat
+    }
+
+    /// Pixels drawn as a thick block: the sides stacked down and to the right,
+    /// a glossy face, a thin edge, and a shine across it.
+    static func pixelBlock(_ c: CGContext, rows: [String], look: PixelLook, creases: [(x: CGFloat, top: CGFloat, bottom: CGFloat)]) {
+        let cell: CGFloat = 1.1
+        let face = pixels(rows, cell: cell)
+        let box = face.boundingBoxOfPath
+        let layers = 9, step: CGFloat = 0.3
+        for k in stride(from: layers, through: 1, by: -1) {
+            c.addPath(moved(face, CGAffineTransform(translationX: CGFloat(k) * step, y: CGFloat(k) * step)))
+            c.setFillColor(look.striped ? rgb(look.sides[(k - 1) % look.sides.count])
+                : blend(look.sides[0], look.sides[look.sides.count - 1], CGFloat(k - 1) / CGFloat(layers - 1)))
+            c.fillPath()
+        }
+        c.saveGState()
+        c.addPath(face)
+        c.clip()
+        c.drawLinearGradient(gradient(look.face), start: CGPoint(x: box.minX, y: box.minY),
+                             end: CGPoint(x: box.maxX, y: box.maxY), options: [])
+        // A broad soft band and a thin bright line, across from the top right.
+        let band = CGMutablePath()
+        let a = box.width * 0.25, b = box.width * 0.55
+        band.addLines(between: [CGPoint(x: a, y: 0), CGPoint(x: b, y: 0), CGPoint(x: 0, y: b), CGPoint(x: 0, y: a)])
+        band.closeSubpath()
+        c.addPath(band)
+        c.setFillColor(rgb(0xFFFFFF, 0.35 * look.shine))
+        c.fillPath()
+        c.setStrokeColor(rgb(0xFFFFFF, 0.8 * look.shine))
+        c.setLineWidth(0.7)
+        c.move(to: CGPoint(x: b + 1.2, y: 0))
+        c.addLine(to: CGPoint(x: 0, y: b + 1.2))
+        c.strokePath()
+        // The lines between the folded fingers, one pixel wide.
+        c.setFillColor(rgb(look.edge, 0.7))
+        for crease in creases {
+            c.fill(CGRect(x: crease.x * cell, y: crease.top * cell, width: cell * 0.5, height: (crease.bottom - crease.top) * cell))
+        }
+        c.restoreGState()
+        c.addPath(face)
+        c.setStrokeColor(rgb(look.edge))
+        c.setLineWidth(0.5)
+        c.setLineJoin(.miter)
+        c.strokePath()
+    }
+
+    /// Between two colors: 0 is `a`, 1 is `b`.
+    static func blend(_ a: UInt32, _ b: UInt32, _ t: CGFloat) -> CGColor {
+        func part(_ c: UInt32, _ shift: UInt32) -> CGFloat { CGFloat((c >> shift) & 0xFF) / 255 }
+        func mix(_ shift: UInt32) -> CGFloat { part(a, shift) + (part(b, shift) - part(a, shift)) * t }
+        return CGColor(srgbRed: mix(16), green: mix(8), blue: mix(0), alpha: 1)
+    }
+
+    /// A 3D pixel style: the arrow, and the hand for links.
+    static func pixelStyle(id: String, name: String, look: PixelLook) -> CursorArt {
+        let hand = CursorDrawing(size: CGSize(width: 16 * 1.1 + 3 + 2 * pad, height: 20 * 1.1 + 3 + 2 * pad),
+                                 hotSpot: CGPoint(x: 6 * 1.1 + pad, y: pad + 0.2)) { c in
+            c.translateBy(x: pad, y: pad)
+            pixelBlock(c, rows: pixelHand, look: look, creases: pixelHandCreases)
+        }
+        return CursorArt(id: id, name: name, size: CGSize(width: 12 * 1.1 + 3 + 2 * pad, height: 19 * 1.1 + 3 + 2 * pad), // grid: ok cursor drawing, in points
+                         hotSpot: CGPoint(x: pad + 0.2, y: pad + 0.2), pointer: hand) { c in
+            c.translateBy(x: pad, y: pad)
+            pixelBlock(c, rows: pixelArrow, look: look, creases: [])
+        }
+    }
+
+    /// Pastel pink, butter, and sky, with rainbow sides.
+    static let holo = pixelStyle(id: "holo", name: "Holographic", look: PixelLook(
+        face: [0xFFC2E6, 0xFFF1B8, 0xBDF4FF], sides: [0x7FE3F5, 0xFF8AD0, 0xFFE27A], striped: true, edge: 0xE86AB8, shine: 1))
+
+    /// Clear blue ice.
+    static let ice = pixelStyle(id: "ice", name: "Ice", look: PixelLook(
+        face: [0xEFFCFF, 0xA8E6FF, 0x5CC4F5], sides: [0x3AA8EC, 0x0F5FA6], edge: 0x1580D0, shine: 1))
+
+    /// Glossy black with neon sides.
+    static let midnight = pixelStyle(id: "midnight", name: "Midnight", look: PixelLook(
+        face: [0x3A2C66, 0x0D0B1C, 0x05050C], sides: [0xFF5FD2, 0x6E5CFF], edge: 0xC58BFF, shine: 0.7))
 }

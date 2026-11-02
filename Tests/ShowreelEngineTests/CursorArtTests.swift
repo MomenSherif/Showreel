@@ -64,6 +64,15 @@ struct CursorArtTests {
         try Self.frame(with: CursorArt.watermelon, at: (0.3, 0.3), shape: .pointer).expectMatches(golden: "cursor-watermelon-hand")
     }
 
+    /// The 3D pixel styles: an arrow and a hand each, drawn as thick blocks.
+    @Test func pixelStylesMatchGoldens() throws {
+        for art in [CursorArt.holo, CursorArt.ice, CursorArt.midnight] {
+            #expect(art.pointer != nil, "\(art.id) has a hand for links")
+        }
+        try Self.frame(with: CursorArt.midnight, at: (0.3, 0.3)).expectMatches(golden: "cursor-midnight")
+        try Self.frame(with: CursorArt.ice, at: (0.3, 0.3), shape: .pointer).expectMatches(golden: "cursor-ice-hand")
+    }
+
     /// No cursor at all, while a click still gets its mark.
     @Test func noCursorKeepsTheClickMarks() {
         var log = EventLog(source: CGRect(x: 0, y: 0, width: 100, height: 100))

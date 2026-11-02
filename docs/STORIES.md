@@ -904,13 +904,13 @@ draws (a hand, a watermelon, and more), or a picture of your own.
 ### S-055 Pick a cursor style, or none
 As the user, I pick how the cursor looks in the video in Inspector >
 Effects > Cursor: System, No Cursor, Light, Candy, Hand, Watermelon, Spot,
-or my own picture, and choose where my picture clicks.
+the 3D pixel styles Holographic, Ice, and Midnight, or my own picture, and choose where my picture clicks.
 Screens: editor-effects, editor-cursor
 Depends: S-034
 Acceptance:
 - [unit] Each drawn style is made at 16 pixels a point with its click
-  point on the drawing; the hand and the watermelon arrow and hand match
-  golden frames.
+  point on the drawing; the hand, the watermelon arrow and hand, the
+  Midnight arrow, and the Ice hand match golden frames.
 - [unit] No Cursor draws nothing but keeps click marks; the look is saved,
   and older projects load with System.
 - [selftest] A drawn style or a picture shows for the arrow, the I-beam, and
@@ -922,8 +922,9 @@ Acceptance:
 Notes: drawings are Core Graphics paths in `ShowreelEngine/CursorArt.swift`,
 so the preview and the export match. System keeps the recorded shape
 changes; Watermelon has an arrow and a hand for links (drawn in our own
-sticker style, glossy flesh with seeds and a rind); every other style keeps
-one shape. Size, Smoothing, and Hide When
+sticker style, glossy flesh with seeds and a rind), and so do the 3D pixel
+styles (our own pixel arrow and hand, stacked into a block with a glossy
+face); every other style keeps one shape. Size, Smoothing, and Hide When
 Idle apply to every style and turn off with No Cursor.
 Status: done
 
