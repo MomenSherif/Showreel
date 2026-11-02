@@ -118,8 +118,7 @@ private struct SectionPage: View {
             }
             .formStyle(.grouped)
         case .effects:
-            Empty(title: "No Effects", symbol: section.symbol,
-                  line: "The cursor and clicks show as they were recorded.")
+            EffectsSection(editor: editor)
         case .camera:
             if project.hasCamera {
                 CameraSection(editor: editor)

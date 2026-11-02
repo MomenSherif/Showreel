@@ -492,7 +492,8 @@ Acceptance:
 - [unit] The camera path uses a critically damped spring. There is no
   jitter when following the cursor.
 - [manual] Zooms feel as smooth as Screen Studio.
-Status: todo
+Note: [manual] smoothness is left for the user to judge in the app.
+Status: done
 
 ### S-034 Smooth and resize the cursor
 As the user, I set cursor size (1–3×) and smoothing, and hide the cursor

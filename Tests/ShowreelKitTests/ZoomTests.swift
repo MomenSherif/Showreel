@@ -185,3 +185,69 @@ struct ZoomEditingTests {
         #expect(track.resizing(b.id, edge: .end, by: 50, duration: 20).segments[1].end == 20)
     }
 }
+
+@Suite("Zoom motion")
+struct ZoomMotionTests {
+    let zoom = ZoomSegment(start: 2, end: 6, scale: 2, x: 0.3, y: 0.4)
+
+    /// S-033: a critically damped spring eases in and never overshoots.
+    @Test func zoomsEaseInWithoutOvershoot() {
+        let path = ZoomPath(track: ZoomTrack(segments: [zoom]), duration: 10)
+        #expect(path.view(at: 1.9) == .none)
+        var last = 1.0
+        for i in 0...60 {
+            let scale = path.view(at: 2 + Double(i) / 60).scale
+            #expect(scale >= last - 1e-12 && scale <= 2 + 1e-9)
+            last = scale
+        }
+        #expect(path.view(at: 3.5).scale > 1.99)
+        // And back out after the zoom, to rest.
+        #expect(path.view(at: 6.2).scale < path.view(at: 6).scale)
+        #expect(path.view(at: 9) == .none)
+    }
+
+    @Test func fasterSpeedsArriveSooner() {
+        let track = ZoomTrack(segments: [zoom])
+        let at = { (speed: ZoomSpeed) in ZoomPath(track: track, duration: 10, speed: speed).view(at: 2.3).scale }
+        #expect(at(.slow) < at(.medium) && at(.medium) < at(.fast))
+    }
+
+    /// Zooms back to back pan from one spot to the next without zooming out.
+    @Test func backToBackZoomsPanInsteadOfZoomingOut() {
+        let next = ZoomSegment(start: 6, end: 10, scale: 2, x: 0.7, y: 0.4)
+        let path = ZoomPath(track: ZoomTrack(segments: [zoom, next]), duration: 12)
+        for i in 0...60 { #expect(path.view(at: 5.5 + Double(i) / 60).scale > 1.99) }
+        #expect(path.view(at: 9.5).rect.midX > 0.69)
+    }
+
+    /// S-033: following a shaky cursor does not shake the picture.
+    @Test func followingTheCursorHasNoJitter() {
+        // The cursor drifts right fast enough to move the camera, with ±1%
+        // noise on every 60 Hz sample.
+        var noise = SystemRandomNumberGenerator()
+        let points = (0..<600).map { i -> EventLog.Point in
+            let t = Double(i) / 60
+            return EventLog.Point(t: t, x: 0.3 + t * 0.05 + Double.random(in: -0.01...0.01, using: &noise), y: 0.5)
+        }
+        var follow = zoom
+        follow.focus = .followCursor
+        follow.scale = 4      // the most zoomed in, where shaking shows most
+        let path = ZoomPath(track: ZoomTrack(segments: [follow]), cursor: CursorPath(points), duration: 10)
+        let centers = stride(from: 3.0, through: 5.9, by: 1.0 / 60).map { path.view(at: $0).rect.midX }
+        // Frame-to-frame changes in speed stay far below the cursor's noise.
+        let jerks = zip(zip(centers, centers.dropFirst()), centers.dropFirst(2)).map { abs($0.0 - 2 * $0.1 + $1) }
+        // At 4× on a 1920-pixel video, 0.0001 is under a pixel of shake.
+        #expect(jerks.max() ?? 1 < 0.0001, "max \(jerks.max() ?? -1)")
+        // It still follows: the cursor ends near x = 0.6, inside the view.
+        let end = path.view(at: 5.9).rect
+        #expect(end.minX < 0.59 && end.maxX > 0.59, "\(end)")
+    }
+
+    @Test func noZoomsMeansNoPath() {
+        #expect(ZoomPath(track: ZoomTrack(), duration: 10).view(at: 3) == .none)
+    }
+
+    @Test func oldStylesGetMediumSpeed() throws {
+        #expect(Style.decode(Data("{}".utf8)).zoomSpeed == .medium)
+    }
+}

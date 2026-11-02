@@ -72,6 +72,8 @@ final class EditorModel {
     var zooms = ZoomTrack()
     /// The zoom selected on the timeline (S-031).
     var selectedZoom: ZoomSegment.ID?
+    /// The zoom camera for the current zooms and speed, worked out once (S-033).
+    @ObservationIgnored var zoomPathCache: (zooms: ZoomTrack, speed: ZoomSpeed, path: ZoomPath)?
 
     @ObservationIgnored private(set) var sources: PlayerSources?
     /// The current item's segments, so a style change can redraw without a rebuild.

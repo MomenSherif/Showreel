@@ -44,11 +44,15 @@ public struct RenderStyle: @unchecked Sendable {
     public var backgroundImage: CIImage?
     /// In source time, like the scene (S-030).
     public var zooms: ZoomTrack
+    /// The camera moving through `zooms` (S-033). Without one, it is worked
+    /// out from `zooms` at the style's speed, with no cursor to follow.
+    public var zoomPath: ZoomPath
 
-    public init(style: Style, backgroundImage: CIImage? = nil, zooms: ZoomTrack = ZoomTrack()) {
+    public init(style: Style, backgroundImage: CIImage? = nil, zooms: ZoomTrack = ZoomTrack(), zoomPath: ZoomPath? = nil) {
         self.style = style
         self.backgroundImage = backgroundImage
         self.zooms = zooms
+        self.zoomPath = zoomPath ?? ZoomPath(track: zooms, duration: zooms.segments.last?.end ?? 0, speed: style.zoomSpeed)
     }
 
     /// The recording edge to edge, as M1 to M3 played.
@@ -74,7 +78,7 @@ public enum Renderer {
         let rect = CGRect(x: top.minX, y: size.height - top.maxY, width: top.width, height: top.height)
         // A zoom shows part of the recording in the same place (S-030); the
         // frame, background, and camera stay put.
-        let zoom = style.zooms.view(at: t, cursor: scene.cursor, crop: crop)
+        let zoom = style.zoomPath.view(at: t, crop: crop)
         let visible = visibleRect(of: screen.extent, zoom)
         var image = screen
             .transformed(by: CGAffineTransform(translationX: -visible.minX, y: -visible.minY))

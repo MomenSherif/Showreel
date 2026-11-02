@@ -129,6 +129,9 @@ public struct Style: Codable, Equatable, Sendable {
     /// video, normalized to the recording (top-left). Nil follows the recorded path.
     public var cameraPosition: Point? = nil
 
+    /// How fast zooms ease in, out, and between spots (S-033).
+    public var zoomSpeed: ZoomSpeed = .medium
+
     public init() {}
 
     /// The recording edge to edge, nothing around it: how M1 to M3 played.
@@ -143,7 +146,7 @@ public struct Style: Codable, Equatable, Sendable {
     }()
 
     enum CodingKeys: String, CodingKey { case background, backgroundBlur, padding, rounding, effect, effectAmount, crop, frame, showsURLBar, url, aspect,
-        cameraVisible, cameraScale, cameraShape, cameraBorder, cameraShadow, cameraPosition }
+        cameraVisible, cameraScale, cameraShape, cameraBorder, cameraShadow, cameraPosition, zoomSpeed }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -165,6 +168,7 @@ public struct Style: Codable, Equatable, Sendable {
         cameraBorder = (try? c.decodeIfPresent(Double.self, forKey: .cameraBorder)) ?? d.cameraBorder
         cameraShadow = (try? c.decodeIfPresent(Double.self, forKey: .cameraShadow)) ?? d.cameraShadow
         cameraPosition = (try? c.decodeIfPresent(Point.self, forKey: .cameraPosition)) ?? d.cameraPosition
+        zoomSpeed = (try? c.decodeIfPresent(ZoomSpeed.self, forKey: .zoomSpeed)) ?? d.zoomSpeed
     }
 
     /// The style as a preset (S-029): without what belongs to one recording

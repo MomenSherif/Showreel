@@ -82,9 +82,14 @@ in `Project.zoomsData`. Nil means never made: on the first open the editor
 runs `AutoZoom.segments(from: events, duration:)` over the clicks, typing
 bursts, and caret in events.json, and saves the result. They travel to the
 engine in `RenderStyle.zooms`, so a zoom edit only swaps the video
-composition, like a style change. `Renderer` asks `ZoomTrack.view(at:)` for
-the visible part of the recording and draws it into the same screen rect;
-the frame, background, and camera stay put.
+composition, like a style change. The camera's motion is a `ZoomPath`
+(ShowreelKit): a critically damped spring on scale and spot, worked out once
+at 60 Hz for the whole recording (frames are drawn in any order when
+seeking), with a dead zone for Follow Cursor so hand tremor never moves the
+picture. The editor caches it per zooms and `Style.zoomSpeed`. `Renderer`
+asks `RenderStyle.zoomPath.view(at:crop:)` for the visible part of the
+recording and draws it into the same screen rect; the frame, background,
+and camera stay put.
 
 ## Recording
 

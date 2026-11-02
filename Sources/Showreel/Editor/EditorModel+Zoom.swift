@@ -47,6 +47,16 @@ extension EditorModel {
         return track
     }
 
+    /// The zoom camera through the zooms at the style's speed, following
+    /// the recorded cursor. Kept until the zooms or the speed change.
+    func zoomPath(for style: Style) -> ZoomPath {
+        if let cache = zoomPathCache, cache.zooms == zooms, cache.speed == style.zoomSpeed { return cache.path }
+        let path = ZoomPath(track: zooms, cursor: sources?.scene.cursor ?? CursorPath(),
+                            duration: sources?.duration ?? edits.sourceDuration, speed: style.zoomSpeed)
+        zoomPathCache = (zooms, style.zoomSpeed, path)
+        return path
+    }
+
     /// Add Zoom (Z) at the playhead, or a click on an empty spot of the zoom
     /// lane (S-032): a 2-second zoom on the cursor, selected. On a zoom it
     /// selects that zoom; with no room it beeps.

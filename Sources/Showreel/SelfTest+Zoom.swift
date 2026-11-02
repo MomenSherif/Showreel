@@ -27,7 +27,8 @@ extension SelfTest {
 
         step { editor.applyZooms(editor.zooms(changing: zoom.id) { $0.scale = 3.5 }, named: "Zoom Scale") }
         check("a zoom's scale is saved", ZoomTrack.decode(editor.project.zoomsData)?.segments.first?.scale == 3.5)
-        check("the zoom is drawn at its scale", editor.renderStyle(for: editor.style).zooms.view(at: 0.75).scale == 3.5)
+        let drawn = editor.renderStyle(for: editor.style).zoomPath.view(at: 0.75).scale
+        check("the zoom is drawn at its scale", abs(drawn - 3.5) < 0.001, "\(drawn)")
         undo.undo()
         check("Undo puts the scale back", editor.selectedZoomSegment?.scale == 2, "\(editor.selectedZoomSegment?.scale ?? 0)")
 
@@ -90,5 +91,21 @@ extension SelfTest {
               "\(editor.zooms.segments.map { "\($0.start)…\($0.end)" }) at \(source)")
         let clip = NSApp.mainMenu?.item(withTitle: "Clip")?.submenu?.items.map(\.title) ?? []
         check("the Clip menu has Add Zoom", clip.contains("Add Zoom"), clip.joined(separator: ", "))
+
+        // S-033: Zoom Motion is part of the style, saved, and changes how fast the camera moves.
+        let zoom = ZoomSegment(start: 0.2, end: 1.8)
+        step { editor.applyZooms(ZoomTrack(segments: [zoom]), named: "Zoom") }
+        func scaleSoon() -> Double { editor.renderStyle(for: editor.style).zoomPath.view(at: 0.4).scale }
+        var slow = editor.style
+        slow.zoomSpeed = .slow
+        step { editor.applyStyle(slow, named: "Zoom Motion") }
+        let slowScale = scaleSoon()
+        var fast = editor.style
+        fast.zoomSpeed = .fast
+        step { editor.applyStyle(fast, named: "Zoom Motion") }
+        check("Zoom Motion is saved with the project", Style.decode(editor.project.styleData).zoomSpeed == .fast)
+        check("Fast zooms in sooner than Slow", scaleSoon() > slowScale, "\(scaleSoon()) vs \(slowScale)")
+        undo.undo()
+        undo.undo()
     }
 }
