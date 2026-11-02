@@ -154,3 +154,49 @@ move `apply`, undo, and saving into an `EditSession` that owns the
 Every edit builds a new `AVPlayerItem` from `PlayerSources`. That is
 instant for a handful of segments. Measure it on a 30-minute recording with
 50 cuts before M5 adds zoom segments.
+
+---
+
+# Check-in at the end of M4 (commit 81dd9c4)
+
+8,770 lines. Largest: `RecordController` (449), `SelfTest+Editor` (334),
+`Snapshot` (315), `EditorModel` (292) plus `EditorModel+Style` (160),
+`RecordPanel` (291). Nothing is near 600. No fix-log area repeats three times.
+The M4 rules (`Style`, `CropRect`, `CanvasLayout`) went into ShowreelKit with
+unit tests, and the look is drawn by `Renderer` with golden frames, as planned.
+
+## One edit door for every project part  [Worth exploring — before S-031/S-032]
+
+Files: Editor/EditorModel.swift, Editor/EditorModel+Style.swift
+Signal: before a big feature (M5 zooms, then M7 captions). `apply(_:named:)`
+and `commitStyle(from:to:named:)` repeat the same steps: register undo, set the
+action name, write JSON to the project, save, redraw, refresh undo. Zooms and
+captions would add a third and a fourth copy.
+Proposal:
+```swift
+extension EditorModel {
+    /// One undoable, saved change of any project part.
+    func commit<Value: Equatable>(_ key: ReferenceWritableKeyPath<EditorModel, Value>,
+                                  from old: Value, to new: Value, named: String,
+                                  save: (Value) -> Void, then: () -> Void)
+}
+```
+Benefits: zooms and captions get undo and saving in one line each; the
+FIXLOG rule about `registerUndo` inside a group lives in one place.
+Proof: the self-test's undo and redo checks, and the editor snapshots.
+Why not Strong: two callers today. Do it when the zoom edits arrive (S-031),
+as the first commit of that story, if the copy shows up.
+
+## EditSession out of EditorModel  [Speculative]
+
+Together the two files are 452 lines, past the 400 set at M3, but split by
+topic already (playback and cut; style). Revisit at 600.
+
+## Rebuilding the player item per edit  [Speculative]
+
+Still unmeasured. Zooms (M5) change only the video composition, like a
+style change, so they will not add rebuilds.
+
+## Top recommendation
+
+None is Strong, so no refactor in this check-in. M5 starts.
