@@ -4,7 +4,8 @@ import SwiftUI
 import ShowreelKit
 
 /// The floating Record Panel (S-002): source, Mic, Camera, System Audio,
-/// and Start Recording, on one glass bar near the top of the active display.
+/// and Start Recording, on one glass bar at the bottom center of the active
+/// display, where the Recording Controls take its place once recording starts.
 final class RecordPanel {
     static let shared = RecordPanel()
     private(set) var panel: FloatingPanel?
@@ -14,18 +15,19 @@ final class RecordPanel {
             var options = FloatingPanel.Options()
             options.movable = true
             options.onCancel = { RecordController.shared.closePanel() }
-            panel = FloatingPanel(size: CGSize(width: Layout.recordPanel.width, height: Layout.recordPanel.height + Space.section + Space.xl),
+            panel = FloatingPanel(size: CGSize(width: Layout.recordPanel.width, height: Layout.recordPanel.height + Space.section + Space.xl + Space.md),
                                   options: options, content: RecordPanelView())
         }
         guard let panel else { return }
         // Fit the bar's natural width, so no label is cut off.
         if let fitting = panel.contentView?.fittingSize, fitting.width > 0 {
-            panel.setContentSize(CGSize(width: fitting.width, height: Layout.recordPanel.height + Space.section + Space.xl))
+            panel.setContentSize(CGSize(width: fitting.width, height: Layout.recordPanel.height + Space.section + Space.xl + Space.md))
         }
         let screen = NSScreen.containing(cgRect: CGRect(origin: NSEvent.mouseLocation, size: .zero)) ?? NSScreen.main
         if let visible = screen?.visibleFrame {
+            // The bar's bottom edge sits where the Recording Controls' does.
             panel.setFrameOrigin(NSPoint(x: visible.midX - panel.frame.width / 2,
-                                         y: visible.maxY - panel.frame.height - Space.xl))
+                                         y: visible.minY + Layout.controlsInset - Space.md))
         }
         panel.present(activate: activate)
     }
@@ -40,6 +42,17 @@ struct RecordPanelView: View {
 
     var body: some View {
         VStack(spacing: Space.sm) {
+            Spacer(minLength: 0)
+            if let message = problemText {
+                Label(message, systemImage: "exclamationmark.triangle.fill")
+                    .font(.callout)
+                    .foregroundStyle(.primary)
+                    .symbolRenderingMode(.multicolor)
+                    .padding(.horizontal, Space.lg)
+                    .padding(.vertical, Space.sm)
+                    .glassEffect(.regular, in: Capsule())
+                    .transition(.opacity)
+            }
             GlassEffectContainer(spacing: Space.sm) {
                 HStack(spacing: Space.md) {
                     CloseButton { recorder.closePanel() }
@@ -59,19 +72,8 @@ struct RecordPanelView: View {
                 .fixedSize(horizontal: true, vertical: false)
                 .glassEffect(.regular, in: Capsule())
             }
-            if let message = problemText {
-                Label(message, systemImage: "exclamationmark.triangle.fill")
-                    .font(.callout)
-                    .foregroundStyle(.primary)
-                    .symbolRenderingMode(.multicolor)
-                    .padding(.horizontal, Space.lg)
-                    .padding(.vertical, Space.sm)
-                    .glassEffect(.regular, in: Capsule())
-                    .transition(.opacity)
-            }
-            Spacer(minLength: 0)
         }
-        .padding(.top, Space.xs)
+        .padding(.bottom, Space.md)
         .padding(.horizontal, Space.lg)
         .fixedSize(horizontal: true, vertical: false)
         .animation(Motion.resolved(Motion.ui), value: problemText)
@@ -158,7 +160,7 @@ struct SourceControl: View {
                 .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: .command)
             }
         }
-        .popover(isPresented: $recorder.showingSourcePicker, arrowEdge: .bottom) {
+        .popover(isPresented: $recorder.showingSourcePicker, arrowEdge: .top) {
             SourcePicker(kind: recorder.sourceKind) { picking = false }
         }
     }

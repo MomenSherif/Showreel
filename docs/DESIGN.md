@@ -56,8 +56,9 @@ excludes the app's own windows. Our chrome never shows up in a recording.
 ## Record Panel (S-002 to S-006)
 
 A horizontal glass capsule 64 pt tall, laid out like the screenshot toolbar
-(⇧⌘5), centered near the top of the active display, which you can drag by
-its background. One `GlassEffectContainer`:
+(⇧⌘5), at the bottom center of the active display with its bottom edge
+`Layout.controlsInset` above the Dock, where the Recording Controls appear
+once recording starts. You can drag it by its background. One `GlassEffectContainer`:
 
 ```text
 ( × | [▭ Display] [▢ Window] [⬚ Area] | (🎙 MacBook Pro ▮▮▯ ⌄) (📷 Camera off ⌄) (🔇 System Audio off) | (● Start Recording) )
@@ -78,8 +79,8 @@ its background. One `GlassEffectContainer`:
   symbol.
 - Start Recording is the only prominent control, large, tinted `.red` (red
   carries the meaning "record"). It says "Start Recording", not just a dot.
-- Problems (no access, device lost) show inline under the bar in a second
-  glass row. They are never alerts.
+- Problems (no access, device lost) show inline above the bar in a second
+  glass row. The source picker popover opens upward. They are never alerts.
 
 ## Countdown and Recording Controls (S-007)
 
