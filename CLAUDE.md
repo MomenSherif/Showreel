@@ -23,6 +23,7 @@ SwiftData database and no server.
   For a panel, sheet, or popover, add a capture to `Snapshot.swift` like the Settings loop.
 - Snapshots, seed data, and the self-test refuse to run without `APP_STORE` in /tmp.
 - Never test against the real database in `~/Library/Application Support/Showreel/`.
+- App settings go through `Store.defaults`, never `UserDefaults.standard` or `@AppStorage`: test runs get their own empty settings.
 - Then check the grid: `tools/grid-lint.sh` and `swift tools/check-layout.swift /tmp/Showreel-shots/*-layout.json`. Both print PASS.
 - A change is done when the build has no errors, the grid checks pass, and you looked at the light and dark snapshots.
 

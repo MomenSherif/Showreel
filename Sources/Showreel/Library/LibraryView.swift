@@ -40,7 +40,7 @@ struct LibraryView: View {
                 Snapshot.runIfRequested(model: model, openSettings: openSettings)
                 // First launch: show what access Showreel needs (S-001).
                 if !SelfTest.requested, !Snapshot.isActive, !Permissions.shared.canRecord,
-                   !UserDefaults.standard.bool(forKey: "welcome.done") {
+                   !Store.defaults.bool(forKey: "welcome.done") {
                     openWindow(id: "welcome")
                 }
             }

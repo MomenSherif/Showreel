@@ -19,17 +19,17 @@ final class Devices {
     private(set) var lostCamera: String?
 
     var microphoneID: String? {
-        didSet { UserDefaults.standard.set(microphoneID, forKey: "record.microphone"); lostMicrophone = nil }
+        didSet { Store.defaults.set(microphoneID, forKey: "record.microphone"); lostMicrophone = nil }
     }
     var cameraID: String? {
-        didSet { UserDefaults.standard.set(cameraID, forKey: "record.camera"); lostCamera = nil }
+        didSet { Store.defaults.set(cameraID, forKey: "record.camera"); lostCamera = nil }
     }
 
     @ObservationIgnored private var observers: [NSObjectProtocol] = []
 
     private init() {
-        microphoneID = UserDefaults.standard.string(forKey: "record.microphone")
-        cameraID = UserDefaults.standard.string(forKey: "record.camera")
+        microphoneID = Store.defaults.string(forKey: "record.microphone")
+        cameraID = Store.defaults.string(forKey: "record.camera")
         refresh()
         for name in [AVCaptureDevice.wasConnectedNotification, AVCaptureDevice.wasDisconnectedNotification] {
             observers.append(NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { _ in

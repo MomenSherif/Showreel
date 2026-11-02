@@ -193,6 +193,17 @@ enum Store {
         return dir.appending(path: "Showreel.store")
     }
 
+    /// The app's settings. Test, snapshot, and self-test runs get an empty
+    /// domain of their own each launch, so they start from the defaults and
+    /// never change the person's real settings.
+    static let defaults: UserDefaults = {
+        guard isOverridden else { return .standard }
+        let name = "com.momensherif.showreel.testrun"
+        let defaults = UserDefaults(suiteName: name) ?? .standard
+        defaults.removePersistentDomain(forName: name)
+        return defaults
+    }()
+
     static func makeContainer() -> ModelContainer {
         do {
             return try ModelContainer(for: Project.self, StylePreset.self, configurations: ModelConfiguration(url: url))

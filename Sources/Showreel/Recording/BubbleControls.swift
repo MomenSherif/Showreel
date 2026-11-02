@@ -16,15 +16,15 @@ final class BubbleStyle {
     static let sizeNames = ["Small", "Medium", "Large"]
 
     /// 0 Small, 1 Medium, 2 Large (`Layout.bubbleSizes`).
-    var size: Int = min(max(UserDefaults.standard.object(forKey: "bubble.size") as? Int ?? 1, 0), 2) {
+    var size: Int = min(max(Store.defaults.object(forKey: "bubble.size") as? Int ?? 1, 0), 2) {
         didSet {
-            UserDefaults.standard.set(size, forKey: "bubble.size")
+            Store.defaults.set(size, forKey: "bubble.size")
             if size != oldValue { CameraBubble.shared.styleChanged() }
         }
     }
 
-    var shape: Shape = Shape(rawValue: UserDefaults.standard.string(forKey: "bubble.shape") ?? "") ?? .circle {
-        didSet { UserDefaults.standard.set(shape.rawValue, forKey: "bubble.shape") }
+    var shape: Shape = Shape(rawValue: Store.defaults.string(forKey: "bubble.shape") ?? "") ?? .circle {
+        didSet { Store.defaults.set(shape.rawValue, forKey: "bubble.shape") }
     }
 
     var diameter: CGFloat { Layout.bubbleSizes[size] }

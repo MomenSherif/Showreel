@@ -25,27 +25,27 @@ final class RecordController {
 
     // MARK: Choices in the Record Panel (remembered)
 
-    var sourceKind: SourceKind = SourceKind(rawValue: UserDefaults.standard.string(forKey: "record.source") ?? "") ?? .display {
+    var sourceKind: SourceKind = SourceKind(rawValue: Store.defaults.string(forKey: "record.source") ?? "") ?? .display {
         didSet {
-            UserDefaults.standard.set(sourceKind.rawValue, forKey: "record.source")
+            Store.defaults.set(sourceKind.rawValue, forKey: "record.source")
             if sourceKind == .area, oldValue != .area { AreaSelector.shared.begin() }
         }
     }
-    var micOn = UserDefaults.standard.object(forKey: "record.mic") as? Bool ?? true {
-        didSet { UserDefaults.standard.set(micOn, forKey: "record.mic"); updateDevices() }
+    var micOn = Store.defaults.object(forKey: "record.mic") as? Bool ?? true {
+        didSet { Store.defaults.set(micOn, forKey: "record.mic"); updateDevices() }
     }
-    var cameraOn = UserDefaults.standard.bool(forKey: "record.camera.on") {
-        didSet { UserDefaults.standard.set(cameraOn, forKey: "record.camera.on"); updateDevices() }
+    var cameraOn = Store.defaults.bool(forKey: "record.camera.on") {
+        didSet { Store.defaults.set(cameraOn, forKey: "record.camera.on"); updateDevices() }
     }
-    var systemAudioOn = UserDefaults.standard.bool(forKey: "record.system") {
-        didSet { UserDefaults.standard.set(systemAudioOn, forKey: "record.system") }
+    var systemAudioOn = Store.defaults.bool(forKey: "record.system") {
+        didSet { Store.defaults.set(systemAudioOn, forKey: "record.system") }
     }
 
     /// Displays and windows that can be recorded, loaded when the panel opens.
     private(set) var displays: [SCDisplay] = []
     private(set) var windows: [SCWindow] = []
-    var displayID: CGDirectDisplayID? = (UserDefaults.standard.object(forKey: "record.display") as? UInt32) {
-        didSet { UserDefaults.standard.set(displayID, forKey: "record.display") }
+    var displayID: CGDirectDisplayID? = (Store.defaults.object(forKey: "record.display") as? UInt32) {
+        didSet { Store.defaults.set(displayID, forKey: "record.display") }
     }
     var windowID: CGWindowID? {
         didSet { if windowID != nil { windowGone = false } }
@@ -82,7 +82,7 @@ final class RecordController {
     /// File > New Recording, the menu bar, the Dock menu, ⌘N.
     func newRecording(fromShortcut: Bool = false) {
         guard state == .idle || state == .panel else { return }
-        if !Permissions.shared.canRecord && !UserDefaults.standard.bool(forKey: "welcome.done") {
+        if !Permissions.shared.canRecord && !Store.defaults.bool(forKey: "welcome.done") {
             AppServices.shared.openWelcome()
             return
         }

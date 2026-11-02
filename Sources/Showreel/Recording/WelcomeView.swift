@@ -38,7 +38,7 @@ struct WelcomeView: View {
                     Spacer()
                 }
                 Button("Continue") {
-                    UserDefaults.standard.set(true, forKey: "welcome.done")
+                    Store.defaults.set(true, forKey: "welcome.done")
                     dismissWindow(id: "welcome")
                     RecordController.shared.newRecording()
                 }

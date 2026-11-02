@@ -1,5 +1,15 @@
 # Fix log
 
+## 2026-11-02 Self-test failed "the Camera Bubble is Medium by default" on this Mac
+Symptom: one failing check, every run, with no code change in that area.
+Cause: test, snapshot, and self-test runs used `UserDefaults.standard`, the person's real
+settings. Large was picked in the real app, so the run started with Large; the runs could
+also change real settings (bubble size, record toggles) if a check stopped halfway.
+Fix: `Store.defaults` is the one place for app settings. With APP_STORE set it is an
+empty domain of its own (`com.momensherif.showreel.testrun`), cleared at each launch.
+Rule: never use `UserDefaults.standard` or `@AppStorage` for app settings; use
+`Store.defaults`, so test runs start from the defaults and never touch real settings.
+
 ## 2026-11-01 Self-test crashed in SwiftData's @Query after choosing a background image
 Symptom: exit 139, EXC_BAD_ACCESS in an executor check inside a `@Query` update, on the
 main thread's run loop, far from any code that had changed.

@@ -68,20 +68,20 @@ extension SelfTest {
     static func endToEnd(_ model: AppModel) async {
         guard CGPreflightScreenCaptureAccess() else { return }
         let recorder = RecordController.shared
-        // The app's real preferences are shared with this run: put them all back.
+        // This run has its own settings (Store.defaults); put them back for the checks after this one.
         let saved = (recorder.micOn, recorder.cameraOn, recorder.systemAudioOn, recorder.sourceKind, recorder.displayID)
-        let welcome = UserDefaults.standard.object(forKey: "welcome.done")
+        let welcome = Store.defaults.object(forKey: "welcome.done")
         defer {
             recorder.micOn = saved.0; recorder.cameraOn = saved.1
             recorder.systemAudioOn = saved.2; recorder.sourceKind = saved.3; recorder.displayID = saved.4
-            UserDefaults.standard.set(welcome, forKey: "welcome.done")
+            Store.defaults.set(welcome, forKey: "welcome.done")
         }
         recorder.micOn = false
         recorder.cameraOn = false
         recorder.systemAudioOn = true
         recorder.sourceKind = .display
         let before = Set(all(model).map(\.uuid))
-        UserDefaults.standard.set(true, forKey: "welcome.done")
+        Store.defaults.set(true, forKey: "welcome.done")
         recorder.newRecording()
         check("New Recording opens the Record Panel", recorder.state == .panel && RecordPanel.shared.panel?.isVisible == true)
         await recorder.loadContent()

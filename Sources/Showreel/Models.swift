@@ -125,8 +125,8 @@ final class AppModel {
     var renaming: UUID?
     var search = ""
     /// Settings reopens on the last tab. Test and snapshot runs leave it alone.
-    var settingsTab: SettingsTab = SettingsTab(rawValue: UserDefaults.standard.string(forKey: "settings.tab") ?? "") ?? .general {
-        didSet { if !Store.isOverridden { UserDefaults.standard.set(settingsTab.rawValue, forKey: "settings.tab") } }
+    var settingsTab: SettingsTab = SettingsTab(rawValue: Store.defaults.string(forKey: "settings.tab") ?? "") ?? .general {
+        didSet { Store.defaults.set(settingsTab.rawValue, forKey: "settings.tab") }
     }
 
     init(container: ModelContainer) {

@@ -77,9 +77,9 @@ extension SelfTest {
         style.size = 2
         check("Large makes the bubble 240 pt", panel.frame.width == Layout.bubbleSizes[2] + 2 * CameraBubble.margin)
         check("resizing keeps the bubble's center", abs(panel.frame.midX - center.x) < 1 && abs(panel.frame.midY - center.y) < 1)
-        check("the size is remembered", UserDefaults.standard.integer(forKey: "bubble.size") == 2)
+        check("the size is remembered", Store.defaults.integer(forKey: "bubble.size") == 2)
         style.shape = .roundedSquare
-        check("the shape is remembered", UserDefaults.standard.string(forKey: "bubble.shape") == "roundedSquare")
+        check("the shape is remembered", Store.defaults.string(forKey: "bubble.shape") == "roundedSquare")
         bubble.showControls()
         check("hover shows the size and shape controls", bubble.controls?.parent === panel)
     }
