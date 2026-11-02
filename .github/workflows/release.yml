@@ -1,0 +1,106 @@
+# Every push to main builds Showreel, packs it into Showreel.dmg, and publishes
+# it as a new GitHub release (v0.1.<run number>). The newest DMG is always at
+#   https://github.com/MomenSherif/Showreel/releases/latest/download/Showreel.dmg
+#
+# Signing: without secrets the app is ad-hoc signed, so macOS asks people to
+# allow it once in System Settings > Privacy & Security. Add these repository
+# secrets to sign with Developer ID and notarize instead:
+#   MACOS_CERTIFICATE           base64 of the "Developer ID Application" .p12
+#   MACOS_CERTIFICATE_PASSWORD  the .p12 password
+#   NOTARY_APPLE_ID             Apple ID email
+#   NOTARY_PASSWORD             app-specific password for that Apple ID
+#   NOTARY_TEAM_ID              10-character team ID
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "site/**"
+      - "docs/**"
+      - "design/**"
+      - "**.md"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: true
+
+env:
+  VERSION_BASE: "0.1"
+
+jobs:
+  release:
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+      MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+      NOTARY_APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
+      NOTARY_PASSWORD: ${{ secrets.NOTARY_PASSWORD }}
+      NOTARY_TEAM_ID: ${{ secrets.NOTARY_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version
+        run: |
+          version="$VERSION_BASE.${{ github.run_number }}"
+          echo "APP_VERSION=$version" >> "$GITHUB_ENV"
+          echo "TAG=v$version" >> "$GITHUB_ENV"
+
+      - name: Import Developer ID certificate
+        if: env.MACOS_CERTIFICATE != ''
+        run: |
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          password=$(uuidgen)
+          echo "$MACOS_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+          security import "$RUNNER_TEMP/cert.p12" -k "$keychain" -P "$MACOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$password" "$keychain"
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          rm "$RUNNER_TEMP/cert.p12"
+          identity=$(security find-identity -v -p codesigning "$keychain" | grep -o '"Developer ID Application: [^"]*"' | head -1 | tr -d '"')
+          [[ -n "$identity" ]] || { echo "no Developer ID Application identity in the certificate"; exit 1; }
+          echo "SIGN_IDENTITY=$identity" >> "$GITHUB_ENV"
+
+      - name: Build
+        run: |
+          [[ -n "${SIGN_IDENTITY:-}" ]] || export SIGN_IDENTITY=-
+          ./build.sh
+          codesign --verify --deep --strict --verbose=2 "$HOME/Applications/Showreel.app"
+
+      - name: Make DMG
+        run: tools/make-dmg.sh "$RUNNER_TEMP/Showreel.dmg"
+
+      - name: Notarize
+        if: env.SIGN_IDENTITY != '' && env.NOTARY_APPLE_ID != ''
+        run: |
+          dmg="$RUNNER_TEMP/Showreel.dmg"
+          codesign --force --timestamp --sign "$SIGN_IDENTITY" "$dmg"
+          xcrun notarytool submit "$dmg" --wait \
+            --apple-id "$NOTARY_APPLE_ID" --password "$NOTARY_PASSWORD" --team-id "$NOTARY_TEAM_ID"
+          xcrun stapler staple "$dmg"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes="$RUNNER_TEMP/notes.md"
+          {
+            echo "Download **Showreel.dmg**, open it, and drag Showreel to Applications. Needs macOS 26."
+            echo
+            if [[ -z "${NOTARY_APPLE_ID:-}" || -z "${SIGN_IDENTITY:-}" ]]; then
+              echo "This build is not notarized. The first time you open it, macOS blocks it:"
+              echo "open System Settings > Privacy & Security, scroll down, and click **Open Anyway**."
+              echo
+            fi
+            echo "Built from ${GITHUB_SHA:0:7}."
+          } > "$notes"
+          gh release create "$TAG" "$RUNNER_TEMP/Showreel.dmg" \
+            --target "$GITHUB_SHA" --title "Showreel $APP_VERSION" \
+            --notes-file "$notes" --generate-notes --latest

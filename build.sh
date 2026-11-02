@@ -68,7 +68,7 @@ mkdir -p "$HOME/Applications"
 rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp "$bin" "$app/Contents/MacOS/$name"
-sed -e "s/__BUILD__/$(date +%Y%m%d%H%M)/" "$here/Info.plist.in" > "$app/Contents/Info.plist"
+sed -e "s/__BUILD__/$(date +%Y%m%d%H%M)/" -e "s/__VERSION__/${APP_VERSION:-0.1}/" "$here/Info.plist.in" > "$app/Contents/Info.plist"
 # The icon: Icon/AppIcon.icon -> Resources/Assets.car + AppIcon.icns, rebuilt when it changed.
 if [[ -d "$here/Icon/AppIcon.icon" ]]; then
   car="$here/Resources/Assets.car"
@@ -81,8 +81,16 @@ fi
 mkdir -p "$app/Contents/Frameworks"
 cp -R "$scratch/$config/whisper.framework" "$app/Contents/Frameworks/"
 xattr -cr "$app"
-codesign --force --sign "$identity" "$app/Contents/Frameworks/whisper.framework" 2>&1 | grep -v "replacing existing signature" || true
-codesign --force --sign "$identity" "$app" 2>&1 | grep -v "replacing existing signature" || true
+# A Developer ID build is for notarization: it needs the hardened runtime, a
+# secure timestamp, and the camera and microphone entitlements.
+sign=(--force --sign "$identity")
+app_sign=()
+if [[ "$identity" == "Developer ID Application"* ]]; then
+  sign+=(--options runtime --timestamp)
+  app_sign=(--entitlements "$here/Showreel.entitlements")
+fi
+codesign "${sign[@]}" "$app/Contents/Frameworks/whisper.framework" 2>&1 | grep -v "replacing existing signature" || true
+codesign "${sign[@]}" "${app_sign[@]}" "$app" 2>&1 | grep -v "replacing existing signature" || true
 echo "installed $app (signed: ${identity})"
 
 if [[ " $* " == *" --open "* ]]; then
