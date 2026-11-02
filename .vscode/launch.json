@@ -1,0 +1,24 @@
+{
+  "configurations": [
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "name": "Debug Showreel (Showreel)",
+      "target": "Showreel",
+      "configuration": "debug",
+      "preLaunchTask": "swift: Build Debug Showreel (Showreel)"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "name": "Release Showreel (Showreel)",
+      "target": "Showreel",
+      "configuration": "release",
+      "preLaunchTask": "swift: Build Release Showreel (Showreel)"
+    }
+  ]
+}

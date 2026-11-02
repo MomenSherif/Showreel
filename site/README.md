@@ -2,10 +2,10 @@
 
 A static page made of `index.html`, `styles.css` (which imports `tokens.css` and `base.css`), `main.js`, and `assets/`. There is no build step and no framework. The only outside request is the Geologica font from Google Fonts.
 
-The design is Hallmark's Vantage theme (the skill is in `../../.claude/skills/hallmark`). The first lines of `styles.css` record every design decision. To check the page again, run this from `Showreel/`:
+The design is Hallmark's Vantage theme (the skill is in `.claude/skills/hallmark` at the repo root. Its `--render` check needs Puppeteer, which git ignores: run `npm install puppeteer` in `.claude/skills/hallmark/scripts/` once on a fresh clone). The first lines of `styles.css` record every design decision. To check the page again, run this from `Showreel/`:
 
 ```sh
-node ../.claude/skills/hallmark/scripts/sloplint.mjs site/index.html --genre modern-minimal --render
+node .claude/skills/hallmark/scripts/sloplint.mjs site/index.html --genre modern-minimal --render
 ```
 
 ## Preview
