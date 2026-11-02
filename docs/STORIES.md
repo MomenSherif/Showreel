@@ -587,6 +587,7 @@ Status: done
 ---
 
 ## M7 Captions and audio
+Status: done
 Done when captions are made, can be edited, and look good, and the voice
 sounds clean.
 
