@@ -24,22 +24,18 @@ extension EditorModel {
     }
 
     private func commitAudio(from old: AudioMix, to new: AudioMix, named name: String) {
-        guard old != new else { return }
-        undoManager?.registerUndo(withTarget: self) { editor in
-            MainActor.assumeIsolated { editor.commitAudio(from: editor.audio, to: old, named: name) }
-        }
-        undoManager?.setActionName(name)
-        audio = new
-        project.audioData = new == AudioMix() ? nil : new.encoded()
-        try? project.modelContext?.save()
-        if old.reducesNoise != new.reducesNoise {
-            // Another file plays: build the item again, and redraw the mic's waveform.
-            rebuildItem(keeping: edits.sourceTime(atEditTime: playhead.time))
-            loadWaveforms()
-        } else {
-            remix()
-        }
-        refreshUndo()
+        commitPart(from: old, to: new, named: name, current: { $0.audio }, set: { editor, mix in
+            editor.audio = mix
+            editor.project.audioData = mix == AudioMix() ? nil : mix.encoded()
+        }, refresh: { editor, before in
+            if before.reducesNoise != editor.audio.reducesNoise {
+                // Another file plays: build the item again, and redraw the mic's waveform.
+                editor.rebuildItem(keeping: editor.edits.sourceTime(atEditTime: editor.playhead.time))
+                editor.loadWaveforms()
+            } else {
+                editor.remix()
+            }
+        })
     }
 
     /// Swaps the audio mix on the current item.

@@ -107,17 +107,11 @@ extension EditorModel {
     }
 
     private func commitCaptions(from old: CaptionTrack, to new: CaptionTrack, named name: String) {
-        guard old != new else { return }
-        undoManager?.registerUndo(withTarget: self) { editor in
-            MainActor.assumeIsolated { editor.commitCaptions(from: editor.captions, to: old, named: name) }
+        commitPart(from: old, to: new, named: name, current: { $0.captions }) { editor, captions in
+            editor.captions = captions
+            editor.project.captionsData = captions.captions.isEmpty && captions.language.isEmpty ? nil : captions.encoded()
+            if let id = editor.selectedCaption, !captions.captions.contains(where: { $0.id == id }) { editor.selectedCaption = nil }
         }
-        undoManager?.setActionName(name)
-        captions = new
-        project.captionsData = new.captions.isEmpty && new.language.isEmpty ? nil : new.encoded()
-        try? project.modelContext?.save()
-        if let id = selectedCaption, !new.captions.contains(where: { $0.id == id }) { selectedCaption = nil }
-        redraw()
-        refreshUndo()
     }
 
     // MARK: Editing one caption (S-040)

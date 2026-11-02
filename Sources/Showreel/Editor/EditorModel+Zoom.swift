@@ -36,7 +36,7 @@ extension EditorModel {
     }
 
     private func commitZooms(from old: ZoomTrack, to new: ZoomTrack, named name: String) {
-        commitDrawn(from: old, to: new, named: name, current: { $0.zooms }) { editor, zooms in
+        commitPart(from: old, to: new, named: name, current: { $0.zooms }) { editor, zooms in
             editor.zooms = zooms
             editor.project.zoomsData = zooms.encoded()
             if let id = editor.selectedZoom, !zooms.segments.contains(where: { $0.id == id }) { editor.selectedZoom = nil }

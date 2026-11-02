@@ -124,6 +124,10 @@ item and handed to `Exporter`. A change swaps only the item's audio mix.
 Reduce Noise (`AudioMix.reducesNoise`) swaps the mic's file for mic-clean.m4a
 (made once by `NoiseReducer`), so it rebuilds the item instead.
 
+Every project part but the cut (style, zooms, captions, audio) commits
+through `EditorModel.commitPart`: one undo step, the save, and a refresh that
+redraws by default.
+
 ## Recording
 
 ```text

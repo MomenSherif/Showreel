@@ -26,31 +26,34 @@ extension EditorModel {
     }
 
     private func commitStyle(from old: Style, to new: Style, named name: String) {
-        commitDrawn(from: old, to: new, named: name, current: { $0.style }) { editor, style in
+        commitPart(from: old, to: new, named: name, current: { $0.style }) { editor, style in
             editor.style = style
             editor.project.styleData = style.encoded()
         }
     }
 
-    /// The one undo, save, and redraw path for edits that only change how
-    /// frames are drawn (the style, the zooms): one undo step from `old` to
-    /// `new`. `set` puts a value in place and writes it to the project;
-    /// `current` reads it back for undo. After a drag's previews the value is
-    /// already `new`, so only the save and the undo step remain.
-    func commitDrawn<Value: Equatable & Sendable>(from old: Value, to new: Value, named name: String,
-                                                  current: @escaping @Sendable @MainActor (EditorModel) -> Value,
-                                                  set: @escaping @Sendable @MainActor (EditorModel, Value) -> Void) {
+    /// The one undo and save path for every project part but the cut (the
+    /// style, zooms, captions, audio): one undo step from `old` to `new`.
+    /// `set` puts a value in place and writes it to the project; `current`
+    /// reads it back for undo. `refresh` makes the player show or play it,
+    /// given the value before; by default it redraws the frame. After a drag's
+    /// previews the value is already `new`, so only the save and the undo step remain.
+    func commitPart<Value: Equatable & Sendable>(from old: Value, to new: Value, named name: String,
+                                                 current: @escaping @Sendable @MainActor (EditorModel) -> Value,
+                                                 set: @escaping @Sendable @MainActor (EditorModel, Value) -> Void,
+                                                 refresh: @escaping @Sendable @MainActor (EditorModel, _ old: Value) -> Void
+                                                     = { editor, _ in editor.redraw() }) {
         guard old != new else { return }
         undoManager?.registerUndo(withTarget: self) { editor in
             MainActor.assumeIsolated {
-                editor.commitDrawn(from: current(editor), to: old, named: name, current: current, set: set)
+                editor.commitPart(from: current(editor), to: old, named: name, current: current, set: set, refresh: refresh)
             }
         }
         undoManager?.setActionName(name)
-        let changed = current(self) != new
+        let before = current(self)
         set(self, new)
         try? project.modelContext?.save()
-        if changed { redraw() }
+        if before != new { refresh(self, before) }
         refreshUndo()
     }
 
