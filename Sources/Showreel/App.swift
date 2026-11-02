@@ -83,7 +83,10 @@ struct ShowreelCommands: Commands {
                 .keyboardShortcut("o")
                 .disabled(selected == nil || selected?.isSaving == true)
         }
-        CommandGroup(after: .saveItem) {
+        // Not `after: .saveItem`: an app with no document group has no Save
+        // group, and SwiftUI silently drops what is placed after it.
+        CommandGroup(after: .newItem) {
+            Divider()
             Button("Duplicate") { if let p = selected { ProjectStore.duplicate(p, in: model, undo: AppServices.shared.undoManager) } }
                 .keyboardShortcut("d")
                 .disabled(selected == nil || selected?.isSaving == true)
@@ -92,6 +95,9 @@ struct ShowreelCommands: Commands {
             Button("Show in Finder") { if let p = selected { ProjectStore.showInFinder(p) } }
                 .keyboardShortcut("r", modifiers: [.command, .option])
                 .disabled(selected == nil)
+            Button("Export…") { export() }
+                .keyboardShortcut("e")
+                .disabled(exportDisabled)
             Divider()
             Button("Move to Trash") { if let p = selected { ProjectStore.moveToTrash(p, in: model, undo: AppServices.shared.undoManager) } }
                 .keyboardShortcut(.delete)
@@ -111,6 +117,17 @@ struct ShowreelCommands: Commands {
     }
 
     private var selected: Project? { model.selectedProject }
+    @FocusedValue(\.editor) private var editor
+
+    /// The front editor's project, or the Library's selection (S-036).
+    private func export() {
+        if let editor { editor.showExportSheet() } else if let p = selected { AppServices.shared.exportProject(p.uuid) }
+    }
+
+    private var exportDisabled: Bool {
+        if let editor { return !editor.canExport }
+        return selected == nil || selected?.isSaving == true
+    }
 
     private func open() {
         guard let id = model.selection else { return }

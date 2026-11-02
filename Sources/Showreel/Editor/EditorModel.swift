@@ -56,6 +56,10 @@ final class EditorModel {
     var showsCropSheet = false
     /// Save Style as Preset is open (S-029).
     var showsSavePreset = false
+    /// The Export sheet is open (S-036).
+    var showsExportSheet = false
+    /// The export running now, or the last one (S-036).
+    var export: ExportRun?
     /// The timeline's zoom (S-017). Fit shows the whole recording.
     var zoom = TimelineZoom()
     /// The cut (S-018, S-019). Edits replace it; the files never change.
@@ -120,6 +124,21 @@ final class EditorModel {
         }
         self.player = player
         Self.newest = self
+        Self.live.append(Weak(self))
+        if AppServices.shared.pendingExport == project.uuid {
+            AppServices.shared.pendingExport = nil
+            showExportSheet()
+        }
+    }
+
+    /// Every loaded editor, so Export… in the Library reaches an open one.
+    private static var live: [Weak] = []
+    private struct Weak { weak var editor: EditorModel?; init(_ e: EditorModel) { editor = e } }
+
+    /// The loaded editor of the project `id`, if its window is open.
+    static func open(_ id: UUID) -> EditorModel? {
+        live.removeAll { $0.editor == nil }
+        return live.lazy.compactMap(\.editor).first { $0.project.uuid == id && $0.player != nil }
     }
 
     /// The saved zooms, or on the first open, zooms made from the clicks and
@@ -304,6 +323,7 @@ final class EditorModel {
     func goToEnd() { player?.pause(); seek(to: duration) }
 
     func stop() {
+        export?.cancel()
         player?.pause()
         if let timeObserver { player?.removeTimeObserver(timeObserver) }
         timeObserver = nil

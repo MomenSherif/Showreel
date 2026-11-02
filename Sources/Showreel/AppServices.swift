@@ -37,6 +37,21 @@ final class AppServices {
         openWindowAction?(id: "editor", value: id)
     }
 
+    /// A project whose editor should open its Export sheet once loaded (S-036).
+    var pendingExport: UUID?
+
+    /// Export… on a Library card or in the File menu: opens the project's
+    /// editor and its Export sheet.
+    func exportProject(_ id: UUID) {
+        if let editor = EditorModel.open(id) {
+            openProject(id)
+            editor.showExportSheet()
+        } else {
+            pendingExport = id
+            openProject(id)
+        }
+    }
+
     func openWelcome() {
         NSApp.activate()
         openWindowAction?(id: "welcome")

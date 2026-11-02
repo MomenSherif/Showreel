@@ -25,6 +25,7 @@ ShowreelEngine holds the media code, with no SwiftUI or AppKit, so
 | `Renderer` | `frame(screen:camera:at:scene:size:) -> CIImage`, one output frame. The preview and the export both draw with it |
 | `BubbleScene` | The bubble's path, hidden ranges, size, and shape for a whole recording |
 | `BubbleCompositor` | The AVVideoCompositing adapter that feeds AVPlayer frames through `Renderer` |
+| `Exporter` | Reads a composition through its video composition (so `Renderer` draws every frame) and writes MP4 (H.264), MOV (HEVC), or GIF; cancelling deletes the file |
 
 The app keeps what needs AppKit or SwiftData: `CaptureSource` (the Record
 Panel's choice resolved to a filter and pixel size), `Devices` (lists and
@@ -37,7 +38,7 @@ the saved choice), and building the `BubbleScene` from a `Project`.
 | `Library/` | The Library window: grid, cards, context menu |
 | `Projects/` | `ProjectStore`: project folders, thumbnails, Rename, Duplicate, Move to Trash with Undo |
 | `Recording/` | Everything from the Record Panel to the saved files (below) |
-| `Editor/` | The project window (S-015): `EditorModel` per window, canvas (AVPlayerLayer), custom timeline, inspector. `PlayerBuilder` builds the composition and `BubbleScene` |
+| `Editor/` | The project window (S-015): `EditorModel` per window, canvas (AVPlayerLayer), custom timeline, inspector. `PlayerBuilder` builds the composition and `BubbleScene`. `ExportSheet` and `EditorModel+Export` (`ExportRun`) export it (S-036) |
 | `UI/` | Design tokens and the shared `FloatingPanel` |
 
 ## Editor
@@ -126,8 +127,11 @@ RecordController (state: idle -> panel -> countdown -> recording <-> paused -> s
 
 ## Seams
 
-- `Renderer.frame`: two callers, `BubbleCompositor` (playback) and the
-  golden-frame tests. Export (M6) is the third. Re-record the goldens with
+- `Renderer.frame`: three callers, `BubbleCompositor` (playback and, through
+  the same video composition, `Exporter`) and the golden-frame tests. The
+  export only changes the render size and frame rate
+  (`PlayerSources.videoComposition(…renderSize:fps:)`); `ExporterTests`
+  checks an exported frame against the preview's (SSIM). Re-record the goldens with
   `SHOWREEL_RECORD_GOLDEN=1 swift test ...` only for an intended change of look,
   and look at the PNGs before committing them.
 

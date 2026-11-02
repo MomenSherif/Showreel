@@ -134,6 +134,8 @@ struct LibraryView: View {
         Button("Show in Finder") { ProjectStore.showInFinder(project) }
         Button("Duplicate") { ProjectStore.duplicate(project, in: model, undo: undoManager) }
             .disabled(project.isSaving)
+        Button("Export…") { AppServices.shared.exportProject(project.uuid) }
+            .disabled(project.isSaving)
         Divider()
         Button("Move to Trash") { ProjectStore.moveToTrash(project, in: model, undo: undoManager) }
     }

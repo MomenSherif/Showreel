@@ -225,6 +225,14 @@ enum Snapshot {
                                  },
                                  window: { window()?.attachedSheet },
                                  hide: { EditorModel.newest?.showsSavePreset = false })
+        // S-036: the Export sheet with the default choices and the size estimate.
+        let export = Surface(name: "export-sheet", show: {
+                                 guard let editor = await openEditor() else { return }
+                                 editor.section = .background
+                                 editor.showExportSheet()
+                             },
+                             window: { window()?.attachedSheet },
+                             hide: { EditorModel.newest?.showsExportSheet = false })
         return InspectorSection.allCases.map { section in
             Surface(name: section == .background ? "editor" : "editor-\(section.rawValue)", show: {
                         let project = (try? model.context.fetch(FetchDescriptor<Project>()))?.first { $0.title == title }
@@ -234,7 +242,7 @@ enum Snapshot {
                     },
                     window: window,
                     hide: {})
-        } + [trim, split, crop, frame, aspect, savePreset, zoomSelected, click, zoomed]
+        } + [trim, split, crop, frame, aspect, savePreset, export, zoomSelected, click, zoomed]
     }
 
     static func runIfRequested(model: AppModel, openSettings: OpenSettingsAction) {

@@ -75,6 +75,15 @@ struct PlayerSources {
     /// The kept segments, one after another, drawn with `style`. The slots
     /// let a style change swap the video composition without rebuilding the item.
     func item(for edits: EditList, style: RenderStyle) -> (item: AVPlayerItem, slots: [Slot]) {
+        let (composition, slots) = composition(for: edits)
+        let item = AVPlayerItem(asset: composition)
+        item.videoComposition = videoComposition(slots: slots, style: style)
+        return (item, slots)
+    }
+
+    /// The kept segments, one after another, with the slots that say where
+    /// each one landed. The preview plays it; the export reads a copy.
+    func composition(for edits: EditList) -> (composition: AVMutableComposition, slots: [Slot]) {
         let composition = AVMutableComposition()
         let screenTrack = composition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid)
         let audioTracks = audio.map { ($0, composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid)) }
@@ -98,24 +107,27 @@ struct PlayerSources {
             }
             at = at + range.duration
         }
-        let item = AVPlayerItem(asset: composition)
-        item.videoComposition = videoComposition(slots: slots, style: style)
-        return (item, slots)
+        return (composition, slots)
     }
 
     /// How every frame is drawn: the slots with the bubble scene and `style`.
-    func videoComposition(slots: [Slot], style: RenderStyle) -> AVVideoComposition {
+    /// The preview draws at the canvas size; an export passes its own size
+    /// and frame rate (S-036), and `Renderer` scales to it.
+    func videoComposition(slots: [Slot], style: RenderStyle, renderSize: CGSize? = nil, fps: Int = 60) -> AVVideoComposition {
         var config = AVVideoComposition.Configuration()
         config.customVideoCompositorClass = BubbleCompositor.self
         // The canvas's shape follows the style's aspect ratio (S-027).
-        config.renderSize = CanvasLayout.canvasSize(for: style.style, source: naturalSize)
-        config.frameDuration = CMTime(value: 1, timescale: 60)
+        config.renderSize = renderSize ?? canvasSize(for: style.style)
+        config.frameDuration = CMTime(value: 1, timescale: CMTimeScale(fps))
         config.instructions = slots.map {
             BubbleInstruction(timeRange: $0.timeRange, screenTrack: $0.screenTrack, cameraTrack: $0.cameraTrack,
                               scene: scene, sourceOffset: $0.sourceOffset, style: style)
         }
         return AVVideoComposition(configuration: config)
     }
+
+    /// The video's size before export scaling: the crop in the style's aspect ratio.
+    func canvasSize(for style: Style) -> CGSize { CanvasLayout.canvasSize(for: style, source: naturalSize) }
 
     private static func time(_ seconds: Double) -> CMTime { CMTime(seconds: seconds, preferredTimescale: 60_000) }
 

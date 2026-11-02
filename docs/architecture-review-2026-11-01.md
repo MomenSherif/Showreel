@@ -245,6 +245,11 @@ loses four cache fields; export from the Library needs no editor.
 Proof: golden frames, the self-test's 123 checks, editor snapshots.
 Why not Strong: export does not exist yet, so its needs are a guess until
 S-036. Do it as that story's first commit.
+Outcome (S-036, 2026-11-02): not done. Export… on a Library card opens the
+editor and its Export sheet (as DESIGN.md's flow allows), so the export
+always has an `EditorModel` and gets its inputs from `renderStyle(for:)`,
+the same call the preview uses. Revisit if an export ever runs with no
+window (a batch export, the agent CLI).
 
 ## ZoomBlock in its own file  [Speculative]
 

@@ -75,3 +75,13 @@ so those events were dropped.
 Fix: bubble moves and hide/show during a pause are stamped with the pause point, so they
 apply from where the video resumes.
 Rule: events that change state (not samples) must never be dropped while paused.
+
+## 2026-11-02 File menu had no Duplicate, Rename, Show in Finder, or Move to Trash
+Symptom: (found by the S-036 self-test) the File menu showed only New Recording, Open,
+Close, and Close All; ⌘D, ⌥⌘R, and ⌘⌫ did nothing from the menu bar.
+Cause: the group was `CommandGroup(after: .saveItem)`. An app with no `DocumentGroup` has
+no Save group, and SwiftUI silently drops commands placed after it.
+Fix: the group is `CommandGroup(after: .newItem)`, with a divider; the self-test now checks
+that each File command is in the menu.
+Rule: anchor command groups only to placements the app really has, and have the self-test
+read the menu bar for every new command.

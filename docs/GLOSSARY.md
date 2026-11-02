@@ -29,6 +29,10 @@ titles, tooltips, errors, and VoiceOver labels.
 | Preset | A saved style | template |
 | Captions | Timed text from your voice | subtitles, transcript |
 | Export | Render the project to a video file | download, render, save as |
+| Format | MP4, MOV, or GIF: the kind of file an export makes | file type, container, codec |
+| Resolution | 720p, 1080p, or 4K: the video's short side in pixels | size, dimensions |
+| Frame Rate | Frames each second, shown as "30 fps" | fps (alone), smoothness |
+| Quality | Standard, High, or Best: more quality makes a bigger file | bitrate, compression |
 
 ## Actions
 

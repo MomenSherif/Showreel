@@ -70,6 +70,12 @@ struct EditorView: View {
         .toolbarTitleMenu { RenameButton() }
         .sheet(isPresented: $editor.showsCropSheet) { CropSheet(editor: editor) }
         .sheet(isPresented: $editor.showsSavePreset) { SavePresetSheet(editor: editor) }
+        .sheet(isPresented: $editor.showsExportSheet) { ExportSheet(editor: editor) }
+        .alert("Unable to Export “\(project.title)”", isPresented: exportFailed) {
+            Button("OK") { editor.export = nil }
+        } message: {
+            if case .failed(let why) = editor.export?.state { Text(why) }
+        }
         .focusedSceneValue(\.editor, editor)
         .task { await editor.load() }
         .onAppear { editor.undoManager = undoManager }
@@ -79,6 +85,11 @@ struct EditorView: View {
             let clean = ProjectTitle.clean(title)
             if clean != title { project.title = clean }
         }
+    }
+
+    private var exportFailed: Binding<Bool> {
+        Binding(get: { if case .failed = editor.export?.state { true } else { false } },
+                set: { if !$0 { editor.export = nil } })
     }
 
     @ToolbarContentBuilder
@@ -92,11 +103,19 @@ struct EditorView: View {
                 .disabled(!editor.canRedo)
         }
         ToolbarItem(placement: .primaryAction) {
-            Button("Export…", systemImage: "square.and.arrow.up") {}
-                .labelStyle(.titleOnly)
-                .buttonStyle(.borderedProminent)
-                .help("Export a video (⌘E)")
-                .disabled(true) // S-036
+            if let run = editor.export, run.isRunning {
+                ProgressView(value: run.fraction)
+                    .progressViewStyle(.circular)
+                    .controlSize(.small)
+                    .help("Exporting \(run.url.lastPathComponent), \(Int(run.fraction * 100))%")
+                    .accessibilityLabel("Exporting \(run.url.lastPathComponent)")
+            } else {
+                Button("Export…", systemImage: "square.and.arrow.up") { editor.showExportSheet() }
+                    .labelStyle(.titleOnly)
+                    .buttonStyle(.borderedProminent)
+                    .help("Export a video (⌘E)")
+                    .disabled(!editor.canExport)
+            }
         }
         ToolbarItem(placement: .primaryAction) {
             Button(editor.showsInspector ? "Hide Inspector" : "Show Inspector", systemImage: "sidebar.trailing") {

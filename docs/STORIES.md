@@ -530,7 +530,27 @@ Acceptance:
 - [snap] The export sheet shows an estimated file size.
 - [unit] The rendered frame at t=5 s matches the preview frame (SSIM >
   0.98).
-Status: todo
+UX:
+- Flow: ⌘E, toolbar Export…, File > Export…, or Export… on a Library card
+  (opens the editor first) -> Export sheet with the last options and the
+  estimated size -> Export… (Return) closes it and opens the save panel,
+  named "<title>.mp4" -> Save starts the export (S-037 shows it). Cancel
+  (Esc) on either one ends with nothing written.
+- Surface: sheet (one short task that finishes or cancels), then the system
+  save panel, one after the other, never stacked.
+- Sheet: title "Export “<title>”". A grouped Form: Format (segmented MP4,
+  MOV, GIF, with a caption: MP4 "Plays everywhere.", MOV "Smaller file, for
+  Apple devices.", GIF "Loops in docs and chats. No sound."), Resolution
+  (menu 720p, 1080p, 4K; GIF has 720p and 1080p), Frame Rate (segmented
+  30 fps, 60 fps; GIF 15 fps, 30 fps), Quality (segmented Standard, High,
+  Best; hidden for GIF). Footer: "1920 × 1080 · about 48 MB".
+- States: a size larger than the recording says "Larger than the recording,
+  so it will look softer." under Resolution. A failed export shows "Unable
+  to Export “<title>”" with the reason and OK.
+- Words: Export…, Cancel. Hover on the toolbar button: "Export a video (⌘E)".
+- Access: Tab moves through the rows, Return exports, Esc cancels.
+  VoiceOver reads "Format, MP4" and "Estimated size, about 48 MB".
+Status: done
 
 ### S-037 Watch export progress and cancel
 As the user, I see a progress bar and time remaining while I keep
@@ -541,6 +561,11 @@ Acceptance:
 - [self] Cancelling deletes the partial file.
 - [manual] A 1-minute 1080p/60 export takes under 30 seconds on Apple
   silicon.
+UX: while it runs, a gauge replaces the toolbar's Export… button; it opens
+a popover (it also opens by itself when the export starts) with "Exporting
+<file name>", a bar, "About 20 seconds left", and Cancel. The editor stays
+usable; edits made now are not in this export. Closing the window asks
+"Stop Exporting “<title>”?" (Stop Exporting, Continue).
 Status: todo
 
 ### S-038 Share or reveal the exported file
@@ -551,6 +576,10 @@ Depends: S-036
 Acceptance:
 - [snap] A finished state with three buttons. Share opens the macOS Share
   sheet.
+UX: the same popover, opened by itself: a checkmark, "Exported <file
+name>", "1920 × 1080 · 48 MB", and Share…, Show in Finder, Copy (puts the
+file on the clipboard to paste into a chat). The toolbar button turns back
+into Export….
 Status: todo
 
 ---
