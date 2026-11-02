@@ -16,7 +16,7 @@ curl -fL --retry 3 --connect-timeout 20 -o "$tmp/w.zip" "$url"
 got=$(shasum -a 256 "$tmp/w.zip" | awk '{print $1}')
 [[ "$got" == "$sum" ]] || { echo "whisper.cpp checksum mismatch: $got"; exit 1; }
 unzip -q "$tmp/w.zip" -d "$tmp"
-rm -rf "$here/Vendor/whisper.xcframework" "$here"/Vendor/whisper-*
+rm -rf "$here/Vendor/whisper.xcframework" "$here"/Vendor/whisper-*(N)
 mkdir -p "$here/Vendor"
 mv "$tmp/build-apple/whisper.xcframework" "$target"
 touch "$here/Vendor/whisper-$release"
