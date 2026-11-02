@@ -1,4 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <!-- The screen being recorded -->
-  <rect x="178" y="248" width="572" height="410" rx="66" fill="#FFFFFF"/>
+  <!-- The viewfinder: four rounded corner brackets, like a capture's crop marks -->
+  <path d="M 376 232 A 34 34 0 0 1 376 300 H 316 A 16 16 0 0 0 300 316 V 376 A 34 34 0 0 1 232 376 V 316 A 84 84 0 0 1 316 232 Z" fill="#FFFFFF"/>
+  <path transform="matrix(-1 0 0 1 1024 0)" d="M 376 232 A 34 34 0 0 1 376 300 H 316 A 16 16 0 0 0 300 316 V 376 A 34 34 0 0 1 232 376 V 316 A 84 84 0 0 1 316 232 Z" fill="#FFFFFF"/>
+  <path transform="matrix(1 0 0 -1 0 1024)" d="M 376 232 A 34 34 0 0 1 376 300 H 316 A 16 16 0 0 0 300 316 V 376 A 34 34 0 0 1 232 376 V 316 A 84 84 0 0 1 316 232 Z" fill="#FFFFFF"/>
+  <path transform="matrix(-1 0 0 -1 1024 1024)" d="M 376 232 A 34 34 0 0 1 376 300 H 316 A 16 16 0 0 0 300 316 V 376 A 34 34 0 0 1 232 376 V 316 A 84 84 0 0 1 316 232 Z" fill="#FFFFFF"/>
 </svg>

@@ -1,6 +1,9 @@
 {
   "fill": {
-    "automatic-gradient": "srgb:0.45000,0.28000,0.95000,1.00000"
+    "linear-gradient": [
+      "srgb:0.47843,0.38824,1.00000,1.00000",
+      "srgb:0.14118,0.09412,0.41961,1.00000"
+    ]
   },
   "groups": [
     {
@@ -8,13 +11,13 @@
         {
           "glass": true,
           "image-name": "front.svg",
-          "name": "bubble"
+          "name": "play"
         },
         {
           "glass": true,
           "image-name": "back.svg",
-          "name": "screen",
-          "opacity": 0.6
+          "name": "viewfinder",
+          "opacity": 0.92
         }
       ],
       "shadow": {

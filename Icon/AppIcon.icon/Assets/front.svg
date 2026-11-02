@@ -1,4 +1,4 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <!-- The Camera Bubble over the screen's corner -->
-  <circle cx="706" cy="635" r="141" fill="#FFFFFF"/>
+  <!-- Play: the recording becomes a video -->
+  <path d="M 440.0 438.9 A 38 38 0 0 1 496.6 405.7 L 626.9 478.9 A 38 38 0 0 1 626.9 545.1 L 496.6 618.3 A 38 38 0 0 1 440.0 585.1 Z" fill="#FFFFFF"/>
 </svg>
