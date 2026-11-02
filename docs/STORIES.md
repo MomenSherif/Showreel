@@ -7,8 +7,8 @@ Snapshot pages: `permissions`, `menubar`, `record-panel`, `source-picker`,
 `area-selector`, `countdown`, `recording-controls`, `camera-bubble`, `library`,
 `library-empty`, `editor`, `editor-background`, `editor-screen`,
 `editor-camera`, `editor-effects`, `editor-captions`, `editor-audio`,
-`editor-zoom-selected`, `crop-sheet`, `export-sheet`, `export-progress`, `export-done`,
-`settings`.
+`editor-zoom-selected`, `editor-blur-selected`, `crop-sheet`, `export-sheet`, `export-progress`, `export-done`,
+`settings`, `settings-captions`.
 
 Seed data (snapshot mode): three projects ("Onboarding walkthrough" 0:42,
 "Pricing page tour" 1:15, "API keys demo" 0:28). Each one has a style, zoom
@@ -753,10 +753,125 @@ Acceptance:
   unchanged, so files are no bigger. The 60 fps playback check on an M1 is still to do by hand.
 Status: done
 
+## M9 Blur and languages
+Done when you can hide a password or an email on screen with a blur that
+holds through zooms and the export, and make captions from a talk that
+mixes Arabic and English, with the model of your choice, shown right to
+left.
+
+### S-048 Hide part of the screen with a blur
+As the user, I add a blur on the playhead and draw its rectangle on the
+canvas over what I want hidden.
+Screens: editor, editor-blur-selected
+Depends: S-015
+Acceptance:
+- [unit] A blur's rectangle is kept in recording coordinates (0...1), so it
+  stays on the same content when a zoom, crop, padding, or device frame
+  moves the screen.
+- [snap] The blurred area looks the same in the preview and in an exported
+  frame at the same time (golden frame).
+- [self] Add Blur puts a 3-second blur on the playhead and selects it; ⌘Z
+  removes it. Blurs on the blur lane cannot overlap; a cut removes or
+  shortens them like zooms (S-019).
+Status: todo
+
+### S-049 Edit, move, and delete a blur
+As the user, I select a blur to drag or resize its rectangle on the canvas,
+drag its edges on the timeline, set how strong it is, and delete it.
+Screens: editor-blur-selected
+Depends: S-048
+Acceptance:
+- [snap] The inspector shows Blur with Style (Blur, Pixelate), Strength, a
+  Timing row (Starts, Length), and Delete Blur.
+- [self] Each change is one undo step; ⌫ deletes the selected blur.
+- [snap] A selected blur shows its rectangle with handles on the canvas; an
+  unselected one shows no outline.
+Status: todo
+
+### S-050 Pick the speech model for captions
+As the user, I choose which speech model makes my captions, and the
+language I speak, in Settings and in the Captions inspector.
+Screens: settings-captions, editor-captions
+Depends: S-039
+Acceptance:
+- [snap] A Captions tab in Settings lists Speech Model (Apple, Whisper
+  Small, Whisper Large v3 Turbo) with each model's state: Built In, From
+  Handy, Downloaded, or its download size; and Language (Automatic, English,
+  Arabic, and the rest the model knows).
+- [snap] The Captions inspector shows the model and language under Generate
+  Captions, and changing them there changes the default.
+- [self] The choice is kept in `Store.defaults` and used by Generate
+  Captions; a model that is not on this Mac disables Generate Captions with
+  "Download Whisper Large v3 Turbo in Settings > Captions." and a button.
+- [unit] Picking Arabic with Apple's model is not offered: the Language list
+  comes from the chosen model.
+Status: todo
+
+### S-051 Get a Whisper model, or use Handy's
+As the user, I download a Whisper model once, or Showreel uses the copy
+Handy already has, with no second download.
+Screens: settings-captions
+Depends: S-050
+Acceptance:
+- [unit] A `ggml-small.bin` or `ggml-large-v3-turbo.bin` in
+  `~/Library/Application Support/com.pais.handy/models/` is found and used
+  in place (read only, never moved or deleted); otherwise models live in
+  `~/Library/Application Support/Showreel/Models/`.
+- [self] A download shows progress and can be cancelled; a cancelled or
+  broken download leaves no file behind, and a file of the wrong size is
+  refused.
+- [snap] A downloaded model has Delete…; a model from Handy shows "From
+  Handy" and no Delete.
+Status: todo
+
+### S-052 Make captions with Whisper
+As the user, I generate captions with a Whisper model, on this Mac, with
+the same flow and the same word timing as Apple's model.
+Screens: editor-captions
+Depends: S-051
+Acceptance:
+- [unit] whisper.cpp (Metal) turns a known English clip into words with
+  start and end times within 0.2 s of Apple's, grouped into the same
+  42-character lines.
+- [self] Progress, Cancel, Try Again, Undo Generate Captions, and Generate
+  Again work as in S-039; cancelling frees the model.
+- [manual] A 5-minute English talk with Large v3 Turbo takes under a minute
+  on an M1.
+Status: todo
+
+### S-053 Captions for Arabic and mixed Arabic and English
+As the user, I talk in Arabic with English words mixed in, and get captions
+in Arabic script with the English words kept in English letters.
+Screens: editor-captions
+Depends: S-052
+Acceptance:
+- [unit] Language Arabic or Automatic on the Arabic test clip gives Arabic
+  words; English product words in it ("dashboard", "API key") stay in Latin
+  letters (Whisper is started with a mixed Arabic and English prompt).
+- [unit] Lines break at word edges by characters, not bytes, and keep
+  Arabic marks with their letters.
+- [manual] A real 1-minute mixed Arabic and English recording reads right to
+  a native speaker, with English terms in Latin letters.
+Status: todo
+
+### S-054 Show Arabic captions right to left
+As the user, I see Arabic and mixed captions read right to left in the
+preview, the export, the timeline, and the caption editor.
+Screens: editor-captions
+Depends: S-053
+Acceptance:
+- [snap] An Arabic caption and a mixed Arabic and English caption render
+  right to left, with English words in reading order, the same in the
+  preview and an exported frame (golden frames).
+- [snap] Highlight Spoken Word lights the right word in a right-to-left and
+  in a mixed line.
+- [snap] The caption text field and caption block tooltips follow the
+  text's direction.
+Status: todo
+
 ---
 
 ## Later
-- Blur regions on the timeline ("Add blur")
 - Speed changes for a section (1.5×, 2×, skip silence)
 - Multiple clips per project, intro and outro cards
 - Background music track

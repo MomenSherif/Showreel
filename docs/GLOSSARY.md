@@ -29,6 +29,9 @@ titles, tooltips, errors, and VoiceOver labels.
 | Preset | A saved style | template |
 | Captions | Timed text from your voice | subtitles, transcript |
 | Caption | One line of captions, shown for a few seconds | subtitle, line, segment |
+| Blur | A timed rectangle that hides part of the screen, blurred or pixelated | redact, mask, censor, blur region |
+| Speech Model | The on-device model that turns your voice into captions: Apple, Whisper Small, or Whisper Large v3 Turbo | engine, ASR, transcriber |
+| From Handy | A Whisper model Showreel reads from the Handy app's folder instead of downloading it | shared, imported |
 | Export | Render the project to a video file | download, render, save as |
 | Format | MP4, MOV, or GIF: the kind of file an export makes | file type, container, codec |
 | Resolution | 720p, 1080p, or 4K: the video's short side in pixels | size, dimensions |
@@ -54,5 +57,7 @@ titles, tooltips, errors, and VoiceOver labels.
 | Duplicate | Copy a project with its edits | clone, copy |
 | Move to Trash | Remove a project. It can be restored from the Trash or with Undo | delete, remove |
 | Generate Captions | Make captions from the microphone recording, on this Mac | transcribe, auto caption |
+| Add Blur | Put a blur on the playhead and draw it on the canvas | redact, add mask |
+| Download | Get a speech model once, to use on this Mac | install, fetch |
 | Mute Section | Silence the audio of the selected section; the video keeps playing | mute clip, silence |
 | Reduce Noise | Remove fan hum and room noise from the mic, on this Mac | denoise, noise gate, voice isolation |
