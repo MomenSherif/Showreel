@@ -67,6 +67,11 @@ extension SelfTest {
         check("menu bar menu has New Recording, Open Library, Settings, Quit",
               ["New Recording", "Open Library", "Settings…", "Quit Showreel"].allSatisfy(titles.contains),
               titles.joined(separator: ", "))
+        // S-046: the Dock and About take the icon from the bundle's Assets.car.
+        let iconName = Bundle.main.object(forInfoDictionaryKey: "CFBundleIconName") as? String
+        let assets = Bundle.main.url(forResource: "Assets", withExtension: "car")
+        check("the app has its own icon for the Dock and About", iconName == "AppIcon" && assets != nil,
+              "\(iconName ?? "no CFBundleIconName"), Assets.car \(assets == nil ? "missing" : "present")")
         let mainMenu = NSApp.mainMenu?.items.map(\.title) ?? []
         check("the menu bar has a Record menu", mainMenu.contains("Record"), mainMenu.joined(separator: ", "))
     }

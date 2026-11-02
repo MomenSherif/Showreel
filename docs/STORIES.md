@@ -733,7 +733,9 @@ Status: done
 ### S-046 App icon
 Acceptance:
 - [snap] A Liquid Glass icon in the Dock, the library, and About.
-Status: todo
+  (Dock and About from the bundle's Assets.car, page "about"; the Library's empty state
+  "empty" and the Welcome window "welcome" show it too. The icon itself landed in 962ddc9.)
+Status: done
 
 ### S-047 Smooth preview on big recordings
 Acceptance:

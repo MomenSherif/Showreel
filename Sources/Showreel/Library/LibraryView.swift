@@ -55,7 +55,11 @@ struct LibraryView: View {
     private var content: some View {
         if allProjects.isEmpty || model.page == .empty {
             ContentUnavailableView {
-                Label("No Recordings Yet", systemImage: "film.stack")
+                Label {
+                    Text("No Recordings Yet")
+                } icon: {
+                    AppIconImage(size: Layout.appIconLarge)
+                }
             } description: {
                 Text("Record your screen, voice, and camera. Showreel adds zooms and a frame for you.")
             } actions: {

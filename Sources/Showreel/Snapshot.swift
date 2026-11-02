@@ -88,7 +88,16 @@ enum Snapshot {
                     },
                     window: { RecordingControls.shared.panel },
                     hide: { RecordingControls.shared.hide(); recorder.snapshotState(.idle) }),
+            // S-046: the standard About panel, with the app icon.
+            // AppKit's About panel is a plain NSPanel with no title.
+            Surface(name: "about", show: { NSApp.orderFrontStandardAboutPanel(nil) },
+                    window: { aboutPanel },
+                    hide: { aboutPanel?.close() }),
         ] + editorSurfaces(model: model)
+    }
+
+    private static var aboutPanel: NSWindow? {
+        NSApp.windows.first { $0.isVisible && type(of: $0) == NSPanel.self && $0.title.isEmpty }
     }
 
     static func runIfRequested(model: AppModel, openSettings: OpenSettingsAction) {

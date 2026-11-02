@@ -8,12 +8,15 @@ struct WelcomeView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.xl) {
-            VStack(alignment: .leading, spacing: Space.xs) {
-                Text("Welcome to Showreel")
-                    .font(.title2.weight(.semibold))
-                Text("Showreel needs your permission to record. Your recordings stay on this Mac.")
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            HStack(alignment: .center, spacing: Space.lg) {
+                AppIconImage(size: Layout.appIconSmall)
+                VStack(alignment: .leading, spacing: Space.xs) {
+                    Text("Welcome to Showreel")
+                        .font(.title2.weight(.semibold))
+                    Text("Showreel needs your permission to record. Your recordings stay on this Mac.")
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             .gridProbe("header", area: "welcome")
 
