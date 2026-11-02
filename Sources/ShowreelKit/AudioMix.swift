@@ -24,14 +24,17 @@ public struct AudioMix: Codable, Equatable, Sendable {
     /// 0...2: 1 is as recorded.
     public var microphone: Double = 1
     public var systemAudio: Double = 1
+    /// Reduce Noise (S-043): the mic plays from its cleaned copy.
+    public var reducesNoise = false
     /// Sorted, never overlapping or touching.
     public private(set) var muted: [Span] = []
 
     public static let volumeRange: ClosedRange<Double> = 0...2
 
-    public init(microphone: Double = 1, systemAudio: Double = 1, muted: [Span] = []) {
+    public init(microphone: Double = 1, systemAudio: Double = 1, reducesNoise: Bool = false, muted: [Span] = []) {
         self.microphone = microphone
         self.systemAudio = systemAudio
+        self.reducesNoise = reducesNoise
         self.muted = []
         for span in muted { mute(from: span.start, to: span.end) }
     }
@@ -98,12 +101,13 @@ public struct AudioMix: Codable, Equatable, Sendable {
         return mix
     }
 
-    enum CodingKeys: String, CodingKey { case microphone, systemAudio, muted }
+    enum CodingKeys: String, CodingKey { case microphone, systemAudio, reducesNoise, muted }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         self.init(microphone: (try? c.decodeIfPresent(Double.self, forKey: .microphone)) ?? 1,
                   systemAudio: (try? c.decodeIfPresent(Double.self, forKey: .systemAudio)) ?? 1,
+                  reducesNoise: (try? c.decodeIfPresent(Bool.self, forKey: .reducesNoise)) ?? false,
                   muted: (try? c.decodeIfPresent([Span].self, forKey: .muted)) ?? [])
     }
 }

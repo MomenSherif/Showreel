@@ -12,6 +12,7 @@ struct AudioSection: View {
             Section("Volume") {
                 if project.hasMicrophone {
                     VolumeSlider(title: "Microphone", source: .microphone, editor: editor)
+                    NoiseRow(editor: editor)
                 }
                 if project.hasSystemAudio {
                     VolumeSlider(title: "System Audio", source: .systemAudio, editor: editor)
@@ -34,6 +35,33 @@ struct AudioSection: View {
             }
         }
         .formStyle(.grouped)
+    }
+}
+
+/// Reduce Noise (S-043): a switch, its progress the first time, or why it failed.
+private struct NoiseRow: View {
+    let editor: EditorModel
+
+    var body: some View {
+        if let job = editor.noiseJob, job.isRunning {
+            VStack(alignment: .leading, spacing: Space.sm) {
+                Text("Reducing noise in your voice…")
+                HStack(spacing: Space.md) {
+                    ProgressView(value: job.fraction)
+                        .accessibilityLabel("Reducing noise")
+                    Button("Cancel") { job.cancel() }
+                        .controlSize(.small)
+                        .help("Stop reducing noise")
+                }
+            }
+        } else {
+            Toggle(isOn: Binding(get: { editor.audio.reducesNoise }, set: { editor.setReducesNoise($0) })) {
+                Text("Reduce Noise")
+                Text(editor.noiseJob?.failure ?? "Removes fan hum and room noise from your voice, on this Mac.")
+                    .foregroundStyle(.secondary)
+            }
+            .help("Remove background noise from the microphone")
+        }
     }
 }
 

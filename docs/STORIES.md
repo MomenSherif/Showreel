@@ -677,8 +677,16 @@ Screens: editor-audio
 Depends: S-042
 Acceptance:
 - [manual] Fan hum is clearly reduced, and the voice does not sound
-  robotic.
-Status: todo
+  robotic. (Automated stand-in: hum and hiss drop by over 20 dB and the cleaned voice still
+  transcribes word for word; the listening check is still to do.)
+UX:
+- Flow: Audio inspector > Reduce Noise switch under the mic volume -> the first time, "Reducing noise
+  in your voice…" with a bar and Cancel -> the mic plays from a clean copy -> ⌘Z turns it off.
+- Surface: inline switch in the inspector (one value on what is on screen).
+- States: unavailable "Reduce Noise isn't available on this Mac." under the switch; failure text in the
+  same place.
+- Words: "Reduce Noise", "Removes fan hum and room noise from your voice, on this Mac."
+Status: done
 
 ---
 

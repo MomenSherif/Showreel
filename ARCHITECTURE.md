@@ -29,6 +29,7 @@ ShowreelEngine holds the media code, with no SwiftUI or AppKit, so
 | `CaptionPainter` | The caption on screen at a time: Core Text at output size, in its box, the spoken word on a pill; cached per caption and word |
 | `AudioLevels` | Track volumes and muted ranges as plain values; `audioMix()` is the AVAudioMix the preview and the export both play |
 | `WaveformReader` | An audio file's peaks, 50 a second, for the audio lane |
+| `NoiseReducer` | Reduce Noise: renders mic.m4a through AUSoundIsolation (offline AVAudioEngine, resampled to 48 kHz) into mic-clean.m4a |
 | `Exporter` | Reads a composition through its video composition (so `Renderer` draws every frame) and writes MP4 (H.264), MOV (HEVC), or GIF; cancelling deletes the file |
 
 The app keeps what needs AppKit or SwiftData: `CaptureSource` (the Record
@@ -120,6 +121,8 @@ Audio (S-042) is an `AudioMix` (ShowreelKit) in `Project.audioData`: a
 volume per track and muted spans in source time. `PlayerSources.audioLevels`
 turns it into `AudioLevels` for a composition (edit time), set on the player
 item and handed to `Exporter`. A change swaps only the item's audio mix.
+Reduce Noise (`AudioMix.reducesNoise`) swaps the mic's file for mic-clean.m4a
+(made once by `NoiseReducer`), so it rebuilds the item instead.
 
 ## Recording
 

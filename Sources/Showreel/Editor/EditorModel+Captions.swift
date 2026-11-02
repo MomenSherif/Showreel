@@ -52,7 +52,9 @@ extension EditorModel {
     @discardableResult
     func generateCaptions(from audio: URL? = nil) -> CaptionJob? {
         guard captionJob?.isRunning != true else { return captionJob }
-        let url = audio ?? ProjectStore.file(ProjectFiles.microphone, of: project.uuid)
+        // With Reduce Noise on, captions are made from the clean voice.
+        let url = audio ?? (self.audio.reducesNoise && sources?.cleanMicrophone != nil
+            ? cleanMicrophoneURL : ProjectStore.file(ProjectFiles.microphone, of: project.uuid))
         let job = CaptionJob()
         captionJob = job
         section = .captions

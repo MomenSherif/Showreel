@@ -133,7 +133,7 @@ extension EditorModel {
         guard let sources, export?.isRunning != true else { return nil }
         let settings = settings.fitted()
         let size = settings.outputSize(canvas: sources.canvasSize(for: style))
-        let (composition, slots) = sources.composition(for: edits)
+        let (composition, slots) = sources.composition(for: edits, reducesNoise: audio.reducesNoise)
         let video = sources.videoComposition(slots: slots, style: renderStyle(for: style), renderSize: size, fps: settings.fps)
         // An immutable copy, which AVFoundation documents as safe to read
         // from any thread: the reader works on it off the main thread.

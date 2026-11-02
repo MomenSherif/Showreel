@@ -95,3 +95,17 @@ Fix: the guard looks the running export up by project ID (`EditorModel.runningEx
 when the window asks.
 Rule: never let a closure handed to AppKit read a SwiftUI `@State` model later; pass an ID
 and look the object up, or keep the object in a reference AppKit owns.
+
+## 2026-11-02 The self-test crashed in SwiftUI after Reduce Noise
+Symptom: (S-043 self-test) the app crashed with EXC_BAD_ACCESS inside
+`swift_task_isMainExecutor`, on the main run loop, in a SwiftData or Canvas view update,
+right after an undo check. It looked like the voice isolation unit, but moving that out of
+process did not change it.
+Cause: the self-test turns `groupsByEvent` off and called an undoable action outside
+`beginUndoGrouping`. NSUndoManager raised an Objective-C exception; AppKit caught it in the
+run loop after it had unwound through Swift async frames, which left the concurrency
+runtime's state broken, so a later main-actor check crashed.
+Fix: the step is wrapped in `beginUndoGrouping` / `endUndoGrouping` like the others.
+Rule: with `groupsByEvent` off, wrap every undoable call in a group. A crash in
+`swift_task_isCurrentExecutor` far from your code means look for an Objective-C exception
+earlier in the log.

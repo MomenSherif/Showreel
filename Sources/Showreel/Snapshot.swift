@@ -278,6 +278,14 @@ enum Snapshot {
                                  },
                                  window: window,
                                  hide: { EditorModel.newest?.previewAudio(AudioMix()) })
+        // S-043: Reduce Noise making the clean mic the first time.
+        let noiseProgress = Surface(name: "editor-audio-noise", show: {
+                                        guard let editor = await openEditor() else { return }
+                                        editor.section = .audio
+                                        editor.noiseJob = .shown(fraction: 0.45)
+                                    },
+                                    window: window,
+                                    hide: { EditorModel.newest?.noiseJob = nil })
         // S-038: the finished export, with Share…, Show in Finder, and Copy.
         let done = Surface(name: "export-done", show: {
                                guard let editor = await openEditor() else { return }
@@ -299,7 +307,7 @@ enum Snapshot {
                     },
                     window: window,
                     hide: {})
-        } + [trim, split, crop, frame, aspect, savePreset, export, progress, done, zoomSelected, click, zoomed, captionsProgress, captionsFailed, captionSelected, audioMuted]
+        } + [trim, split, crop, frame, aspect, savePreset, export, progress, done, zoomSelected, click, zoomed, captionsProgress, captionsFailed, captionSelected, audioMuted, noiseProgress]
     }
 
     static func runIfRequested(model: AppModel, openSettings: OpenSettingsAction) {

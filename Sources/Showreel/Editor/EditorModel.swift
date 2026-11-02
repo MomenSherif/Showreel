@@ -86,6 +86,8 @@ final class EditorModel {
     var audio = AudioMix()
     /// Each recorded track's loudness, for the audio lane (S-042). Loaded after the player.
     var waveforms: [AudioSource: Waveform] = [:]
+    /// Reduce Noise making the clean mic, or the reason it stopped (S-043).
+    var noiseJob: NoiseJob?
     /// The caption selected on the timeline (S-040).
     var selectedCaption: Caption.ID?
     /// A double-click asked the inspector to put the cursor in the caption's text.
@@ -96,7 +98,7 @@ final class EditorModel {
     @ObservationIgnored var cursorTrackCache: (smoothing: Double, hides: Bool, track: CursorTrack)?
     @ObservationIgnored var clickMarksCache: ClickMarks?
 
-    @ObservationIgnored private(set) var sources: PlayerSources?
+    @ObservationIgnored var sources: PlayerSources?
     /// The current item's segments, so a style change can redraw without a rebuild.
     @ObservationIgnored var slots: [PlayerSources.Slot] = []
     /// Background pictures, loaded once at the canvas size, by file path.
@@ -200,7 +202,7 @@ final class EditorModel {
     /// moment is still in the video. Drags apply once, when they end, so a
     /// drag is one step.
     func apply(_ new: EditList, named name: String = "Edit") {
-        guard new != edits, let sources, let player else { draft = nil; return }
+        guard new != edits, sources != nil, player != nil else { draft = nil; return }
         let old = edits
         undoManager?.registerUndo(withTarget: self) { editor in
             MainActor.assumeIsolated { editor.apply(old, named: name) }
@@ -215,13 +217,20 @@ final class EditorModel {
         // per action, and a crash must not lose it.
         try? project.modelContext?.save()
         if let selectedSegment, !new.segments.contains(where: { $0.id == selectedSegment }) { self.selectedSegment = nil }
+        rebuildItem(keeping: source)
+        refreshUndo()
+    }
+
+    /// Builds the player item again for the cut and the mix, keeping the
+    /// playhead on the recording's moment `source` when it is still in the video.
+    func rebuildItem(keeping source: Double?) {
+        guard let sources, let player else { return }
         let wasPlaying = isPlaying
-        let built = sources.item(for: new, style: renderStyle(for: style), mix: audio)
+        let built = sources.item(for: edits, style: renderStyle(for: style), mix: audio)
         slots = built.slots
         player.replaceCurrentItem(with: built.item)
-        seek(to: source.flatMap { new.editTime(atSourceTime: $0) } ?? min(playhead.time, duration))
+        seek(to: source.flatMap { edits.editTime(atSourceTime: $0) } ?? min(playhead.time, duration))
         if wasPlaying { player.play() }
-        refreshUndo()
     }
 
     func observeUndo() {

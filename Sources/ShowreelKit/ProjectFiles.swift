@@ -8,11 +8,13 @@ public enum ProjectFiles {
     public static let camera = "camera.mov"
     public static let microphone = "mic.m4a"
     public static let systemAudio = "system.m4a"
+    /// The mic with the background noise removed, made when Reduce Noise is turned on (S-043).
+    public static let cleanMicrophone = "mic-clean.m4a"
     /// Cursor moves, clicks, key presses, and Camera Bubble moves (`EventLog`).
     public static let events = "events.json"
     public static let thumbnail = "thumbnail.jpg"
 
-    public static let all = [screen, camera, microphone, systemAudio, events, thumbnail]
+    public static let all = [screen, camera, microphone, systemAudio, cleanMicrophone, events, thumbnail]
 
     /// The project folder's name: the project's id, so renaming never moves files.
     public static func folderName(for id: UUID) -> String { id.uuidString }

@@ -25,6 +25,8 @@ struct PlayerSources {
     let screen: Track
     /// The mic and system audio that were recorded, in that order.
     let audio: [(source: AudioSource, track: Track)]
+    /// The mic with its noise removed, once Reduce Noise made it (S-043).
+    var cleanMicrophone: Track?
     let camera: Track?
     let naturalSize: CGSize
     /// Length of screen.mov, in seconds.
@@ -62,7 +64,10 @@ struct PlayerSources {
                                 cornerRatio: project.bubbleShape == BubbleStyle.Shape.roundedSquare.rawValue
                                     ? Radius.bubbleSquareRatio : 0.5,
                                 cursor: CursorPath(log?.cursor ?? []))
-        return PlayerSources(screen: screen, audio: audio, camera: camera, naturalSize: natural, duration: duration, scene: scene, events: log)
+        let cleanURL = ProjectStore.file(ProjectFiles.cleanMicrophone, of: id)
+        let clean = FileManager.default.fileExists(atPath: cleanURL.path) ? await Track.load(cleanURL, .audio) : nil
+        return PlayerSources(screen: screen, audio: audio, cleanMicrophone: clean, camera: camera, naturalSize: natural,
+                             duration: duration, scene: scene, events: log)
     }
 
     /// One kept segment's place in a built item: what its instruction needs.
@@ -76,7 +81,7 @@ struct PlayerSources {
     /// The kept segments, one after another, drawn with `style`. The slots
     /// let a style change swap the video composition without rebuilding the item.
     func item(for edits: EditList, style: RenderStyle, mix: AudioMix) -> (item: AVPlayerItem, slots: [Slot]) {
-        let (composition, slots) = composition(for: edits)
+        let (composition, slots) = composition(for: edits, reducesNoise: mix.reducesNoise)
         let item = AVPlayerItem(asset: composition)
         item.videoComposition = videoComposition(slots: slots, style: style)
         item.audioMix = audioLevels(for: composition, edits: edits, mix: mix).audioMix()
@@ -96,10 +101,11 @@ struct PlayerSources {
 
     /// The kept segments, one after another, with the slots that say where
     /// each one landed. The preview plays it; the export reads a copy.
-    func composition(for edits: EditList) -> (composition: AVMutableComposition, slots: [Slot]) {
+    /// With `reducesNoise`, the mic plays from its clean copy when there is one.
+    func composition(for edits: EditList, reducesNoise: Bool = false) -> (composition: AVMutableComposition, slots: [Slot]) {
         let composition = AVMutableComposition()
         let screenTrack = composition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid)
-        let audioTracks = audio.map { ($0.track, composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid)) }
+        let audioTracks = audio.map { (playing($0, reducesNoise: reducesNoise), composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid)) }
         let cameraTrack = camera.map { ($0, composition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid)) }
 
         var slots: [Slot] = []
@@ -121,6 +127,12 @@ struct PlayerSources {
             at = at + range.duration
         }
         return (composition, slots)
+    }
+
+    /// The file a track plays from: the clean mic when Reduce Noise is on and it was made.
+    func playing(_ entry: (source: AudioSource, track: Track), reducesNoise: Bool) -> Track {
+        guard entry.source == .microphone, reducesNoise, let cleanMicrophone else { return entry.track }
+        return cleanMicrophone
     }
 
     /// How every frame is drawn: the slots with the bubble scene and `style`.

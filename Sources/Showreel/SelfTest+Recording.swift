@@ -113,6 +113,7 @@ extension SelfTest {
         let log = (try? Data(contentsOf: ProjectStore.file(ProjectFiles.events, of: project.uuid))).flatMap { try? EventLog.decode($0) }
         check("events.json decodes", log != nil)
         await editor(project)
+        await noiseReduction(model, screenFrom: project)
         for window in NSApp.windows where window.title == project.title { window.close() }
         try? FileManager.default.removeItem(at: ProjectStore.folder(for: project.uuid))
         model.context.delete(project)

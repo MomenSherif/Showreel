@@ -51,3 +51,4 @@ titles, tooltips, errors, and VoiceOver labels.
 | Move to Trash | Remove a project. It can be restored from the Trash or with Undo | delete, remove |
 | Generate Captions | Make captions from the microphone recording, on this Mac | transcribe, auto caption |
 | Mute Section | Silence the audio of the selected section; the video keeps playing | mute clip, silence |
+| Reduce Noise | Remove fan hum and room noise from the mic, on this Mac | denoise, noise gate, voice isolation |

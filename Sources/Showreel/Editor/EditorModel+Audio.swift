@@ -32,7 +32,13 @@ extension EditorModel {
         audio = new
         project.audioData = new == AudioMix() ? nil : new.encoded()
         try? project.modelContext?.save()
-        remix()
+        if old.reducesNoise != new.reducesNoise {
+            // Another file plays: build the item again, and redraw the mic's waveform.
+            rebuildItem(keeping: edits.sourceTime(atEditTime: playhead.time))
+            loadWaveforms()
+        } else {
+            remix()
+        }
         refreshUndo()
     }
 
@@ -76,7 +82,7 @@ extension EditorModel {
     /// Reads each recorded track's loudness off the main thread.
     func loadWaveforms() {
         guard let sources else { return }
-        let files = sources.audio.map { ($0.source, $0.track.asset.url) }
+        let files = sources.audio.map { ($0.source, sources.playing($0, reducesNoise: audio.reducesNoise).asset.url) }
         Task {
             for (source, url) in files {
                 if let wave = await WaveformReader.read(url) { waveforms[source] = wave }
@@ -88,5 +94,80 @@ extension EditorModel {
     /// at their volumes, 0...1.
     nonisolated static func loudness(of waves: [AudioSource: Waveform], mix: AudioMix, from start: Double, to end: Double) -> Float {
         waves.map { source, wave in wave.peak(from: start, to: end) * Float(mix.volume(of: source)) }.max().map { min($0, 1) } ?? 0
+    }
+}
+
+/// Reduce Noise making the clean mic (S-043): its progress, or why it stopped.
+@Observable
+final class NoiseJob {
+    private(set) var fraction: Double = 0
+    private(set) var failure: String?
+    @ObservationIgnored fileprivate var task: Task<Void, Never>?
+
+    var isRunning: Bool { failure == nil && task != nil }
+
+    func cancel() { task?.cancel() }
+
+    /// Waits until it ends. For the self-test.
+    func finished() async { await task?.value }
+
+    fileprivate func report(_ fraction: Double) { self.fraction = fraction }
+    fileprivate func fail(_ text: String) { failure = text }
+
+    /// A job frozen at `fraction`, or failed with `failure`, for snapshot pages.
+    static func shown(fraction: Double, failure: String? = nil) -> NoiseJob {
+        let job = NoiseJob()
+        job.fraction = fraction
+        job.failure = failure
+        if failure == nil { job.task = Task {} }
+        return job
+    }
+}
+
+/// Reduce Noise (S-043): the mic plays from a copy with the background
+/// removed. The copy is made once, the first time it is turned on.
+extension EditorModel {
+    var cleanMicrophoneURL: URL { ProjectStore.file(ProjectFiles.cleanMicrophone, of: project.uuid) }
+
+    /// The Reduce Noise switch. Turning it on the first time makes the clean
+    /// mic first; the switch is one undo step once it is applied.
+    func setReducesNoise(_ on: Bool) {
+        guard on != audio.reducesNoise, noiseJob?.isRunning != true else { return }
+        guard on, sources?.cleanMicrophone == nil else {
+            var mix = audio
+            mix.reducesNoise = on
+            applyAudio(mix, named: on ? "Reduce Noise" : "Turn Off Reduce Noise")
+            return
+        }
+        let job = NoiseJob()
+        noiseJob = job
+        let input = ProjectStore.file(ProjectFiles.microphone, of: project.uuid), output = cleanMicrophoneURL
+        job.task = Task { [weak self, weak job] in
+            do {
+                try await NoiseReducer.clean(input, to: output) { fraction in
+                    Task { @MainActor in job?.report(fraction) }
+                }
+                try Task.checkCancellation()
+                guard let self, let track = await PlayerSources.Track.load(output, .audio) else {
+                    job?.fail("Unable to read the cleaned microphone recording.")
+                    return
+                }
+                sources?.cleanMicrophone = track
+                if noiseJob === job { noiseJob = nil }
+                var mix = audio
+                mix.reducesNoise = true
+                applyAudio(mix, named: "Reduce Noise")
+            } catch is CancellationError {
+                if self?.noiseJob === job { self?.noiseJob = nil }
+            } catch NoiseReducer.Failure.unavailable {
+                job?.fail("Reduce Noise isn’t available on this Mac.")
+            } catch {
+                if Task.isCancelled {
+                    if self?.noiseJob === job { self?.noiseJob = nil }
+                } else {
+                    job?.fail("Unable to reduce noise. \(error.localizedDescription)")
+                }
+            }
+        }
     }
 }
