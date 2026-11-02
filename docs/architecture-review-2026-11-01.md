@@ -165,7 +165,7 @@ instant for a handful of segments. Measure it on a 30-minute recording with
 The M4 rules (`Style`, `CropRect`, `CanvasLayout`) went into ShowreelKit with
 unit tests, and the look is drawn by `Renderer` with golden frames, as planned.
 
-## One edit door for every project part  [Worth exploring — before S-031/S-032]
+## One edit door for every project part  [Worth exploring — done before S-031]
 
 Files: Editor/EditorModel.swift, Editor/EditorModel+Style.swift
 Signal: before a big feature (M5 zooms, then M7 captions). `apply(_:named:)`
@@ -186,6 +186,11 @@ FIXLOG rule about `registerUndo` inside a group lives in one place.
 Proof: the self-test's undo and redo checks, and the editor snapshots.
 Why not Strong: two callers today. Do it when the zoom edits arrive (S-031),
 as the first commit of that story, if the copy shows up.
+Done: `EditorModel.commitDrawn(from:to:named:current:set:)` holds the undo,
+save, and redraw steps; style uses it and zooms will. Key paths to the
+main-actor properties are not Sendable, so it takes a getter and a setter.
+The cut keeps its own `apply`, because it rebuilds the item and moves the
+playhead. Proof: the self-test passes all 99 checks, its style undo checks included.
 
 ## EditSession out of EditorModel  [Speculative]
 
