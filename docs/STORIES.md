@@ -464,7 +464,11 @@ Depends: S-030
 Acceptance:
 - [snap] The inspector shows Scale (1–4×), Focus (Auto / Follow cursor /
   Fixed point), and Delete.
-Status: todo
+UX: clicking a zoom block selects it (accent ring) and swaps the inspector
+to "Zoom" with Done (Esc): Scale slider with "2×", Focus menu, a Focus
+Point preview to drag (dragging makes it Fixed Point), Timing (Starts,
+Length), and Delete Zoom (⌫). Picking a section or Done goes back.
+Status: done
 
 ### S-032 Add, move, resize, and delete zooms
 As the user, I click an empty spot on the zoom track to add a zoom, drag

@@ -37,6 +37,13 @@ public struct ZoomSegment: Codable, Equatable, Identifiable, Sendable {
 
     public var length: Double { end - start }
 
+    /// Where the zoom looks at `t`: its spot, or for Follow Cursor the
+    /// smoothed cursor (its spot when no cursor was recorded).
+    public func spot(at t: Double, cursor: CursorPath) -> CGPoint {
+        if focus == .followCursor, let p = cursor.smoothed(at: t) { return p }
+        return CGPoint(x: x, y: y)
+    }
+
     public static let scaleRange: ClosedRange<Double> = 1...4
 }
 
@@ -66,14 +73,22 @@ public struct ZoomTrack: Codable, Equatable, Sendable {
     public static let easeTime = 0.5
 
     /// The zoom at source time `t`: it eases in from the segment's start
-    /// and out toward its end (S-033 replaces this with a spring).
-    public func view(at t: Double) -> ZoomView {
-        guard let segment = segments.first(where: { $0.start <= t && t <= $0.end }) else { return .none }
+    /// and out toward its end (S-033 replaces this with a spring). Spots are
+    /// normalized to the whole recording; `crop` maps them onto the part
+    /// that shows. Follow Cursor looks at `cursor`, smoothed.
+    public func view(at t: Double, cursor: CursorPath = CursorPath(), crop: CropRect = .full) -> ZoomView {
+        guard let segment = segment(at: t) else { return .none }
         let ramp = min(Self.easeTime, segment.length / 3)
         let progress = ramp > 0 ? min((t - segment.start) / ramp, (segment.end - t) / ramp, 1) : 1
         let eased = progress * progress * (3 - 2 * progress)
         let scale = 1 + (min(max(segment.scale, 1), 4) - 1) * eased
-        return Self.view(scale: scale, x: segment.x, y: segment.y)
+        let spot = crop.mapClamped(segment.spot(at: t, cursor: cursor))
+        return Self.view(scale: scale, x: spot.x, y: spot.y)
+    }
+
+    /// The segment that covers `t`.
+    public func segment(at t: Double) -> ZoomSegment? {
+        segments.first { $0.start <= t && t <= $0.end }
     }
 
     /// The window of the recording `scale` times bigger, centered on (x, y)

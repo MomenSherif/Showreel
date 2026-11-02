@@ -8,7 +8,7 @@ struct EditorInspector: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Picker("Section", selection: $editor.section.animation(Motion.resolved(Motion.ui))) {
+            Picker("Section", selection: sectionBinding.animation(Motion.resolved(Motion.ui))) {
                 ForEach(InspectorSection.allCases) { section in
                     Label(section.title, systemImage: section.symbol)
                         .help(section.title)
@@ -21,15 +21,39 @@ struct EditorInspector: View {
             .padding(.horizontal, Space.lg)
             .padding(.vertical, Space.md)
 
-            Text(editor.section.title)
-                .font(.headline)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            if let zoom = editor.selectedZoomSegment {
+                // A selected zoom takes the section's place (docs/DESIGN.md, "Inspector").
+                HStack {
+                    Label("Zoom", systemImage: TrackKind.zoom.symbol)
+                        .font(.headline)
+                        .accessibilityAddTraits(.isHeader)
+                    Spacer()
+                    Button("Done") { withMotion(Motion.ui) { editor.selectZoom(nil) } }
+                        .keyboardShortcut(.cancelAction)
+                        .help("Back to \(editor.section.title) (Esc)")
+                }
                 .padding(.horizontal, Space.xl)
-                .accessibilityAddTraits(.isHeader)
+                ZoomInspector(editor: editor, zoom: zoom)
+                    .frame(maxHeight: .infinity, alignment: .top)
+            } else {
+                Text(editor.section.title)
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, Space.xl)
+                    .accessibilityAddTraits(.isHeader)
 
-            SectionPage(section: editor.section, editor: editor)
-                .frame(maxHeight: .infinity, alignment: .top)
+                SectionPage(section: editor.section, editor: editor)
+                    .frame(maxHeight: .infinity, alignment: .top)
+            }
         }
+    }
+
+    /// Picking a section also leaves a selected zoom.
+    private var sectionBinding: Binding<InspectorSection> {
+        Binding(get: { editor.section }, set: { section in
+            editor.selectZoom(nil)
+            editor.section = section
+        })
     }
 }
 

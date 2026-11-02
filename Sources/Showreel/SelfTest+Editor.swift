@@ -71,6 +71,7 @@ extension SelfTest {
         await undo(editor)
 
         await background(editor)
+        await zooms(editor)
         await autosave(editor)
 
         // S-017: the timeline zoom.

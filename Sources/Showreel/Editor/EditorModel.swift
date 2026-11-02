@@ -70,6 +70,8 @@ final class EditorModel {
     var style = Style()
     /// The zooms (M5), in source time. Drawn without a rebuild, like the style.
     var zooms = ZoomTrack()
+    /// The zoom selected on the timeline (S-031).
+    var selectedZoom: ZoomSegment.ID?
 
     @ObservationIgnored private(set) var sources: PlayerSources?
     /// The current item's segments, so a style change can redraw without a rebuild.

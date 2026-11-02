@@ -12,9 +12,12 @@ public struct BubbleScene: Sendable {
     public var diameter: CGFloat
     /// Corner radius as a fraction of the diameter: 0.5 for a circle.
     public var cornerRatio: CGFloat
+    /// The recorded cursor, for zooms that follow it (S-031).
+    public var cursor: CursorPath
 
     public init(bubble: [EventLog.Point], fallbackCenter: CGPoint, hidden: [EventLog.Range],
-                diameter: CGFloat, cornerRatio: CGFloat = 0.5) {
+                diameter: CGFloat, cornerRatio: CGFloat = 0.5, cursor: CursorPath = CursorPath()) {
+        self.cursor = cursor
         self.bubble = bubble
         self.fallbackCenter = fallbackCenter
         self.hidden = hidden
@@ -71,7 +74,7 @@ public enum Renderer {
         let rect = CGRect(x: top.minX, y: size.height - top.maxY, width: top.width, height: top.height)
         // A zoom shows part of the recording in the same place (S-030); the
         // frame, background, and camera stay put.
-        let zoom = style.zooms.view(at: t)
+        let zoom = style.zooms.view(at: t, cursor: scene.cursor, crop: crop)
         let visible = visibleRect(of: screen.extent, zoom)
         var image = screen
             .transformed(by: CGAffineTransform(translationX: -visible.minX, y: -visible.minY))

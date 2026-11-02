@@ -112,6 +112,19 @@ enum Snapshot {
                              },
                              window: window,
                              hide: { window()?.close() })
+        // S-031: the zoom around 0:12 selected, the playhead inside it.
+        let zoomSelected = Surface(name: "editor-zoom-selected", show: {
+                                       guard let editor = await openEditor() else { return }
+                                       editor.zoom = TimelineZoom()
+                                       editor.section = .background
+                                       let zoom = editor.zooms.segment(at: 12.6)
+                                       editor.selectZoom(zoom?.id)
+                                       editor.seek(to: 12.6)
+                                       // The focus preview loads its frame.
+                                       try? await Task.sleep(for: .seconds(0.5))
+                                   },
+                                   window: window,
+                                   hide: { EditorModel.newest?.selectZoom(nil) })
         // S-018: the start being trimmed by 6 s, mid-drag.
         let trim = Surface(name: "editor-trim", show: {
                                let project = (try? model.context.fetch(FetchDescriptor<Project>()))?.first { $0.title == title }
@@ -204,7 +217,7 @@ enum Snapshot {
                     },
                     window: window,
                     hide: {})
-        } + [trim, split, crop, frame, aspect, savePreset, zoomed]
+        } + [trim, split, crop, frame, aspect, savePreset, zoomSelected, zoomed]
     }
 
     static func runIfRequested(model: AppModel, openSettings: OpenSettingsAction) {

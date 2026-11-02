@@ -27,9 +27,11 @@ struct EditorCommands: Commands {
             Group {
                 Button("Split at Playhead") { act(.text("s")) { $0.splitAtPlayhead() } }
                     .keyboardShortcut("s", modifiers: [])
-                Button("Delete Section") { act(.deleteBackward) { $0.deleteSelection() } }
-                    .keyboardShortcut(.delete, modifiers: [])
-                    .disabled(editor?.canDeleteSelection != true)
+                Button(editor?.selectedZoom != nil ? "Delete Zoom" : "Delete Section") {
+                    act(.deleteBackward) { $0.selectedZoom != nil ? $0.deleteSelectedZoom() : $0.deleteSelection() }
+                }
+                .keyboardShortcut(.delete, modifiers: [])
+                .disabled(editor?.selectedZoom == nil && editor?.canDeleteSelection != true)
                 Divider()
                 if let editor {
                     Picker("Aspect Ratio", selection: aspectBinding(editor)) {

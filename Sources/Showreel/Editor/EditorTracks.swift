@@ -63,10 +63,9 @@ struct Lane: View {
                 // Zooms are kept in source time; a cut shows them in pieces.
                 ForEach(editor.zooms.segments) { zoom in
                     ForEach(Array(editor.edits.editRanges(fromSource: zoom.start, to: zoom.end).enumerated()), id: \.offset) { _, range in
-                        Block(kind: kind, title: Self.scaleText(zoom.scale))
+                        ZoomBlock(editor: editor, zoom: zoom)
                             .frame(width: max(scale.x(at: range.upperBound - range.lowerBound), 1))
                             .offset(x: scale.x(at: range.lowerBound)) // grid: ok position from time
-                            .help("Zoom \(Self.scaleText(zoom.scale)), \(ClipBlock.length(zoom.length))")
                     }
                 }
             case .captions:
@@ -124,7 +123,10 @@ struct ClipBlock: View {
         .overlay(alignment: .trailing) { handle(.end) }
         .offset(x: scale.x(at: start)) // grid: ok position from time
         .onTapGesture { location in
-            withMotion(Motion.select) { editor.selectedSegment = segment.id }
+            withMotion(Motion.select) {
+                editor.selectedSegment = segment.id
+                editor.selectedZoom = nil
+            }
             editor.seek(to: start + scale.seconds(at: location.x))
         }
         .contextMenu {
@@ -192,3 +194,35 @@ struct Block: View {
     }
 }
 
+
+/// One zoom on the zoom lane. Click selects it and shows it in the
+/// inspector (S-031).
+struct ZoomBlock: View {
+    let editor: EditorModel
+    let zoom: ZoomSegment
+
+    private var isSelected: Bool { editor.selectedZoom == zoom.id }
+
+    var body: some View {
+        Block(kind: .zoom, title: Lane.scaleText(zoom.scale))
+            .overlay {
+                if isSelected {
+                    Radius.shape(Radius.xs).strokeBorder(Palette.accent, lineWidth: Layout.selectionRing)
+                }
+            }
+            .contentShape(Rectangle())
+            .onTapGesture { withMotion(Motion.select) { editor.selectZoom(zoom.id) } }
+            .contextMenu {
+                Button("Edit Zoom") { editor.selectZoom(zoom.id) }
+                Button("Delete") {
+                    editor.selectZoom(zoom.id)
+                    editor.deleteSelectedZoom()
+                }
+            }
+            .help("Zoom \(Lane.scaleText(zoom.scale)), \(ClipBlock.length(zoom.length)). Click to edit.")
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Zoom, \(Lane.scaleText(zoom.scale)), \(ClipBlock.length(zoom.length))")
+            .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
+            .accessibilityAction { editor.selectZoom(zoom.id) }
+    }
+}

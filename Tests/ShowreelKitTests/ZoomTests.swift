@@ -106,3 +106,38 @@ struct ZoomTests {
         #expect(list.editRanges(fromSource: 0, to: 1).isEmpty)
     }
 }
+
+@Suite("Zoom focus")
+struct ZoomFocusTests {
+    /// S-031: Fixed Point and Auto look at the segment's spot; Follow Cursor
+    /// at the cursor, smoothed.
+    @Test func followCursorLooksAtTheCursor() {
+        let cursor = CursorPath((0...100).map { EventLog.Point(t: Double($0) * 0.1, x: 0.8, y: 0.2) })
+        var zoom = ZoomSegment(start: 0, end: 10, scale: 4, x: 0.3, y: 0.7)
+        let track = { ZoomTrack(segments: [zoom]) }
+        #expect(track().view(at: 5, cursor: cursor).rect.midX == 0.3)
+        zoom.focus = .fixed
+        #expect(track().view(at: 5, cursor: cursor).rect.midY == 0.7)
+        zoom.focus = .followCursor
+        let view = track().view(at: 5, cursor: cursor)
+        #expect(abs(view.rect.midX - 0.8) < 1e-9 && abs(view.rect.midY - 0.2) < 1e-9)
+        // No recorded cursor: the spot.
+        #expect(track().view(at: 5).rect.midX == 0.3)
+    }
+
+    @Test func cursorIsReadBetweenSamples() throws {
+        let cursor = CursorPath([.init(t: 1, x: 0, y: 0), .init(t: 2, x: 1, y: 0.5)])
+        let mid = try #require(cursor.position(at: 1.5))
+        #expect(mid.x == 0.5 && mid.y == 0.25)
+        #expect(cursor.position(at: 0) == CGPoint(x: 0, y: 0))
+        #expect(cursor.position(at: 9) == CGPoint(x: 1, y: 0.5))
+        #expect(CursorPath().position(at: 1) == nil)
+    }
+
+    /// A crop moves the spot with its place on the recording.
+    @Test func theSpotFollowsTheCrop() {
+        let track = ZoomTrack(segments: [ZoomSegment(start: 0, end: 10, scale: 4, x: 0.25, y: 0.25)])
+        let view = track.view(at: 5, crop: CropRect(x: 0, y: 0, width: 0.5, height: 0.5))
+        #expect(view.rect.midX == 0.5 && view.rect.midY == 0.5)
+    }
+}

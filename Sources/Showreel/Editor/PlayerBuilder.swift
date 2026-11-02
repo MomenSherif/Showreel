@@ -59,7 +59,8 @@ struct PlayerSources {
                                 fallbackCenter: CGPoint(x: project.bubbleX, y: project.bubbleY),
                                 hidden: log?.cameraHidden ?? [], diameter: diameter,
                                 cornerRatio: project.bubbleShape == BubbleStyle.Shape.roundedSquare.rawValue
-                                    ? Radius.bubbleSquareRatio : 0.5)
+                                    ? Radius.bubbleSquareRatio : 0.5,
+                                cursor: CursorPath(log?.cursor ?? []))
         return PlayerSources(screen: screen, audio: audio, camera: camera, naturalSize: natural, duration: duration, scene: scene, events: log)
     }
 

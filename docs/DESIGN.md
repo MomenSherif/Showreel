@@ -166,6 +166,7 @@ Every command is in the menu bar. Toolbar and context menu items repeat it.
 | File | Move to Trash | ⌘⌫ | S-010 |
 | Edit | Undo / Redo <action> | ⌘Z / ⇧⌘Z | S-020 |
 | Edit | Cut, Copy, Paste, Delete, Select All | standard | S-032 |
+| Clip | Delete Section / Delete Zoom (follows the selection) | ⌫ | S-019, S-031 |
 | View | Show/Hide Toolbar, Show/Hide Inspector | ⌥⌘T, ⌃⌘I | S-015 |
 | View | Zoom In / Zoom Out / Zoom to Fit (timeline) | ⌘+ / ⌘− / ⇧Z | S-017 |
 | View | Enter Full Screen | ⌃⌘F | — |
