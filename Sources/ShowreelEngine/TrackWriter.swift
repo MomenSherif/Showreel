@@ -55,6 +55,11 @@ public final class TrackWriter: @unchecked Sendable {
                     AVVideoAverageBitRateKey: bitrate,
                     AVVideoExpectedSourceFrameRateKey: 60,
                     AVVideoAllowFrameReorderingKey: false,
+                    // A keyframe every 8 frames (S-047): an exact seek decodes
+                    // at most 7 frames, so a scrub shows its frame in one frame
+                    // time on a Retina display (median 10 ms, was 26 ms at 31).
+                    AVVideoMaxKeyFrameIntervalKey: 8,
+                    AVVideoMaxKeyFrameIntervalDurationKey: 0.134,
                 ],
             ])
         case let .audio(channels, bitrate):

@@ -746,7 +746,12 @@ Acceptance:
   24 ms, worst 67 ms, with exact AVPlayer seeks. Capping the preview render
   size made no difference, so the time is in decoding and seeking, not
   compositing.
-Status: todo
+  Done at S-047: new recordings get a keyframe every 8 frames (was about 31), so an exact
+  seek decodes at most 7 frames. Median 10.2–10.5 ms, was 25.8–26.3 ms, on a 3456×2234
+  recording; the self-test now holds the median under one frame (16.7 ms). Recordings made
+  before this keep their old spacing and their old scrub speed. The average bitrate is
+  unchanged, so files are no bigger. The 60 fps playback check on an M1 is still to do by hand.
+Status: done
 
 ---
 

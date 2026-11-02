@@ -60,9 +60,9 @@ extension SelfTest {
         let sorted = times.sorted()
         let median = sorted[sorted.count / 2]
         let size = "\(editor.project.videoWidth)×\(editor.project.videoHeight)"
-        // The one-frame target (S-016) moved to S-047, which adds a fast preview
-        // path. Until then this guards against getting slower than 3 frames.
-        check("a scrub shows its frame within 3 frame times (median)", median < 3.0 / 60,
+        // S-047: recordings have a keyframe every 8 frames, so an exact seek
+        // decodes few frames. Measured median 10.4 ms at 3456×2234 (was 26 ms).
+        check("a scrub shows its frame within one frame time (median)", median < 1.0 / 60,
               String(format: "median %.1f ms, worst %.1f ms at %@", median * 1000, (sorted.last ?? 0) * 1000, size))
         print(String(format: "INFO scrub latency at %@: median %.1f ms, worst %.1f ms", size, median * 1000, (sorted.last ?? 0) * 1000))
 
