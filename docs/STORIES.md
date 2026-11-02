@@ -7,7 +7,7 @@ Snapshot pages: `permissions`, `menubar`, `record-panel`, `source-picker`,
 `area-selector`, `countdown`, `recording-controls`, `camera-bubble`, `library`,
 `library-empty`, `editor`, `editor-background`, `editor-screen`,
 `editor-camera`, `editor-effects`, `editor-captions`, `editor-audio`,
-`editor-zoom-selected`, `crop-sheet`, `export-sheet`, `export-progress`,
+`editor-zoom-selected`, `crop-sheet`, `export-sheet`, `export-progress`, `export-done`,
 `settings`.
 
 Seed data (snapshot mode): three projects ("Onboarding walkthrough" 0:42,
@@ -573,7 +573,7 @@ Status: done
 ### S-038 Share or reveal the exported file
 As the user, when the export finishes I click Share, Show in Finder, or
 Copy.
-Screens: export-progress
+Screens: export-done
 Depends: S-036
 Acceptance:
 - [snap] A finished state with three buttons. Share opens the macOS Share
@@ -582,7 +582,7 @@ UX: the same popover, opened by itself: a checkmark, "Exported <file
 name>", "1920 × 1080 · 48 MB", and Share…, Show in Finder, Copy (puts the
 file on the clipboard to paste into a chat). The toolbar button turns back
 into Export….
-Status: todo
+Status: done
 
 ---
 

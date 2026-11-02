@@ -245,6 +245,18 @@ enum Snapshot {
                                    EditorModel.newest?.showsExportPopover = false
                                    EditorModel.newest?.export = nil
                                })
+        // S-038: the finished export, with Share…, Show in Finder, and Copy.
+        let done = Surface(name: "export-done", show: {
+                               guard let editor = await openEditor() else { return }
+                               editor.export = .shown(for: editor, fraction: 1, elapsed: 18, state: .finished, bytes: 47_600_000)
+                               try? await Task.sleep(for: .seconds(0.3))
+                               editor.showsExportPopover = true
+                           },
+                           window: { NSApp.windows.first { $0.className.contains("Popover") && $0.isVisible } },
+                           hide: {
+                               EditorModel.newest?.showsExportPopover = false
+                               EditorModel.newest?.export = nil
+                           })
         return InspectorSection.allCases.map { section in
             Surface(name: section == .background ? "editor" : "editor-\(section.rawValue)", show: {
                         let project = (try? model.context.fetch(FetchDescriptor<Project>()))?.first { $0.title == title }
@@ -254,7 +266,7 @@ enum Snapshot {
                     },
                     window: window,
                     hide: {})
-        } + [trim, split, crop, frame, aspect, savePreset, export, progress, zoomSelected, click, zoomed]
+        } + [trim, split, crop, frame, aspect, savePreset, export, progress, done, zoomSelected, click, zoomed]
     }
 
     static func runIfRequested(model: AppModel, openSettings: OpenSettingsAction) {

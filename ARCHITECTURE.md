@@ -38,7 +38,7 @@ the saved choice), and building the `BubbleScene` from a `Project`.
 | `Library/` | The Library window: grid, cards, context menu |
 | `Projects/` | `ProjectStore`: project folders, thumbnails, Rename, Duplicate, Move to Trash with Undo |
 | `Recording/` | Everything from the Record Panel to the saved files (below) |
-| `Editor/` | The project window (S-015): `EditorModel` per window, canvas (AVPlayerLayer), custom timeline, inspector. `PlayerBuilder` builds the composition and `BubbleScene`. `ExportSheet` and `EditorModel+Export` (`ExportRun`) export it (S-036) |
+| `Editor/` | The project window (S-015): `EditorModel` per window, canvas (AVPlayerLayer), custom timeline, inspector. `PlayerBuilder` builds the composition and `BubbleScene`. `ExportSheet` and `EditorModel+Export` (`ExportRun`) export it (S-036); `ExportProgress` is the toolbar gauge and its progress and finished popover (S-037, S-038) |
 | `UI/` | Design tokens and the shared `FloatingPanel` |
 
 ## Editor

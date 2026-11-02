@@ -22,6 +22,8 @@ final class ExportRun {
     let started: Date
     private(set) var fraction = 0.0
     private(set) var state = State.running
+    /// The finished file's size (S-038).
+    private(set) var fileBytes: Int64?
     @ObservationIgnored fileprivate var task: Task<Void, Never>?
 
     init(url: URL, projectID: UUID, settings: ExportSettings, size: CGSize, started: Date = .now) {
@@ -36,13 +38,15 @@ final class ExportRun {
 
     /// A run that only shows a state, for snapshot mode: `fraction` done
     /// after `elapsed` seconds, still running or finished.
-    static func shown(for editor: EditorModel, fraction: Double, elapsed: Double, state: State = .running) -> ExportRun {
+    static func shown(for editor: EditorModel, fraction: Double, elapsed: Double, state: State = .running,
+                      bytes: Int64? = nil) -> ExportRun {
         let settings = editor.savedExportSettings
         let run = ExportRun(url: URL(fileURLWithPath: "/tmp/\(editor.project.title).\(settings.format.fileExtension)"),
                             projectID: editor.project.uuid, settings: settings,
                             size: settings.outputSize(canvas: editor.canvasSize), started: .now - elapsed)
         run.fraction = fraction
         run.state = state
+        run.fileBytes = bytes
         return run
     }
 
@@ -63,7 +67,20 @@ final class ExportRun {
 
     fileprivate func end(_ state: State) {
         self.state = state
-        if state == .finished { fraction = 1 }
+        guard state == .finished else { return }
+        fraction = 1
+        fileBytes = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? NSNumber)?.int64Value
+    }
+
+    /// Show in Finder (S-038).
+    func showInFinder() {
+        NSWorkspace.shared.activateFileViewerSelecting([url])
+    }
+
+    /// Copy (S-038): the file itself, to paste into a chat or a Finder window.
+    func copy(to pasteboard: NSPasteboard = .general) {
+        pasteboard.clearContents()
+        pasteboard.writeObjects([url as NSURL])
     }
 }
 
@@ -131,6 +148,8 @@ extension EditorModel {
                     Task { @MainActor in run?.report(fraction) }
                 }
                 run?.end(.finished)
+                // The popover opens by itself to say it is done (S-038).
+                self?.showsExportPopover = true
             } catch is CancellationError {
                 run?.end(.cancelled)
                 self?.showsExportPopover = false

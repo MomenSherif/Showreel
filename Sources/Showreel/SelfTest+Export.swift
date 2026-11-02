@@ -50,6 +50,16 @@ extension SelfTest {
         let sound = (try? await asset.loadTracks(withMediaType: .audio).count) ?? 0
         check("the MP4 has sound when the project has", (sound > 0) == editor.hasAudio, "\(sound) audio tracks")
         check("the toolbar shows Export… again", editor.canExport)
+        // S-038: the finished state.
+        check("the popover opens by itself when the export is done", editor.showsExportPopover)
+        check("the finished state knows the file's size", (run.fileBytes ?? 0) > 0, "\(run.fileBytes ?? -1)")
+        let board = NSPasteboard(name: NSPasteboard.Name("com.momensherif.showreel.selftest"))
+        run.copy(to: board)
+        let copied = board.readObjects(forClasses: [NSURL.self]) as? [URL]
+        check("Copy puts the video file on the pasteboard", copied?.first?.standardizedFileURL == mp4.standardizedFileURL,
+              "\(String(describing: copied))")
+        board.releaseGlobally()
+        editor.showsExportPopover = false
 
         let gif = folder.appending(path: "export.gif")
         let gifRun = editor.startExport(to: gif, settings: ExportSettings(format: .gif, resolution: .p720, fps: 15))
