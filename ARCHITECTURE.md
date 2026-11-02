@@ -44,7 +44,8 @@ the saved choice), and building the `BubbleScene` from a `Project`.
 | `Projects/` | `ProjectStore`: project folders, thumbnails, Rename, Duplicate, Move to Trash with Undo |
 | `Recording/` | Everything from the Record Panel to the saved files (below) |
 | `Editor/` | The project window (S-015): `EditorModel` per window, canvas (AVPlayerLayer), custom timeline, inspector. `PlayerBuilder` builds the composition and `BubbleScene`. `ExportSheet` and `EditorModel+Export` (`ExportRun`) export it (S-036); `ExportProgress` is the toolbar gauge and its progress and finished popover (S-037, S-038) |
-| `UI/` | Design tokens and the shared `FloatingPanel` |
+| `Settings/` | The Settings window (S-045): `SettingsView` (one tab per `SettingsTab`), `RecordingSettings` with `ShortcutField`, and `AppSettings`, the observable home of the Record Shortcut, Countdown, Exports folder, and export choices (in `Store.defaults`) |
+| `UI/` | Design tokens, the shared `FloatingPanel`, and `AppIconImage` |
 
 ## Editor
 
@@ -152,6 +153,17 @@ RecordController (state: idle -> panel -> countdown -> recording <-> paused -> s
   is never recorded.
 - Test, snapshot, and self-test runs (APP_STORE set) keep projects in
   /tmp/Showreel-projects and trash to /tmp/Showreel-trash.
+
+## Menus and shortcuts
+
+Every command is in the menu bar (docs/DESIGN.md, "Command map"). `ShowreelCommands` (App.swift)
+holds File, Record, and Window; `EditorCommands` holds View, Clip, and Playback, and reads the
+front editor through `@FocusedValue(\.editor)`. Single-key shortcuts (Space, S, Z, M, Return)
+go to a text field instead when one is being edited (`TextKey`). The self-test
+(`SelfTest+Menus`) fails on any Edit, View, Clip, or Playback item without a shortcut.
+`HotKeys` registers the shortcuts that work in any app with Carbon; the Record Shortcut
+comes from `AppSettings` and can be swapped (`replaceRecord`), keeping the old one when the
+system refuses.
 
 ## Seams
 
