@@ -99,6 +99,14 @@ private struct SectionPage: View {
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()
+                    if editor.style.frame != .none {
+                        Picker("Appearance", selection: frameAppearanceBinding) {
+                            Label("Light", systemImage: "sun.max").tag(Style.FrameAppearance.light)
+                            Label("Dark", systemImage: "moon").tag(Style.FrameAppearance.dark)
+                        }
+                        .pickerStyle(.segmented)
+                        .help("Draw the frame in light or dark colors")
+                    }
                     if editor.style.frame == .browser {
                         Toggle("Address Bar", isOn: urlBarBinding)
                         if editor.style.showsURLBar {
@@ -154,11 +162,11 @@ private struct SectionPage: View {
 
 extension SectionPage {
     var frameBinding: Binding<Style.DeviceFrame> {
-        Binding(get: { editor.style.frame }, set: { frame in
-            var style = editor.style
-            style.frame = frame
-            withMotion(Motion.ui) { editor.applyStyle(style, named: "Frame") }
-        })
+        Binding(get: { editor.style.frame }, set: { editor.setFrame($0) })
+    }
+
+    var frameAppearanceBinding: Binding<Style.FrameAppearance> {
+        Binding(get: { editor.style.frameAppearance }, set: { editor.setFrameAppearance($0) })
     }
 
     var urlBarBinding: Binding<Bool> {

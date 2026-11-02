@@ -57,6 +57,17 @@ struct StyleTests {
         #expect(abs(rect.width / rect.height - 1.6) < 0.001)
     }
 
+    /// S-026: frames are light unless picked dark, and older styles decode as light.
+    @Test func frameAppearanceDefaultsToLight() throws {
+        #expect(Style().frameAppearance == .light)
+        let old = Data(#"{"frame":"browser"}"#.utf8)
+        #expect(Style.decode(old).frameAppearance == .light && Style.decode(old).frame == .browser)
+        var dark = Style()
+        dark.frameAppearance = .dark
+        #expect(Style.decode(dark.encoded()).frameAppearance == .dark)
+        #expect(dark.asPreset.frameAppearance == .dark)
+    }
+
     /// S-027: the canvas takes the aspect's shape and keeps the long side.
     @Test func aspectSetsTheCanvas() {
         var style = Style()

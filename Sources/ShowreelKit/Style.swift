@@ -77,6 +77,9 @@ public struct Style: Codable, Equatable, Sendable {
     /// The outline around the recording (S-026).
     public enum DeviceFrame: String, Codable, CaseIterable, Sendable { case none, border, browser, macBook }
     public var frame: DeviceFrame = .none
+    /// Light or dark colors for the Border, Browser, and MacBook frames.
+    public enum FrameAppearance: String, Codable, CaseIterable, Sendable { case light, dark }
+    public var frameAppearance: FrameAppearance = .light
     /// Browser frame: show the address bar, and what it says.
     public var showsURLBar: Bool = true
     public var url: String = ""
@@ -176,7 +179,7 @@ public struct Style: Codable, Equatable, Sendable {
         return style
     }()
 
-    enum CodingKeys: String, CodingKey { case background, backgroundBlur, padding, rounding, effect, effectAmount, crop, frame, showsURLBar, url, aspect,
+    enum CodingKeys: String, CodingKey { case background, backgroundBlur, padding, rounding, effect, effectAmount, crop, frame, frameAppearance, showsURLBar, url, aspect,
         cameraVisible, cameraScale, cameraShape, cameraBorder, cameraShadow, cameraPosition, zoomSpeed,
         cursorScale, cursorSmoothing, cursorHidesWhenIdle, cursorLook, clickEffect, clickColor, captions }
 
@@ -191,6 +194,7 @@ public struct Style: Codable, Equatable, Sendable {
         effectAmount = (try? c.decodeIfPresent(Double.self, forKey: .effectAmount)) ?? d.effectAmount
         crop = (try? c.decodeIfPresent(CropRect.self, forKey: .crop)) ?? d.crop
         frame = (try? c.decodeIfPresent(DeviceFrame.self, forKey: .frame)) ?? d.frame
+        frameAppearance = (try? c.decodeIfPresent(FrameAppearance.self, forKey: .frameAppearance)) ?? d.frameAppearance
         showsURLBar = (try? c.decodeIfPresent(Bool.self, forKey: .showsURLBar)) ?? d.showsURLBar
         url = (try? c.decodeIfPresent(String.self, forKey: .url)) ?? d.url
         aspect = (try? c.decodeIfPresent(Aspect.self, forKey: .aspect)) ?? d.aspect

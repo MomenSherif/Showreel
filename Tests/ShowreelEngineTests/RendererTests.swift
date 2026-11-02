@@ -238,6 +238,13 @@ struct RendererTests {
         try Self.framed(.browser) { $0.url = "showreel.app" }.expectMatches(golden: "frame-browser")
     }
 
+    @Test func darkFramesMatchGoldens() throws {
+        let dark: (inout Style) -> Void = { $0.frameAppearance = .dark }
+        try Self.framed(.border, change: dark).expectMatches(golden: "frame-border-dark")
+        try Self.framed(.browser) { $0.url = "showreel.app"; dark(&$0) }.expectMatches(golden: "frame-browser-dark")
+        try Self.framed(.macBook, change: dark).expectMatches(golden: "frame-macbook-dark")
+    }
+
     @Test func browserWithoutURLBarIsShorter() {
         var style = Style()
         style.frame = .browser

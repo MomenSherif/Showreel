@@ -195,7 +195,7 @@ Every command is in the menu bar. Toolbar and context menu items repeat it.
 | Clip | Edit Caption (the selected caption's text) | Return | S-040, S-044 |
 | Clip | Show Captions (checkmark) | ⇧⌘C | S-041, S-044 |
 | Clip | Show Camera (checkmark) | ⌥⌘K | S-028, S-044 |
-| Clip | Aspect Ratio ▸, Save Style as Preset…, Apply Preset ▸ | — / ⇧⌘S / — | S-027, S-029 |
+| Clip | Aspect Ratio ▸, Frame ▸, Dark Frame, Save Style as Preset…, Apply Preset ▸ | — / — / ⌥⌘D / ⇧⌘S / — | S-027, S-026, S-029 |
 | Clip | Crop Screen… | ⌥⌘C | S-025 |
 | Playback | Play / Pause | Space | S-016 |
 | Playback | Previous Frame / Next Frame | ← / → | S-016 |

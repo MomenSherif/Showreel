@@ -5,7 +5,7 @@ import Synchronization
 import ShowreelKit
 
 /// Device frames drawn around the recording (S-026): Border, Browser, and
-/// MacBook. They are drawn with Core Graphics at the output size, so they
+/// MacBook, each in light or dark colors. They are drawn with Core Graphics at the output size, so they
 /// stay sharp at 4K, and cached, since they do not change from frame to
 /// frame. Coordinates are Core Image's (bottom-left origin).
 enum DeviceChrome {
@@ -22,7 +22,7 @@ enum DeviceChrome {
     }
 
     private struct Key: Hashable {
-        let frame: Style.DeviceFrame, showsURLBar: Bool, url: String
+        let frame: Style.DeviceFrame, appearance: Style.FrameAppearance, showsURLBar: Bool, url: String
         let canvas: CGSize, rect: CGRect, radius: CGFloat
     }
 
@@ -31,7 +31,7 @@ enum DeviceChrome {
     /// The frame for `style` around a recording at `rect` (Core Image
     /// coordinates) on a canvas of `size`.
     static func parts(for style: Style, rect: CGRect, radius: CGFloat, canvas size: CGSize) -> Parts {
-        let key = Key(frame: style.frame, showsURLBar: style.showsURLBar, url: style.url, canvas: size, rect: rect, radius: radius)
+        let key = Key(frame: style.frame, appearance: style.frameAppearance, showsURLBar: style.showsURLBar, url: style.url, canvas: size, rect: rect, radius: radius)
         if let cached = cache.withLock({ $0[key] }) { return cached }
         let parts = make(style: style, rect: rect, radius: radius, canvas: size)
         cache.withLock { cache in
@@ -41,8 +41,37 @@ enum DeviceChrome {
         return parts
     }
 
+    /// The colors of one appearance. Video pixels, not UI: they are baked
+    /// into the export, so they do not follow the app's light or dark mode.
+    private struct Colors {
+        let borderFill, borderStroke: CGColor
+        let window, hairline, field, fieldText: CGColor
+        let baseTop, baseBottom, notch: CGColor
+
+        static func rgb(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat, _ a: CGFloat = 1) -> CGColor {
+            CGColor(srgbRed: r, green: g, blue: b, alpha: a)
+        }
+
+        static let light = Colors(
+            borderFill: rgb(1, 1, 1, 0.32), borderStroke: rgb(1, 1, 1, 0.55),
+            window: rgb(0.95, 0.95, 0.96), hairline: rgb(0.82, 0.82, 0.84),
+            field: rgb(1, 1, 1), fieldText: rgb(0.43, 0.43, 0.45),
+            // Silver aluminum.
+            baseTop: rgb(0.85, 0.855, 0.875), baseBottom: rgb(0.655, 0.667, 0.69), notch: rgb(0.55, 0.56, 0.59))
+
+        static let dark = Colors(
+            borderFill: rgb(0.06, 0.06, 0.07, 0.5), borderStroke: rgb(1, 1, 1, 0.16),
+            window: rgb(0.17, 0.17, 0.18), hairline: rgb(0.06, 0.06, 0.07),
+            field: rgb(0.25, 0.25, 0.27), fieldText: rgb(0.66, 0.66, 0.69),
+            // Space black aluminum.
+            baseTop: rgb(0.27, 0.275, 0.29), baseBottom: rgb(0.13, 0.135, 0.145), notch: rgb(0.08, 0.08, 0.09))
+
+        static func of(_ appearance: Style.FrameAppearance) -> Colors { appearance == .dark ? dark : light }
+    }
+
     private static func make(style: Style, rect: CGRect, radius: CGFloat, canvas size: CGSize) -> Parts {
         let u = size.height / 1080
+        let colors = Colors.of(style.frameAppearance)
         let chrome = CanvasLayout.chrome(for: style, canvasHeight: size.height)
         // Insets are top-left; in Core Image the top is the high y.
         var outer = CGRect(x: rect.minX - chrome.left, y: rect.minY - chrome.bottom,
@@ -55,11 +84,11 @@ enum DeviceChrome {
             let inner = max(radius - 10 * u, 0)
             let behind = draw(size) { ctx in
                 ctx.addPath(CGPath(roundedRect: outer, cornerWidth: radius, cornerHeight: radius, transform: nil))
-                ctx.setFillColor(CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 0.32))
+                ctx.setFillColor(colors.borderFill)
                 ctx.fillPath()
                 ctx.addPath(CGPath(roundedRect: outer.insetBy(dx: u / 2, dy: u / 2),
                                    cornerWidth: max(radius - u / 2, 0), cornerHeight: max(radius - u / 2, 0), transform: nil))
-                ctx.setStrokeColor(CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 0.55))
+                ctx.setStrokeColor(colors.borderStroke)
                 ctx.setLineWidth(u)
                 ctx.strokePath()
             }
@@ -69,25 +98,25 @@ enum DeviceChrome {
             let bar = CGRect(x: outer.minX, y: rect.maxY, width: outer.width, height: chrome.top)
             let behind = draw(size) { ctx in
                 ctx.addPath(CGPath(roundedRect: outer, cornerWidth: radius, cornerHeight: radius, transform: nil))
-                ctx.setFillColor(CGColor(srgbRed: 0.95, green: 0.95, blue: 0.96, alpha: 1))
+                ctx.setFillColor(colors.window)
                 ctx.fillPath()
                 // A hairline between the bar and the page.
-                ctx.setFillColor(CGColor(srgbRed: 0.82, green: 0.82, blue: 0.84, alpha: 1))
+                ctx.setFillColor(colors.hairline)
                 ctx.fill(CGRect(x: bar.minX, y: bar.minY, width: bar.width, height: max(u, 1)))
                 // Traffic lights, at the top of the bar.
                 let light = 12 * u, rowY = bar.maxY - 18 * u - light / 2
-                let colors = [(1.0, 0.373, 0.341), (0.996, 0.737, 0.18), (0.157, 0.784, 0.251)]
-                for (i, c) in colors.enumerated() {
+                let lights = [(1.0, 0.373, 0.341), (0.996, 0.737, 0.18), (0.157, 0.784, 0.251)]
+                for (i, c) in lights.enumerated() {
                     ctx.setFillColor(CGColor(srgbRed: c.0, green: c.1, blue: c.2, alpha: 1))
                     ctx.fillEllipse(in: CGRect(x: bar.minX + 16 * u + CGFloat(i) * (light + 8 * u), y: rowY, width: light, height: light))
                 }
                 if style.showsURLBar {
                     let field = CGRect(x: bar.midX - bar.width * 0.25, y: bar.minY + 8 * u, width: bar.width * 0.5, height: 24 * u)
                     ctx.addPath(CGPath(roundedRect: field, cornerWidth: 6 * u, cornerHeight: 6 * u, transform: nil)) // grid: ok video pixels, not UI
-                    ctx.setFillColor(CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 1))
+                    ctx.setFillColor(colors.field)
                     ctx.fillPath()
                     if !style.url.isEmpty {
-                        drawText(style.url, in: field, size: 12 * u, context: ctx)
+                        drawText(style.url, in: field, size: 12 * u, color: colors.fieldText, context: ctx)
                     }
                 }
             }
@@ -107,16 +136,14 @@ enum DeviceChrome {
                 ctx.saveGState()
                 ctx.addPath(CGPath(roundedRect: base, cornerWidth: 10 * u, cornerHeight: 10 * u, transform: nil)) // grid: ok video pixels, not UI
                 ctx.clip()
-                let gradient = CGGradient(colorsSpace: CGColorSpace(name: CGColorSpace.sRGB), colors: [
-                    CGColor(srgbRed: 0.85, green: 0.855, blue: 0.875, alpha: 1),
-                    CGColor(srgbRed: 0.655, green: 0.667, blue: 0.69, alpha: 1),
-                ] as CFArray, locations: [0, 1])!
+                let gradient = CGGradient(colorsSpace: CGColorSpace(name: CGColorSpace.sRGB),
+                                          colors: [colors.baseTop, colors.baseBottom] as CFArray, locations: [0, 1])!
                 ctx.drawLinearGradient(gradient, start: CGPoint(x: base.midX, y: base.maxY), end: CGPoint(x: base.midX, y: base.minY), options: [])
                 ctx.restoreGState()
                 // The thumb notch at the front edge.
                 let notch = CGRect(x: base.midX - 60 * u, y: base.maxY - 6 * u, width: 120 * u, height: 6 * u) // grid: ok video pixels, not UI
                 ctx.addPath(CGPath(roundedRect: notch, cornerWidth: 3 * u, cornerHeight: 3 * u, transform: nil)) // grid: ok video pixels, not UI
-                ctx.setFillColor(CGColor(srgbRed: 0.55, green: 0.56, blue: 0.59, alpha: 1))
+                ctx.setFillColor(colors.notch)
                 ctx.fillPath()
             }
             return Parts(behind: behind, screenMask: nil, outer: outer, outerRadius: 18 * u)
@@ -144,11 +171,11 @@ enum DeviceChrome {
         return ctx.makeImage().map { CIImage(cgImage: $0) }
     }
 
-    private static func drawText(_ text: String, in field: CGRect, size: CGFloat, context ctx: CGContext) {
+    private static func drawText(_ text: String, in field: CGRect, size: CGFloat, color: CGColor, context ctx: CGContext) {
         let font = CTFontCreateUIFontForLanguage(.system, size, nil) ?? CTFontCreateWithName("Helvetica" as CFString, size, nil)
         let attributes: [CFString: Any] = [
             kCTFontAttributeName: font,
-            kCTForegroundColorAttributeName: CGColor(srgbRed: 0.43, green: 0.43, blue: 0.45, alpha: 1),
+            kCTForegroundColorAttributeName: color,
         ]
         let line = CTLineCreateWithAttributedString(CFAttributedStringCreate(nil, text as CFString, attributes as CFDictionary))
         let bounds = CTLineGetImageBounds(line, ctx)

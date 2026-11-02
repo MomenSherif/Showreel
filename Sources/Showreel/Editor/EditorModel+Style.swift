@@ -20,6 +20,19 @@ extension EditorModel {
         applyStyle(new, named: name)
     }
 
+    /// The device frame (S-026), and its light or dark colors: one undo step each.
+    func setFrame(_ frame: Style.DeviceFrame) {
+        var new = style
+        new.frame = frame
+        withMotion(Motion.ui) { applyStyle(new, named: "Frame") }
+    }
+
+    func setFrameAppearance(_ appearance: Style.FrameAppearance) {
+        var new = style
+        new.frameAppearance = appearance
+        withMotion(Motion.ui) { applyStyle(new, named: "Frame Appearance") }
+    }
+
     /// Shows `new` on the canvas without an undo step or a save: for a
     /// slider while it is dragged. `commitStyle(from:named:)` ends the drag.
     func previewStyle(_ new: Style) {

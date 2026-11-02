@@ -147,6 +147,25 @@ extension Snapshot {
                                 style.url = ""
                                 editor.applyStyle(style, named: "Frame")
                             })
+        // S-026: the dark Browser frame, with the Appearance picker on Dark.
+        let frameDark = Surface(name: "editor-dark-frame", show: {
+                                    guard let editor = await openEditor() else { return }
+                                    editor.section = .screen
+                                    var style = editor.style
+                                    style.frame = .browser
+                                    style.frameAppearance = .dark
+                                    style.url = "showreel.app/pricing"
+                                    editor.applyStyle(style, named: "Frame")
+                                },
+                                window: window,
+                                hide: {
+                                    guard let editor = EditorModel.newest else { return }
+                                    var style = editor.style
+                                    style.frame = .none
+                                    style.frameAppearance = .light
+                                    style.url = ""
+                                    editor.applyStyle(style, named: "Frame")
+                                })
         // S-027: a 9:16 canvas, from Inspector > Background.
         let aspect = Surface(name: "editor-aspect", show: {
                                  guard let editor = await openEditor() else { return }
@@ -339,7 +358,7 @@ extension Snapshot {
                     },
                     window: window,
                     hide: {})
-        } + [trim, split, crop, frame, aspect, savePreset, export, progress, done, zoomSelected, blurSelected, wallpapers, blend, click, cursorStyle, zoomed, captionsProgress, captionsFailed, captionSelected, captionStyles, captionsArabic, audioMuted, noiseProgress]
+        } + [trim, split, crop, frame, frameDark, aspect, savePreset, export, progress, done, zoomSelected, blurSelected, wallpapers, blend, click, cursorStyle, zoomed, captionsProgress, captionsFailed, captionSelected, captionStyles, captionsArabic, audioMuted, noiseProgress]
     }
 }
 

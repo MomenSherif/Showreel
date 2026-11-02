@@ -92,9 +92,20 @@ struct EditorCommands: Commands {
                     Picker("Aspect Ratio", selection: aspectBinding(editor)) {
                         ForEach(Style.Aspect.allCases, id: \.self) { Text($0.title).tag($0) }
                     }
+                    Picker("Frame", selection: Binding(get: { editor.style.frame }, set: { editor.setFrame($0) })) {
+                        Text("None").tag(Style.DeviceFrame.none)
+                        Text("Border").tag(Style.DeviceFrame.border)
+                        Text("Browser").tag(Style.DeviceFrame.browser)
+                        Text("MacBook").tag(Style.DeviceFrame.macBook)
+                    }
                 } else {
                     Menu("Aspect Ratio") {}.disabled(true)
+                    Menu("Frame") {}.disabled(true)
                 }
+                Toggle("Dark Frame", isOn: Binding(get: { editor?.style.frameAppearance == .dark },
+                                                   set: { dark in act(nil) { $0.setFrameAppearance(dark ? .dark : .light) } }))
+                    .keyboardShortcut("d", modifiers: [.option, .command])
+                    .disabled(editor.map { $0.style.frame == Style.DeviceFrame.none } ?? true)
                 Button("Save Style as Preset…") { act(nil) { $0.showsSavePreset = true } }
                     .keyboardShortcut("s", modifiers: [.shift, .command])
                 Menu("Apply Preset") {

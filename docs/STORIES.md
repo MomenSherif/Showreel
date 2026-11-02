@@ -396,14 +396,16 @@ Note: `CropRect` (Kit) maps points (`map`, `mapClamped`; CropTests). The bubble 
 
 ### S-026 Add a device frame
 As the user, I pick None, Border, Browser, or MacBook as the outline
-around the recording.
+around the recording, in light or dark colors.
 Screens: editor-screen
 Depends: S-023
 Acceptance:
 - [snap] Each frame renders crisply at 4K. Browser shows traffic lights
   and an optional URL bar.
+- [snap] Border, Browser, and MacBook each come in Light and Dark. Light
+  is the default, so older projects keep their look.
 Status: done
-Note: `DeviceChrome` (engine) draws each frame with Core Graphics at the output size, cached per layout; the recording and its frame fit inside the padding together (`CanvasLayout.chrome`). Goldens `frame-border`, `frame-browser`, `frame-macbook`; `framesAreSharpAt4K` checks a hard edge at 3840 × 2160. Snapshot `editor-frame`.
+Note: `DeviceChrome` (engine) draws each frame with Core Graphics at the output size, cached per layout; the recording and its frame fit inside the padding together (`CanvasLayout.chrome`). Inspector > Screen > Frame has Appearance (Light, Dark); Clip > Frame ▸ and Clip > Dark Frame (⌥⌘D). Goldens `frame-border`, `frame-browser`, `frame-macbook`, and their `-dark` twins; `framesAreSharpAt4K` checks a hard edge at 3840 × 2160. Snapshots `editor-frame`, `editor-dark-frame`.
 
 ### S-027 Choose the output aspect ratio
 As the user, I choose 16:9, 9:16, 1:1, 4:3, or Auto for the canvas.

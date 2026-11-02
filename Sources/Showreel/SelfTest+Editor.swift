@@ -265,6 +265,16 @@ extension SelfTest {
         editor.applyStyle(framed, named: "Frame")
         undo.endUndoGrouping()
         check("a device frame is saved with the project", Style.decode(editor.project.styleData).frame == .macBook)
+        undo.beginUndoGrouping()
+        var dark = editor.style
+        dark.frameAppearance = .dark
+        editor.applyStyle(dark, named: "Frame Appearance")
+        undo.endUndoGrouping()
+        check("a dark frame is saved with the project", Style.decode(editor.project.styleData).frameAppearance == .dark)
+        check("the Clip menu has Dark Frame",
+              NSApp.mainMenu?.item(withTitle: "Clip")?.submenu?.items.contains { $0.title == "Dark Frame" } == true)
+        undo.undo()
+        check("Undo brings back the light frame", editor.style.frameAppearance == .light)
         undo.undo()
         check("Undo removes the frame", editor.style.frame == Style.DeviceFrame.none)
         // S-027: the aspect ratio sets the preview canvas.
