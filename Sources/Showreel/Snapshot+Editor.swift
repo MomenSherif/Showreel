@@ -191,6 +191,35 @@ extension Snapshot {
                                       },
                                       window: window,
                                       hide: { EditorModel.newest?.selectCaption(nil) })
+        // S-054: Arabic captions with English words, one selected, shown without saving.
+        var arabicOriginal: CaptionTrack?
+        let captionsArabic = Surface(name: "editor-captions-arabic", show: {
+                                         guard let editor = await openEditor() else { return }
+                                         editor.zoom = TimelineZoom()
+                                         arabicOriginal = editor.captions
+                                         let lines = ["أهلاً بيكم، النهارده هنشرح الـ dashboard.",
+                                                      "هنعمل login وبعدين نفتح الـ settings.",
+                                                      "وناخد الـ API key ونحطه في المشروع."]
+                                         var at = 1.0
+                                         let captions = lines.map { line -> Caption in
+                                             let words = line.split(separator: " ").map { w -> CaptionWord in
+                                                 defer { at += 0.45 }
+                                                 return CaptionWord(text: String(w), start: at, end: at + 0.4)
+                                             }
+                                             at += 0.8
+                                             return Caption(words: words)
+                                         }
+                                         editor.previewCaptions(CaptionTrack(captions: captions, language: "ar"))
+                                         let caption = editor.captions.captions[1]
+                                         editor.selectCaption(caption.id)
+                                         editor.seek(to: caption.words[3].start + 0.1)
+                                         await editor.seeksSettled()
+                                     },
+                                     window: window,
+                                     hide: {
+                                         EditorModel.newest?.selectCaption(nil)
+                                         if let arabicOriginal { EditorModel.newest?.previewCaptions(arabicOriginal) }
+                                     })
         // S-042: a muted part on the audio track, shown without saving.
         let audioMuted = Surface(name: "editor-audio-muted", show: {
                                      guard let editor = await openEditor() else { return }
@@ -231,6 +260,6 @@ extension Snapshot {
                     },
                     window: window,
                     hide: {})
-        } + [trim, split, crop, frame, aspect, savePreset, export, progress, done, zoomSelected, blurSelected, click, zoomed, captionsProgress, captionsFailed, captionSelected, audioMuted, noiseProgress]
+        } + [trim, split, crop, frame, aspect, savePreset, export, progress, done, zoomSelected, blurSelected, click, zoomed, captionsProgress, captionsFailed, captionSelected, captionsArabic, audioMuted, noiseProgress]
     }
 }

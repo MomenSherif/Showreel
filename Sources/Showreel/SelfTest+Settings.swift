@@ -7,8 +7,8 @@ import ShowreelKit
 extension SelfTest {
     static func settings(_ model: AppModel) async {
         let settings = AppSettings.shared
-        check("Settings has the tabs General, Recording, Export, and Appearance",
-              SettingsTab.allCases.map(\.title) == ["General", "Recording", "Export", "Appearance"])
+        check("Settings has the tabs General, Recording, Export, Captions, and Appearance",
+              SettingsTab.allCases.map(\.title) == ["General", "Recording", "Export", "Captions", "Appearance"])
         check("the Record Shortcut starts as ⌃⌥⌘R and the Countdown as 3 seconds",
               settings.recordShortcut == .record && settings.countdownSeconds == 3)
 

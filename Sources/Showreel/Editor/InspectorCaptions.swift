@@ -9,20 +9,28 @@ struct CaptionsSection: View {
         if let job = editor.captionJob {
             JobView(editor: editor, job: job)
         } else if editor.captions.captions.isEmpty {
-            ContentUnavailableView {
-                Label("No Captions", systemImage: InspectorSection.captions.symbol)
-            } description: {
-                Text("Make timed captions from your voice. It runs on this Mac.")
-            } actions: {
-                GenerateButton(editor: editor, title: "Generate Captions")
-                    .buttonStyle(.borderedProminent)
+            VStack(spacing: 0) {
+                ContentUnavailableView {
+                    Label("No Captions", systemImage: InspectorSection.captions.symbol)
+                } description: {
+                    Text("Make timed captions from your voice. It runs on this Mac.")
+                } actions: {
+                    GenerateButton(editor: editor, title: "Generate Captions")
+                        .buttonStyle(.borderedProminent)
+                }
+                .padding(.top, Space.section)
+                .fixedSize(horizontal: false, vertical: true)
+                Form { SpeechChoices() }
+                    .formStyle(.grouped)
             }
-            .padding(.top, Space.section)
         } else {
             Form {
                 Section {
                     LabeledContent("Lines", value: "\(editor.captions.captions.count)")
                     LabeledContent("Language", value: EditorModel.languageName(editor.captions.language))
+                }
+                SpeechChoices()
+                Section {
                     LabeledContent {
                         GenerateButton(editor: editor, title: "Generate Again")
                     } label: {
@@ -100,6 +108,30 @@ private struct CaptionStyleSection: View {
     }
 }
 
+/// Speech Model and Language for the next Generate Captions (S-050), the
+/// same choices as Settings > Captions. A model that is not on this Mac
+/// says so, with its Download button.
+private struct SpeechChoices: View {
+    @Bindable private var models = SpeechModels.shared
+
+    var body: some View {
+        Section {
+            Picker("Speech Model", selection: $models.model) {
+                ForEach(SpeechModel.allCases) { Text($0.title).tag($0) }
+            }
+            LanguagePicker()
+            if !models.availability(of: models.model).isReady {
+                LabeledContent {
+                    ModelAction(model: models.model, compact: true)
+                } label: {
+                    Text("Download \(models.model.title) in Settings > Captions, or here.")
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+}
+
 private struct GenerateButton: View {
     let editor: EditorModel
     let title: String
@@ -158,6 +190,9 @@ struct CaptionInspector: View {
             Section {
                 TextField("Caption text", text: $text, axis: .vertical)
                     .labelsHidden()
+                    // Arabic is typed and shown from the right (S-054).
+                    .multilineTextAlignment(TextDirection.isRightToLeft(text, language: editor.captions.language)
+                                            ? .trailing : .leading)
                     .lineLimit(2...4)
                     .focused($focused)
                     .onSubmit(commit)

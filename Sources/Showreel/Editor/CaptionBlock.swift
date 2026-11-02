@@ -18,6 +18,8 @@ struct CaptionBlock: View {
 
     var body: some View {
         Block(kind: .captions, title: caption.text)
+            // Arabic starts on the right and is cut off at its end, the left (S-054).
+            .environment(\.layoutDirection, caption.isRightToLeft(language: editor.captions.language) ? .rightToLeft : .leftToRight)
             .overlay {
                 if isSelected {
                     Radius.shape(Radius.xs).strokeBorder(Palette.accent, lineWidth: Layout.selectionRing)
@@ -41,7 +43,7 @@ struct CaptionBlock: View {
                     editor.deleteSelectedCaption()
                 }
             }
-            .help("\(caption.text). Double-click to edit, drag to move.")
+            .help(CaptionBlock.tooltip(caption, language: editor.captions.language))
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Caption, \(caption.text), \(ClipBlock.length(caption.length))")
             .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
@@ -83,5 +85,14 @@ struct CaptionBlock: View {
                 start.resizing(caption.id, edge: edge, by: seconds, duration: duration)
             })
             .help(edge == .start ? "Drag to change when the caption appears" : "Drag to change when the caption goes away")
+    }
+}
+
+extension CaptionBlock {
+    /// "<text>. Double-click to edit, drag to move.", with Arabic text kept
+    /// in its own direction so the English hint does not reorder it (S-054).
+    static func tooltip(_ caption: Caption, language: String) -> String {
+        let text = caption.isRightToLeft(language: language) ? "\u{2067}\(caption.text)\u{2069}" : caption.text
+        return "\(text). Double-click to edit, drag to move."
     }
 }

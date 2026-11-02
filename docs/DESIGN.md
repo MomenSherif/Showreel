@@ -33,7 +33,7 @@ Windows and panels:
 | Recording Controls | Borderless `NSPanel`, `.statusBar` level | Glass capsule. Excluded from capture |
 | Camera Bubble | Borderless `NSPanel`, `.floating`, movable by background | Content, not glass. Excluded from capture |
 | Area selector | Borderless full-screen `NSPanel` per display | Dims, draws the selection |
-| Settings | `Settings` scene | Tabs: General, Recording, Export, Appearance |
+| Settings | `Settings` scene | Tabs: General, Recording, Export, Captions, Appearance |
 
 Every Showreel panel sets `sharingType = .none`, and the `SCContentFilter`
 excludes the app's own windows. Our chrome never shows up in a recording.

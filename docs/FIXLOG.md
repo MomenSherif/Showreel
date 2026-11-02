@@ -130,3 +130,18 @@ finished, and leaves the group; the reader and writer are cancelled after both p
 10 test runs in a row passed after the fix.
 Rule: never cancel an AVAssetReader from another thread while something may be reading from
 it; signal the readers and cancel after they stop.
+
+## 2026-11-02 The self-test crashed with a bad executor after Whisper captions
+Symptom: `tools/selftest.sh` exited with signal 11 every time, right after the speech model
+checks. The crash was on the main thread in `MainActor.assumeIsolated` inside the Permissions
+timer (`swift_task_isMainExecutorImpl`, KERN_INVALID_ADDRESS 0x1e), long after the code that
+caused it. In-app probes of Whisper alone, after Apple's model, after a download, and through a
+real editor all ran clean.
+Cause: the caller had turned `groupsByEvent` off on the undo manager, and the new check called
+Generate Captions outside an undo group. Registering undo then raised an Objective-C exception
+inside a MainActor job; it unwound through Swift frames, so the job never popped its executor
+tracking info, and the next MainActor check read a stale stack pointer.
+Fix: the check opens and closes an undo group around Generate Captions, like every other check.
+Rule: with `groupsByEvent` off, every change that registers undo runs inside an explicit group;
+a crash in Swift's executor checks after unrelated work means look for an exception that
+unwound through Swift.

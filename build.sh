@@ -45,6 +45,7 @@ if [[ -z "$identity" ]]; then
 fi
 [[ -n "$identity" ]] || identity=-
 
+"$here/tools/fetch-whisper.sh"
 swift build -c $config --package-path "$here" --scratch-path "$scratch" 2>&1 | grep -E "error|warning|Build complete" | grep -v "^\[" || true
 bin="$scratch/$config/$name"
 [[ -x "$bin" ]] || { echo "build failed"; exit 1; }
@@ -76,7 +77,11 @@ if [[ -d "$here/Icon/AppIcon.icon" ]]; then
   fi
   cp -X "$car" "$here/Resources/AppIcon.icns" "$app/Contents/Resources/"
 fi
+# whisper.cpp (S-052), signed on its own before the app that loads it.
+mkdir -p "$app/Contents/Frameworks"
+cp -R "$scratch/$config/whisper.framework" "$app/Contents/Frameworks/"
 xattr -cr "$app"
+codesign --force --sign "$identity" "$app/Contents/Frameworks/whisper.framework" 2>&1 | grep -v "replacing existing signature" || true
 codesign --force --sign "$identity" "$app" 2>&1 | grep -v "replacing existing signature" || true
 echo "installed $app (signed: ${identity})"
 

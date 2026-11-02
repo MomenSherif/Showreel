@@ -55,6 +55,7 @@ extension SelfTest {
         await cancelled?.finished()
         check("Cancel stops Generate Captions without changing the captions",
               editor.captions == original && editor.captionJob == nil, cancelled?.failure ?? "")
+        await speechModels(editor, speech: url)
     }
 
     /// S-040: a caption's text and timing are edited, each as one undo step,

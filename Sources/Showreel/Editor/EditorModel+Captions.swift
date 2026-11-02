@@ -44,7 +44,12 @@ final class CaptionJob {
 
 /// Captions (M7): made from the mic track, one undo step, saved at once.
 extension EditorModel {
-    var canGenerateCaptions: Bool { project.hasMicrophone && player != nil && captionJob?.isRunning != true }
+    var canGenerateCaptions: Bool {
+        project.hasMicrophone && player != nil && captionJob?.isRunning != true && speechModelIsReady
+    }
+
+    /// The chosen speech model is on this Mac (S-050).
+    var speechModelIsReady: Bool { SpeechModels.shared.availability(of: SpeechModels.shared.model).isReady }
 
     /// Clip > Generate Captions, or the inspector's button. Replaces the
     /// captions as one undo step when it ends. `audio` is the mic track
@@ -58,10 +63,25 @@ extension EditorModel {
         let job = CaptionJob()
         captionJob = job
         section = .captions
+        // The model and language from Settings > Captions or the inspector (S-050).
+        let models = SpeechModels.shared
+        let model = models.model, chosenLanguage = models.language, appleLocale = models.appleLocale
+        let file = models.availability(of: model).url
         job.task = Task { [weak self, weak job] in
             do {
-                let (words, language) = try await Transcriber.words(in: url) { phase in
+                let report: @Sendable (Transcriber.Phase) -> Void = { phase in
                     Task { @MainActor in if job?.isRunning == true { job?.set(.running(phase)) } }
+                }
+                let words: [CaptionWord], language: String
+                if model.isWhisper {
+                    guard let file else {
+                        job?.set(.failed("Download \(model.title) in Settings > Captions."))
+                        return
+                    }
+                    (words, language) = try await WhisperTranscriber.words(in: url, model: file, language: chosenLanguage, progress: report)
+                } else {
+                    let (heard, locale) = try await Transcriber.words(in: url, locale: appleLocale, progress: report)
+                    (words, language) = (heard, locale.identifier)
                 }
                 try Task.checkCancellation()
                 let lines = CaptionTrack.lines(from: words)
@@ -69,14 +89,16 @@ extension EditorModel {
                     job?.set(.failed("No speech found in the microphone recording."))
                     return
                 }
-                self?.applyCaptions(CaptionTrack(captions: lines, language: language.identifier), named: "Generate Captions")
+                self?.applyCaptions(CaptionTrack(captions: lines, language: language), named: "Generate Captions")
                 if self?.captionJob === job { self?.captionJob = nil }
             } catch is CancellationError {
                 if self?.captionJob === job { self?.captionJob = nil }
             } catch Transcriber.Failure.unsupportedLanguage(let locale) {
                 job?.set(.failed("Captions aren’t available in \(Self.languageName(locale.identifier)) yet."))
-            } catch Transcriber.Failure.unreadable {
+            } catch Transcriber.Failure.unreadable, WhisperTranscriber.Failure.unreadable {
                 job?.set(.failed("Unable to read the microphone recording."))
+            } catch WhisperTranscriber.Failure.modelUnreadable {
+                job?.set(.failed("\(model.title) could not be opened. Download it again in Settings > Captions."))
             } catch {
                 // A cancel can surface as the analyzer's own error.
                 if Task.isCancelled {

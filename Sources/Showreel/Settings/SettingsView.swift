@@ -24,6 +24,7 @@ struct SettingsView: View {
             case .general: GeneralSettings()
             case .recording: RecordingSettings()
             case .export: ExportDefaults()
+            case .captions: CaptionSettings()
             case .appearance: AppearanceSettings()
             }
         }
@@ -34,7 +35,7 @@ struct SettingsView: View {
 }
 
 enum SettingsTab: String, CaseIterable, Identifiable {
-    case general, recording, export, appearance
+    case general, recording, export, captions, appearance
 
     var id: String { rawValue }
 
@@ -43,6 +44,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .general: "General"
         case .recording: "Recording"
         case .export: "Export"
+        case .captions: "Captions"
         case .appearance: "Appearance"
         }
     }
@@ -52,6 +54,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .general: "gearshape"
         case .recording: "record.circle"
         case .export: "square.and.arrow.up"
+        case .captions: "captions.bubble"
         case .appearance: "paintpalette"
         }
     }

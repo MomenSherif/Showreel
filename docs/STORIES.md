@@ -8,7 +8,7 @@ Snapshot pages: `permissions`, `menubar`, `record-panel`, `source-picker`,
 `library-empty`, `editor`, `editor-background`, `editor-screen`,
 `editor-camera`, `editor-effects`, `editor-captions`, `editor-audio`,
 `editor-zoom-selected`, `editor-blur-selected`, `crop-sheet`, `export-sheet`, `export-progress`, `export-done`,
-`settings`, `settings-captions`.
+`editor-captions-arabic`, `settings`, `settings-captions`.
 
 Seed data (snapshot mode): three projects ("Onboarding walkthrough" 0:42,
 "Pricing page tour" 1:15, "API keys demo" 0:28). Each one has a style, zoom
@@ -812,7 +812,11 @@ Acceptance:
   "Download Whisper Large v3 Turbo in Settings > Captions." and a button.
 - [unit] Picking Arabic with Apple's model is not offered: the Language list
   comes from the chosen model.
-Status: todo
+UX: Settings > Captions has Speech Model and Language, then Models with each one's state
+(Built In, From Handy, Delete…, or Download 1.62 GB with a bar and Cancel). The Captions
+inspector shows the same two pickers above Generate Again, or under No Captions; a missing
+model says so with its Download button. Snapshot pages settings-captions, editor-captions.
+Status: done
 
 ### S-051 Get a Whisper model, or use Handy's
 As the user, I download a Whisper model once, or Showreel uses the copy
@@ -829,7 +833,10 @@ Acceptance:
   refused.
 - [snap] A downloaded model has Delete…; a model from Handy shows "From
   Handy" and no Delete.
-Status: todo
+Notes: whisper.cpp b5454 is vendored by tools/fetch-whisper.sh. Handy's ggml-small.bin and
+ggml-large-v3-turbo.bin have the same SHA-256 as Hugging Face's, so one size check covers both.
+The self-test uses sparse files of the exact size and a file:// download of the wrong size.
+Status: done
 
 ### S-052 Make captions with Whisper
 As the user, I generate captions with a Whisper model, on this Mac, with
@@ -844,7 +851,11 @@ Acceptance:
   Again work as in S-039; cancelling frees the model.
 - [manual] A 5-minute English talk with Large v3 Turbo takes under a minute
   on an M1.
-Status: todo
+Notes: one word per segment (token timestamps, max_len 1, split on words), beam search 5,
+Metal. With Whisper Small on an M-series Mac: English words match Apple's within 0.2 s for at
+least 4 in 5 words; a 40-second clip takes about 2 s. The 5-minute Turbo timing on an M1 is
+still to do by hand.
+Status: done
 
 ### S-053 Captions for Arabic and mixed Arabic and English
 As the user, I talk in Arabic with English words mixed in, and get captions
@@ -859,7 +870,11 @@ Acceptance:
   Arabic marks with their letters.
 - [manual] A real 1-minute mixed Arabic and English recording reads right to
   a native speaker, with English terms in Latin letters.
-Status: todo
+Notes: Automatic finds the language from the first 30 seconds first; Arabic then gets a short
+Egyptian-Arabic prompt with English product words. The test clip (macOS voices Majed and
+Samantha) uses "invoice" and "webhook", which the prompt does not contain, and Whisper Small
+keeps both in Latin letters. Listening to a real recording is still to do by hand.
+Status: done
 
 ### S-054 Show Arabic captions right to left
 As the user, I see Arabic and mixed captions read right to left in the
@@ -874,7 +889,11 @@ Acceptance:
   in a mixed line.
 - [snap] The caption text field and caption block tooltips follow the
   text's direction.
-Status: todo
+Notes: a caption reads right to left when its track's language does (ar, he, fa, ur…) and it
+has any such word, else by a word count with ties to the right. Core Text gets the base
+direction; the spoken-word pill is measured from glyph runs. Golden frames captions-arabic and
+captions-mixed; snapshot page editor-captions-arabic.
+Status: done
 
 ---
 

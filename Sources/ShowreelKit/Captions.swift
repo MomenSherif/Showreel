@@ -222,3 +222,45 @@ extension Caption {
         words.lastIndex { $0.start <= t }
     }
 }
+
+/// Which way a caption reads (S-054). In a track whose language reads right
+/// to left (Arabic, Hebrew, Persian, Urdu), any line with those letters
+/// does, even when English words outnumber them ("API key هنفتح الـ dashboard").
+/// Otherwise the words decide, ties going right to left.
+public enum TextDirection {
+    static let rightToLeftLanguages: Set<String> = ["ar", "he", "fa", "ur", "ps", "yi", "sd", "ug", "ckb", "dv"]
+
+    public static func isRightToLeftLanguage(_ identifier: String) -> Bool {
+        let code = Locale(identifier: identifier).language.languageCode?.identifier ?? identifier
+        return rightToLeftLanguages.contains(code)
+    }
+
+    public static func isRightToLeft(_ text: String, language: String = "") -> Bool {
+        var rtl = 0, ltr = 0
+        for word in text.split(whereSeparator: \.isWhitespace) {
+            switch direction(of: word) {
+            case true?: rtl += 1
+            case false?: ltr += 1
+            case nil: break
+            }
+        }
+        if rtl > 0, isRightToLeftLanguage(language) { return true }
+        return rtl > 0 && rtl >= ltr
+    }
+
+    /// A word's direction from its first letter; nil for numbers and marks.
+    static func direction(of word: Substring) -> Bool? {
+        for scalar in word.unicodeScalars where scalar.properties.isAlphabetic {
+            switch scalar.value {
+            case 0x0590...0x08FF, 0xFB1D...0xFDFF, 0xFE70...0xFEFF: return true
+            default: return false
+            }
+        }
+        return nil
+    }
+}
+
+extension Caption {
+    /// Right to left in a track of `language` (S-054).
+    public func isRightToLeft(language: String = "") -> Bool { TextDirection.isRightToLeft(text, language: language) }
+}

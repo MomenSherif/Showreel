@@ -10,6 +10,7 @@ SwiftData database and no server.
 - `Sources/ShowreelEngine/` capture, writers, and `Renderer` (AVFoundation, Core Image), no SwiftUI or AppKit. Golden-frame tests in `Tests/ShowreelEngineTests/`.
 - `Package.swift` a Swift package. There is no Xcode project.
 - `build.sh` builds, signs, and installs `~/Applications/Showreel.app`.
+- `Vendor/whisper.xcframework` is whisper.cpp for Whisper captions, git-ignored. `tools/fetch-whisper.sh` downloads it (checked by SHA-256); `build.sh` runs it and copies the framework into `Contents/Frameworks`. Speech models live in `~/Library/Application Support/Showreel/Models`, or are read from Handy's folder; Whisper tests are skipped without one.
 - `Icon/AppIcon.icon` the app icon, an Icon Composer file (JSON plus SVG layers). `build.sh` compiles it with `tools/make_icon.sh`; `tools/icon_review.sh` renders every look into one PNG.
 - `docs/` the brief, the stories, the glossary, and `DESIGN.md` (surfaces, editor layout, command map). Follow DESIGN.md for every UI story.
 

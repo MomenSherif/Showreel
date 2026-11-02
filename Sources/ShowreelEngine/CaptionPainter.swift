@@ -11,7 +11,7 @@ import ShowreelKit
 /// since it changes only a few times a second. Core Image coordinates.
 enum CaptionPainter {
     private struct Key: Hashable {
-        let id: UUID, text: String, word: Int?, style: CaptionStyle, canvas: CGSize
+        let id: UUID, text: String, word: Int?, style: CaptionStyle, canvas: CGSize, language: String
     }
 
     private struct Image: @unchecked Sendable {
@@ -26,9 +26,9 @@ enum CaptionPainter {
     static func image(for captions: CaptionTrack, style: CaptionStyle, at t: Double, canvas size: CGSize) -> CIImage? {
         guard style.isVisible, let caption = captions.caption(at: t), !caption.words.isEmpty else { return nil }
         let word = style.highlightsWord ? caption.wordIndex(at: t) : nil
-        let key = Key(id: caption.id, text: caption.text, word: word, style: style, canvas: size)
+        let key = Key(id: caption.id, text: caption.text, word: word, style: style, canvas: size, language: captions.language)
         if let cached = cache.withLock({ $0[key] }) { return cached.image }
-        guard let image = draw(caption, word: word, style: style, canvas: size) else { return nil }
+        guard let image = draw(caption, word: word, style: style, canvas: size, language: captions.language) else { return nil }
         cache.withLock { cache in
             if cache.count > 24 { cache.removeAll() }
             cache[key] = Image(image: image)
@@ -40,7 +40,7 @@ enum CaptionPainter {
     /// a tall video has captions as big as a wide one.
     static func unit(_ canvas: CGSize) -> CGFloat { min(canvas.width, canvas.height) / 1080 }
 
-    private static func draw(_ caption: Caption, word: Int?, style: CaptionStyle, canvas: CGSize) -> CIImage? {
+    private static func draw(_ caption: Caption, word: Int?, style: CaptionStyle, canvas: CGSize, language: String) -> CIImage? {
         let u = unit(canvas)
         let fontSize = 46 * u * CGFloat(min(max(style.size, CaptionStyle.sizeRange.lowerBound), CaptionStyle.sizeRange.upperBound))
         guard let font = CTFontCreateUIFontForLanguage(.emphasizedSystem, fontSize, nil) else { return nil }
@@ -60,11 +60,19 @@ enum CaptionPainter {
 
         let string = NSMutableAttributedString(string: text)
         let all = NSRange(location: 0, length: string.length)
+        // Arabic reads from the right even when a line starts with an English
+        // word (S-054); English words inside it keep their own order.
         var alignment = CTTextAlignment.center
-        let paragraph = withUnsafeBytes(of: &alignment) { bytes in
-            var setting = CTParagraphStyleSetting(spec: .alignment, valueSize: MemoryLayout<CTTextAlignment>.size,
-                                                  value: bytes.baseAddress!)
-            return CTParagraphStyleCreate(&setting, 1)
+        var direction = caption.isRightToLeft(language: language) ? CTWritingDirection.rightToLeft : .leftToRight
+        let paragraph = withUnsafeBytes(of: &alignment) { a in
+            withUnsafeBytes(of: &direction) { d in
+                var settings = [
+                    CTParagraphStyleSetting(spec: .alignment, valueSize: MemoryLayout<CTTextAlignment>.size, value: a.baseAddress!),
+                    CTParagraphStyleSetting(spec: .baseWritingDirection, valueSize: MemoryLayout<CTWritingDirection>.size,
+                                            value: d.baseAddress!),
+                ]
+                return CTParagraphStyleCreate(&settings, settings.count)
+            }
         }
         string.addAttribute(NSAttributedString.Key(kCTFontAttributeName as String), value: font, range: all)
         string.addAttribute(NSAttributedString.Key(kCTForegroundColorAttributeName as String), value: ink, range: all)
@@ -101,12 +109,9 @@ enum CaptionPainter {
             var origins = [CGPoint](repeating: .zero, count: lines.count)
             CTFrameGetLineOrigins(frame, CFRange(), &origins)
             for (line, origin) in zip(lines, origins) {
-                let span = CTLineGetStringRange(line)
-                let from = max(range.location, span.location), to = min(range.location + range.length, span.location + span.length)
-                guard from < to else { continue }
+                guard let (x0, x1) = span(of: range, in: line) else { continue }
                 var ascent: CGFloat = 0, descent: CGFloat = 0
                 CTLineGetTypographicBounds(line, &ascent, &descent, nil)
-                let x0 = CTLineGetOffsetForStringIndex(line, from, nil), x1 = CTLineGetOffsetForStringIndex(line, to, nil)
                 let side = 0.09 * fontSize, top = 0.08 * fontSize
                 let rect = CGRect(x: textRect.minX + origin.x + x0 - side, y: textRect.minY + origin.y - descent - top,
                                   width: x1 - x0 + 2 * side, height: ascent + descent + 2 * top)
@@ -126,6 +131,28 @@ enum CaptionPainter {
         let x = ((canvas.width - box.width) / 2).rounded()
         let y = style.position == .bottom ? margin.rounded() : (canvas.height - margin - box.height).rounded()
         return CIImage(cgImage: picture).transformed(by: CGAffineTransform(translationX: x, y: y))
+    }
+
+    /// Where the glyphs of `range` are on `line`, left to right, from the
+    /// glyph runs: string offsets do not work in right-to-left and mixed text,
+    /// where a word's start can be on its right.
+    static func span(of range: NSRange, in line: CTLine) -> (CGFloat, CGFloat)? {
+        var lo = CGFloat.infinity, hi = -CGFloat.infinity
+        for run in CTLineGetGlyphRuns(line) as! [CTRun] {
+            let count = CTRunGetGlyphCount(run)
+            guard count > 0 else { continue }
+            var indices = [CFIndex](repeating: 0, count: count)
+            var positions = [CGPoint](repeating: .zero, count: count)
+            var advances = [CGSize](repeating: .zero, count: count)
+            CTRunGetStringIndices(run, CFRange(), &indices)
+            CTRunGetPositions(run, CFRange(), &positions)
+            CTRunGetAdvances(run, CFRange(), &advances)
+            for i in 0..<count where NSLocationInRange(indices[i], range) {
+                lo = min(lo, positions[i].x)
+                hi = max(hi, positions[i].x + advances[i].width)
+            }
+        }
+        return lo < hi ? (lo, hi) : nil
     }
 
     private static func textColor(_ box: CaptionStyle.Box) -> CGColor {

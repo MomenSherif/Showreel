@@ -100,6 +100,24 @@ enum Snapshot {
         NSApp.windows.first { $0.isVisible && type(of: $0) == NSPanel.self && $0.title.isEmpty }
     }
 
+    /// Speech models as a person with Handy would have them, whatever this
+    /// Mac holds: Whisper Small from Handy, Turbo not downloaded (S-051).
+    /// Sparse files of the exact size, so nothing is written.
+    static func fakeSpeechModels() {
+        let root = URL(fileURLWithPath: "/tmp/Showreel-snapshot-models")
+        let handy = root.appending(path: "handy")
+        try? FileManager.default.createDirectory(at: handy, withIntermediateDirectories: true)
+        let small = handy.appending(path: SpeechModel.whisperSmall.fileName ?? "")
+        if !FileManager.default.fileExists(atPath: small.path) {
+            FileManager.default.createFile(atPath: small.path, contents: nil)
+            if let handle = try? FileHandle(forWritingTo: small) {
+                try? handle.truncate(atOffset: UInt64(SpeechModel.whisperSmall.byteCount ?? 0))
+                try? handle.close()
+            }
+        }
+        SpeechModels.shared.locator = ModelLocator(own: root.appending(path: "own"), handy: handy)
+    }
+
     static func runIfRequested(model: AppModel, openSettings: OpenSettingsAction) {
         let env = ProcessInfo.processInfo.environment
         guard let dir = env["APP_SNAPSHOT"], !dir.isEmpty else { return }
@@ -110,6 +128,7 @@ enum Snapshot {
             return
         }
         let only = env["APP_SNAPSHOT_PAGES"].map { Set($0.split(separator: ",").map(String.init)) }
+        fakeSpeechModels()
         Task {
             // A sleeping display gives screencapture nothing. Declaring user
             // activity wakes it; the assertion keeps it on until the run quits.
@@ -154,8 +173,11 @@ enum Snapshot {
                     for tab in SettingsTab.allCases {
                         model.settingsTab = tab
                         try? await Task.sleep(for: .seconds(0.8))
-                        // Not a panel: the Record Panel can still be up from an earlier page.
-                        let settings = NSApp.windows.first { $0.isVisible && $0 !== main && !$0.isSheet && !($0 is NSPanel) }
+                        // SwiftUI's Settings window by its identifier: an editor or the
+                        // Record Panel can still be open from an earlier page.
+                        let settings = NSApp.windows.first { $0.identifier?.rawValue.contains("Settings") == true && $0.isVisible }
+                            ?? NSApp.windows.first { $0.isVisible && $0 !== main && !$0.isSheet && !($0 is NSPanel) }
+                        if settings == nil { print("SNAPSHOT no Settings window for \(tab.rawValue)") }
                         capture(to: "\(dir)/settings-\(tab.rawValue)-\(mode).png", window: settings)
                     }
                 }
