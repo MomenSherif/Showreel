@@ -38,23 +38,31 @@ The Download buttons, the Donate link, and the GitHub icon in the nav read three
 ```js
 const DOWNLOAD_URL = '#download'; // a .dmg or a store page
 const DONATE_URL = '#donate';     // GitHub Sponsors, Buy Me a Coffee, Ko-fi, …
-const GITHUB_URL = '#github';     // the repository
+const GITHUB_URL = 'https://github.com/MomenSherif/Showreel';
 ```
 
 Set them before publishing. A download link that ends in `.dmg`, `.zip`, or `.pkg` also gets the `download` attribute. Donate and GitHub open in a new tab once they're `https://` links.
 
 ## Analytics
 
-The page sends visits and link clicks to Mixpanel once `MIXPANEL_TOKEN` at the top of `main.js` holds the project token (Mixpanel > Settings > Project Settings > Project Token). While the token is empty, the Mixpanel library never loads and nothing is sent. For a project stored in the EU, also set `MIXPANEL_HOST` to `https://api-eu.mixpanel.com`.
+The page sends visits and a few named events to Mixpanel once `MIXPANEL_TOKEN` at the top of `main.js` holds the project token (Mixpanel > Settings > Project Settings > Project Token). While the token is empty, the Mixpanel library never loads and nothing is sent. For a project stored in the EU, also set `MIXPANEL_HOST` to `https://api-eu.mixpanel.com`.
+
+Visitors whose browser sends Global Privacy Control or Do Not Track get no analytics: the library never loads. Autocapture is off, so Mixpanel gets the page view and the events below, not every click and keystroke.
 
 | Event | When | Properties |
 | --- | --- | --- |
 | `$mp_web_page_view` | Each time the page opens | Mixpanel's own: URL, referrer, UTM tags, browser, country, city |
-| `Download Clicked` | Any Download button | `placement` (`nav`, `hero`, `download`), `url` |
-| `Donate Clicked` | Any Donate link | `placement` (`nav`, `sponsor`), `url` |
-| `GitHub Clicked` | The GitHub icon | `placement` (`nav`), `url` |
+| `section_viewed` | A section reaches the middle of the screen, once per section per visit | `section` (`hero`, `polish`, `tour`, `captions`, `private`, `specs`, `faq`, `sponsor`, `download`) |
+| `style_demo_used` | First use of each style control in "From raw capture to a finished frame", once per control per visit | `control` (`padding`, `corners`, `background`, `zoom`, `camera`, `compare_slider`) |
+| `caption_example_viewed` | A caption example tab is picked | `example` (`en`, `ar`) |
+| `faq_opened` | A question in Questions is opened | `question` (the question text) |
+| `download_clicked` | Any Download button. The key event: the site's goal | `placement` (`nav`, `hero`, `download`), `url` |
+| `donate_clicked` | Any Donate link | `placement` (`nav`, `sponsor`), `url` |
+| `github_clicked` | The GitHub icon | `placement` (`nav`), `url` |
 
-Each visitor gets an anonymous id kept in local storage, so Mixpanel counts unique visitors as well as visits. Ad blockers often block Mixpanel, so the real numbers are somewhat higher than the ones shown.
+A useful funnel: `$mp_web_page_view` → `section_viewed` (`tour`) → `download_clicked`.
+
+Each visitor gets an anonymous id kept in local storage, so Mixpanel counts unique visitors as well as visits. Ad blockers often block Mixpanel, so the real numbers are somewhat higher than the ones shown. Tracking and naming rules for new events are in `AGENTS.md`.
 
 ## Screenshots
 

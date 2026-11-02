@@ -1,7 +1,7 @@
 // Set these to the real links before publishing.
 const DOWNLOAD_URL = '#download'; // a .dmg or a store page
 const DONATE_URL = '#donate';     // GitHub Sponsors, Buy Me a Coffee, Ko-fi, …
-const GITHUB_URL = '#github';     // the repository
+const GITHUB_URL = 'https://github.com/MomenSherif/Showreel';     // the repository
 const MIXPANEL_TOKEN = 'b2e49ab5f5faa4f986b9828b91b02882'; // the Mixpanel project token; empty turns analytics off
 const MIXPANEL_HOST = 'https://api-js.mixpanel.com'; // api-eu.mixpanel.com for an EU project
 
@@ -11,8 +11,13 @@ const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 // window.mixpanel is the stub its loader snippet expects: an array that
 // queues calls, which the library replays and then replaces with itself.
 // sendBeacon lets a click event leave even when the link leaves the page.
+// Visitors who send Global Privacy Control or Do Not Track get no analytics
+// at all: the library never loads and nothing is stored or sent.
+const optedOut = navigator.globalPrivacyControl === true
+  || navigator.doNotTrack === '1' || window.doNotTrack === '1';
+
 const track = (() => {
-  if (!MIXPANEL_TOKEN) return () => {};
+  if (!MIXPANEL_TOKEN || optedOut) return () => {};
   const stub = Object.assign([], {
     __SV: 1.2,
     people: [],
@@ -21,6 +26,8 @@ const track = (() => {
       api_transport: 'sendBeacon',
       persistence: 'localStorage',
       track_pageview: true,
+      // Only the named events below, not every click, input, and scroll.
+      autocapture: false,
     }, 'mixpanel']],
   });
   stub.track = (...args) => { stub.push(['track', ...args]); };
@@ -39,9 +46,9 @@ const placeOf = (a) =>
 // Download gets the download attribute for a file link. Donate and GitHub
 // open in a new tab once they point somewhere real.
 [
-  ['[data-download]', DOWNLOAD_URL, 'Download Clicked'],
-  ['[data-donate]', DONATE_URL, 'Donate Clicked'],
-  ['[data-github]', GITHUB_URL, 'GitHub Clicked'],
+  ['[data-download]', DOWNLOAD_URL, 'download_clicked'],
+  ['[data-donate]', DONATE_URL, 'donate_clicked'],
+  ['[data-github]', GITHUB_URL, 'github_clicked'],
 ].forEach(([sel, url, event]) => {
   document.querySelectorAll(sel).forEach((a) => {
     a.href = url;
@@ -170,6 +177,21 @@ const placeOf = (a) =>
   };
   const controls = document.getElementById('controls');
   controls.addEventListener('input', update);
+
+  // style_demo_used: once per control per visit, so dragging a slider
+  // sends one event, not hundreds.
+  const tried = new Set();
+  const tryOnce = (control) => {
+    if (tried.has(control)) return;
+    tried.add(control);
+    track('style_demo_used', { control });
+  };
+  const controlOf = { pad: 'padding', round: 'corners', cam: 'camera', zoom: 'zoom' };
+  controls.addEventListener('change', (e) => {
+    tryOnce(e.target.name === 'bg' ? 'background' : controlOf[e.target.id] || e.target.id);
+  });
+  box.addEventListener('pointerdown', () => tryOnce('compare_slider'));
+  handle.addEventListener('keydown', () => tryOnce('compare_slider'));
   controls.addEventListener('submit', (e) => e.preventDefault());
   update();
 })();
@@ -214,11 +236,43 @@ document.querySelectorAll('[data-switch]').forEach((area) => {
     if (focus) tab.focus();
   };
   tabs.forEach((t, i) => {
-    t.addEventListener('click', () => show(t));
+    t.addEventListener('click', () => {
+      show(t);
+      track('caption_example_viewed', { example: t.id.replace(/^cap-tab-/, '') });
+    });
     t.addEventListener('keydown', (e) => {
       const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
-      if (d) { e.preventDefault(); show(tabs[(i + d + tabs.length) % tabs.length], true); }
+      if (!d) return;
+      e.preventDefault();
+      const next = tabs[(i + d + tabs.length) % tabs.length];
+      show(next, true);
+      track('caption_example_viewed', { example: next.id.replace(/^cap-tab-/, '') });
     });
   });
   show(tabs[0]);
+});
+
+// section_viewed: once per section per visit, when it reaches the middle of
+// the screen (a threshold would never fire for sections taller than it).
+// Read in order, it shows how far down the page visitors get.
+(() => {
+  if (!('IntersectionObserver' in window)) return;
+  const seen = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (!e.isIntersecting) return;
+      seen.unobserve(e.target);
+      track('section_viewed', { section: e.target.dataset.section });
+    });
+  }, { rootMargin: '0px 0px -50% 0px' });
+  document.querySelectorAll('main > section[aria-labelledby]').forEach((s) => {
+    s.dataset.section = s.id || s.getAttribute('aria-labelledby').replace(/-title$/, '');
+    seen.observe(s);
+  });
+})();
+
+// faq_opened: each time a visitor opens a question.
+document.querySelectorAll('.faq details').forEach((d) => {
+  d.addEventListener('toggle', () => {
+    if (d.open) track('faq_opened', { question: d.querySelector('summary').textContent.trim() });
+  });
 });
