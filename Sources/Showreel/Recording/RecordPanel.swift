@@ -19,10 +19,6 @@ final class RecordPanel {
                                   options: options, content: RecordPanelView())
         }
         guard let panel else { return }
-        // Fit the bar's natural width, so no label is cut off.
-        if let fitting = panel.contentView?.fittingSize, fitting.width > 0 {
-            panel.setContentSize(CGSize(width: fitting.width, height: Layout.recordPanel.height + Space.section + Space.xl + Space.md))
-        }
         let screen = NSScreen.containing(cgRect: CGRect(origin: NSEvent.mouseLocation, size: .zero)) ?? NSScreen.main
         if let visible = screen?.visibleFrame {
             // The bar's bottom edge sits where the Recording Controls' does.
@@ -33,6 +29,21 @@ final class RecordPanel {
     }
 
     func hide() { panel?.orderOut(nil) }
+
+    /// The bar's width changes when a chip's text does ("Camera off" becomes
+    /// the camera's name). Grow or shrink the panel around its center, so the
+    /// bar is never clipped and stays centered at the bottom of the screen.
+    /// The bar's width as SwiftUI last laid it out, shadow margins included.
+    private(set) var barWidth: CGFloat = 0
+
+    func fit(width: CGFloat) {
+        barWidth = width
+        guard let panel, width > 0, abs(panel.frame.width - width) > 0.5 else { return }
+        var frame = panel.frame
+        frame.origin.x = frame.midX - width / 2
+        frame.size.width = width
+        panel.setFrame(frame, display: true)
+    }
 }
 
 struct RecordPanelView: View {
@@ -76,6 +87,7 @@ struct RecordPanelView: View {
         .padding(.bottom, Space.md)
         .padding(.horizontal, Space.lg)
         .fixedSize(horizontal: true, vertical: false)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { RecordPanel.shared.fit(width: $0) }
         .animation(Motion.resolved(Motion.ui), value: problemText)
         .onAppear { permissions.startWatching() }
         .onDisappear { permissions.stopWatching() }

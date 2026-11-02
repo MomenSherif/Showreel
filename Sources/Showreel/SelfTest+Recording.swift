@@ -84,6 +84,15 @@ extension SelfTest {
         Store.defaults.set(true, forKey: "welcome.done")
         recorder.newRecording()
         check("New Recording opens the Record Panel", recorder.state == .panel && RecordPanel.shared.panel?.isVisible == true)
+        try? await Task.sleep(for: .seconds(0.3)) // the panel fits the bar's width after layout
+        if let panel = RecordPanel.shared.panel, let visible = panel.screen?.visibleFrame {
+            check("the Record Panel opens at the bottom center of the screen",
+                  abs(panel.frame.midX - visible.midX) <= 1 && panel.frame.minY < visible.minY + Layout.controlsInset,
+                  "panel \(panel.frame), visible \(visible)")
+            let barWidth = RecordPanel.shared.barWidth
+            check("the Record Panel is as wide as its bar", barWidth > 0 && abs(panel.frame.width - barWidth) <= 1,
+                  "panel \(panel.frame.width), bar \(barWidth)")
+        }
         await recorder.loadContent()
         recorder.displayID = CGMainDisplayID()
         check("Start Recording is ready", recorder.startBlocker == nil, recorder.startBlocker ?? "")
