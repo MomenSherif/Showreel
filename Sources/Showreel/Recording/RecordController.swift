@@ -94,7 +94,8 @@ final class RecordController {
         StatusItem.shared.update()
     }
 
-    /// ⌃⌥⌘R: opens the panel, starts from the open panel, or stops.
+    /// The Record Shortcut (⌃⌥⌘R unless changed): opens the panel, starts
+    /// from the open panel, or stops.
     func toggleFromShortcut() {
         switch state {
         case .idle: newRecording(fromShortcut: true)
@@ -256,9 +257,16 @@ final class RecordController {
             return
         }
 
+        // Settings > Recording > Countdown (S-045); Off starts at once.
+        let seconds = AppSettings.shared.countdownSeconds
+        guard seconds > 0 else {
+            beginRecording()
+            return
+        }
+        countdown = seconds
         Countdown.shared.show(on: source.display.displayID)
         countdownTask = Task {
-            for n in stride(from: 3, through: 1, by: -1) {
+            for n in stride(from: seconds, through: 1, by: -1) {
                 countdown = n
                 try? await Task.sleep(for: .seconds(1))
                 if Task.isCancelled { return }

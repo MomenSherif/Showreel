@@ -16,31 +16,7 @@ struct ExportSheet: View {
     var body: some View {
         Form {
             Section {
-                Picker(selection: format) {
-                    ForEach(ExportSettings.Format.allCases, id: \.self) { Text($0.title).tag($0) }
-                } label: {
-                    Text("Format")
-                    Text(settings.format.caption)
-                }
-                .pickerStyle(.segmented)
-                Picker(selection: $settings.resolution) {
-                    ForEach(settings.resolutions, id: \.self) { Text($0.title).tag($0) }
-                } label: {
-                    Text("Resolution")
-                    if settings.isUpscaled(canvas: canvas) {
-                        Text("Larger than the recording, so it will look softer.")
-                    }
-                }
-                Picker("Frame Rate", selection: $settings.fps) {
-                    ForEach(settings.frameRates, id: \.self) { Text("\($0) fps").tag($0) }
-                }
-                .pickerStyle(.segmented)
-                if settings.format != .gif {
-                    Picker("Quality", selection: $settings.quality) {
-                        ForEach(ExportSettings.Quality.allCases, id: \.self) { Text($0.title).tag($0) }
-                    }
-                    .pickerStyle(.segmented)
-                }
+                ExportChoices(settings: $settings, canvas: canvas)
             } header: {
                 Text("Export “\(editor.project.title)”")
                     .lineLimit(1)
@@ -73,10 +49,6 @@ struct ExportSheet: View {
 
     private var canvas: CGSize { editor.canvasSize }
 
-    private var format: Binding<ExportSettings.Format> {
-        Binding(get: { settings.format }, set: { settings = settings.with(format: $0) })
-    }
-
     /// "1920 × 1080 · about 48 MB".
     private var estimate: String {
         let size = settings.outputSize(canvas: canvas)
@@ -84,5 +56,45 @@ struct ExportSheet: View {
                                             hasAudio: editor.hasAudio && settings.format.hasAudio)
         let file = bytes.formatted(.byteCount(style: .file))
         return "\(Int(size.width)) × \(Int(size.height)) · about \(file)"
+    }
+}
+
+/// Format, Resolution, Frame Rate, and Quality: in the Export sheet and in
+/// Settings > Export (S-045). With a `canvas`, it says when the export is
+/// larger than the recording.
+struct ExportChoices: View {
+    @Binding var settings: ExportSettings
+    var canvas: CGSize?
+
+    var body: some View {
+        Picker(selection: format) {
+            ForEach(ExportSettings.Format.allCases, id: \.self) { Text($0.title).tag($0) }
+        } label: {
+            Text("Format")
+            Text(settings.format.caption)
+        }
+        .pickerStyle(.segmented)
+        Picker(selection: $settings.resolution) {
+            ForEach(settings.resolutions, id: \.self) { Text($0.title).tag($0) }
+        } label: {
+            Text("Resolution")
+            if let canvas, settings.isUpscaled(canvas: canvas) {
+                Text("Larger than the recording, so it will look softer.")
+            }
+        }
+        Picker("Frame Rate", selection: $settings.fps) {
+            ForEach(settings.frameRates, id: \.self) { Text("\($0) fps").tag($0) }
+        }
+        .pickerStyle(.segmented)
+        if settings.format != .gif {
+            Picker("Quality", selection: $settings.quality) {
+                ForEach(ExportSettings.Quality.allCases, id: \.self) { Text($0.title).tag($0) }
+            }
+            .pickerStyle(.segmented)
+        }
+    }
+
+    private var format: Binding<ExportSettings.Format> {
+        Binding(get: { settings.format }, set: { settings = settings.with(format: $0) })
     }
 }

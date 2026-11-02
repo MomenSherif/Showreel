@@ -60,6 +60,7 @@ struct ShowreelApp: App {
                 .environment(model)
                 .themed()
         }
+        .modelContainer(model.container)
         .windowResizability(.contentSize)
     }
 }
@@ -145,7 +146,7 @@ private struct RecordMenu: View {
 
     var body: some View {
         Button(recorder.isCapturing ? "Stop Recording" : "Start Recording") { recorder.toggleFromShortcut() }
-            .keyboardShortcut("r", modifiers: [.control, .option, .command])
+            .keyboardShortcut(AppSettings.shared.recordShortcut.keyboardShortcut)
             .disabled(recorder.state == .saving)
         Button(recorder.state == .paused ? "Resume Recording" : "Pause Recording") { recorder.togglePause() }
             .keyboardShortcut("p", modifiers: [.control, .option, .command])

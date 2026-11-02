@@ -85,12 +85,8 @@ final class ExportRun {
 }
 
 extension EditorModel {
-    static let exportSettingsKey = "export.settings"
-
-    /// The last export's choices, or the defaults.
-    var savedExportSettings: ExportSettings {
-        ExportSettings.decode(Store.defaults.data(forKey: Self.exportSettingsKey))
-    }
+    /// The choices in Settings > Export, which the last export updated.
+    var savedExportSettings: ExportSettings { AppSettings.shared.exportSettings }
 
     /// The video's size before export scaling, for the size estimate.
     var canvasSize: CGSize { sources?.canvasSize(for: style) ?? .zero }
@@ -110,15 +106,14 @@ extension EditorModel {
     /// where to save with the system save panel (a sheet on `window`), and
     /// starts the export there.
     func chooseExportFile(settings: ExportSettings, window: NSWindow?) {
-        Store.defaults.set(settings.encoded(), forKey: Self.exportSettingsKey)
+        AppSettings.shared.exportSettings = settings
         let panel = NSSavePanel()
         panel.title = "Export"
         panel.nameFieldStringValue = "\(project.title).\(settings.format.fileExtension)"
         panel.allowedContentTypes = [UTType(filenameExtension: settings.format.fileExtension) ?? .movie]
         panel.canCreateDirectories = true
-        if panel.directoryURL == nil {
-            panel.directoryURL = FileManager.default.urls(for: .moviesDirectory, in: .userDomainMask).first
-        }
+        // Settings > General > Exports (S-045).
+        panel.directoryURL = AppSettings.shared.exportsFolder
         let done: (NSApplication.ModalResponse) -> Void = { [weak self] response in
             guard response == .OK, let url = panel.url else { return }
             self?.startExport(to: url, settings: settings)

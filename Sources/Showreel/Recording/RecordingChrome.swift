@@ -107,7 +107,7 @@ struct RecordingControlsView: View {
                     Button(paused ? "Resume" : "Pause", systemImage: paused ? "play.fill" : "pause.fill") { recorder.togglePause() }
                         .help(paused ? "Continue recording (⌃⌥⌘P)" : "Pause without a gap in the video (⌃⌥⌘P)")
                     Button("Stop", systemImage: "stop.fill") { recorder.stop() }
-                        .help("Stop and open the project (⌃⌥⌘R)")
+                        .help("Stop and open the project (\(AppSettings.shared.recordShortcut.display))")
                     Divider().frame(height: Space.xl)
                     Button("Restart", systemImage: "arrow.counterclockwise") { recorder.restart() }
                         .help("Throw away this recording and start again")

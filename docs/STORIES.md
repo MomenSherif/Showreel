@@ -708,7 +708,27 @@ Screens: settings
 Acceptance:
 - [snap] A native Settings window with the tabs General, Recording, and
   Export.
-Status: todo
+- [self] The Record Shortcut, Countdown, Style for New Recordings, Exports
+  Folder, and export choices are kept, and a recording, the Record menu, and
+  the Export sheet use them.
+UX:
+- Flow: Showreel > Settings… (⌘,) -> tab -> each change applies at once, no Save button -> close
+  the window. Escape cancels typing a shortcut; Reset puts the shortcut back to ⌃⌥⌘R.
+- Surface: the Settings window, one grouped Form per tab (a place people come back to).
+  General: Projects folder (read-only, Show in Finder) and Exports folder (Choose…).
+  Recording: Record Shortcut, Countdown (Off, 3, 5, 10 seconds), Style for New Recordings.
+  Export: Format, Resolution, Frame Rate, Quality, the same choices the Export sheet starts with.
+- States: typing a shortcut "Type Shortcut…"; a shortcut with no ⌘, ⌥, or ⌃ shows "Add ⌘, ⌥,
+  or ⌃ so the shortcut works in any app." under it; a shortcut another app holds shows
+  "Another app uses ⌃⌥⌘X. Try a different shortcut." and keeps the old one; no presets: Style for
+  New Recordings shows None, disabled, with "Save a style as a preset in the editor to use it
+  here."; a missing Exports folder falls back to Movies.
+- Words: "Record Shortcut", "Starts and stops recording from any app.", "Countdown", "Style for
+  New Recordings", "Projects", "Exports", "Choose…", "The Export save panel opens here.",
+  "The Export sheet starts with these, and remembers what you pick there."
+- Access: the shortcut field is a button; VoiceOver reads "Record Shortcut, Control Option
+  Command R". The tabs and every control work from the keyboard.
+Status: done
 
 ### S-046 App icon
 Acceptance:

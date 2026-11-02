@@ -15,7 +15,6 @@ final class StatusItem: NSObject, NSMenuDelegate {
     func install() {
         guard item == nil else { return }
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        item.button?.toolTip = "Showreel: New Recording (⌃⌥⌘R)"
         menu.delegate = self
         item.menu = menu
         self.item = item
@@ -37,6 +36,8 @@ final class StatusItem: NSObject, NSMenuDelegate {
         } else {
             button.image = NSImage(systemSymbolName: "rectangle.inset.filled.and.person.filled", accessibilityDescription: "Showreel")
             button.title = ""
+            // The Record Shortcut can change in Settings.
+            button.toolTip = "Showreel: New Recording (\(AppSettings.shared.recordShortcut.display))"
             timer?.invalidate()
             timer = nil
         }
@@ -60,10 +61,10 @@ final class StatusItem: NSObject, NSMenuDelegate {
         menu.removeAllItems()
         let recorder = RecordController.shared
         if recorder.isCapturing {
-            add("Stop Recording \(TimeText.clock(recorder.elapsed))", key: "r", #selector(stop))
+            add("Stop Recording \(TimeText.clock(recorder.elapsed))", shortcut: AppSettings.shared.recordShortcut, #selector(stop))
             add(recorder.state == .paused ? "Resume Recording" : "Pause Recording", key: "p", #selector(pause))
         } else {
-            add("New Recording", key: "r", #selector(newRecording))
+            add("New Recording", shortcut: AppSettings.shared.recordShortcut, #selector(newRecording))
         }
         add("Open Library", key: "", #selector(openLibrary))
         let recent = AppServices.shared.recentProjects(limit: 3)
@@ -79,6 +80,14 @@ final class StatusItem: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
         add("Settings…", key: ",", #selector(openSettings), global: false)
         add("Quit Showreel", key: "q", #selector(quit), global: false)
+    }
+
+    /// An item with the Record Shortcut, as set in Settings > Recording.
+    private func add(_ title: String, shortcut: Shortcut, _ action: Selector) {
+        let item = NSMenuItem(title: title, action: action, keyEquivalent: shortcut.key)
+        item.keyEquivalentModifierMask = shortcut.modifierFlags
+        item.target = self
+        menu.addItem(item)
     }
 
     private func add(_ title: String, key: String, _ action: Selector, global: Bool = true) {

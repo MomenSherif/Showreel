@@ -42,6 +42,7 @@ enum Layout {
     // Windows
     static let welcomeWidth: CGFloat = 480
     static let settingsWidth: CGFloat = 520
+    static let shortcutFieldWidth: CGFloat = 96
     /// The export progress and finished popover (S-037, S-038).
     static let exportPopoverWidth: CGFloat = 320
 }

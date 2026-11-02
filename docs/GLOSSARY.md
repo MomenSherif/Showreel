@@ -34,6 +34,10 @@ titles, tooltips, errors, and VoiceOver labels.
 | Resolution | 720p, 1080p, or 4K: the video's short side in pixels | size, dimensions |
 | Frame Rate | Frames each second, shown as "30 fps" | fps (alone), smoothness |
 | Quality | Standard, High, or Best: more quality makes a bigger file | bitrate, compression |
+| Record Shortcut | The keys that start and stop recording from any app (⌃⌥⌘R) | hotkey, global shortcut |
+| Projects folder | Where recordings are kept (~/Movies/Showreel) | library folder, storage |
+| Exports folder | Where the Export save panel opens | save location, output folder |
+| Style for New Recordings | The preset every new project starts with | default preset, default style |
 
 ## Actions
 
