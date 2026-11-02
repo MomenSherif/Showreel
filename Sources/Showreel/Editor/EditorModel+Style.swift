@@ -77,7 +77,7 @@ extension EditorModel {
         let url: URL? = switch style.background {
         case .wallpaper(let path): URL(fileURLWithPath: path)
         case .image(let name): ProjectStore.file(name, of: project.uuid)
-        case .none, .gradient, .color: nil
+        case .none, .gradient, .blend, .color: nil
         }
         let path = zoomPath(for: style), cursor = cursorScene(for: style)
         guard let url else { return RenderStyle(style: style, zooms: zooms, zoomPath: path, cursor: cursor, captions: captions,

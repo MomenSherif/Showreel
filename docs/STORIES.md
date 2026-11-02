@@ -7,7 +7,7 @@ Snapshot pages: `permissions`, `menubar`, `record-panel`, `source-picker`,
 `area-selector`, `countdown`, `recording-controls`, `camera-bubble`, `library`,
 `library-empty`, `editor`, `editor-background`, `editor-screen`,
 `editor-camera`, `editor-effects`, `editor-captions`, `editor-audio`,
-`editor-zoom-selected`, `editor-blur-selected`, `editor-wallpapers`, `crop-sheet`, `export-sheet`, `export-progress`, `export-done`,
+`editor-zoom-selected`, `editor-blur-selected`, `editor-wallpapers`, `editor-blend`, `crop-sheet`, `export-sheet`, `export-progress`, `export-done`,
 `editor-captions-arabic`, `settings`, `settings-captions`.
 
 Seed data (snapshot mode): three projects ("Onboarding walkthrough" 0:42,

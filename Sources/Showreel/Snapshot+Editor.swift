@@ -240,6 +240,24 @@ extension Snapshot {
                                  },
                                  window: window,
                                  hide: { if let wallpaperOriginal { EditorModel.newest?.previewStyle(wallpaperOriginal) } })
+        // Blends: Aurora on the canvas, the Blend section in view.
+        var blendOriginal: Style?
+        let blend = Surface(name: "editor-blend", show: {
+                                guard let editor = await openEditor() else { return }
+                                editor.section = .background
+                                blendOriginal = editor.style
+                                var style = editor.style
+                                style.background = .blend("aurora")
+                                style.padding = 0.12
+                                editor.previewStyle(style)
+                                try? await Task.sleep(for: .seconds(1))
+                                if let window = NSApp.windows.first(where: { $0.isVisible && $0.title == title }) {
+                                    scrollInspector(in: window.contentView, toward: 0.22)
+                                }
+                                try? await Task.sleep(for: .seconds(0.8))
+                            },
+                            window: window,
+                            hide: { if let blendOriginal { EditorModel.newest?.previewStyle(blendOriginal) } })
         // S-042: a muted part on the audio track, shown without saving.
         let audioMuted = Surface(name: "editor-audio-muted", show: {
                                      guard let editor = await openEditor() else { return }
@@ -280,7 +298,7 @@ extension Snapshot {
                     },
                     window: window,
                     hide: {})
-        } + [trim, split, crop, frame, aspect, savePreset, export, progress, done, zoomSelected, blurSelected, wallpapers, click, zoomed, captionsProgress, captionsFailed, captionSelected, captionsArabic, audioMuted, noiseProgress]
+        } + [trim, split, crop, frame, aspect, savePreset, export, progress, done, zoomSelected, blurSelected, wallpapers, blend, click, zoomed, captionsProgress, captionsFailed, captionSelected, captionsArabic, audioMuted, noiseProgress]
     }
 }
 

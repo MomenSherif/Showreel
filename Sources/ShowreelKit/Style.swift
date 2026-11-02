@@ -49,6 +49,8 @@ public struct Style: Codable, Equatable, Sendable {
         /// No background: the recording fills the canvas.
         case none
         case gradient(String)
+        /// A `BlendPreset` by id: soft glows Showreel draws at any size.
+        case blend(String)
         case color(RGB)
         /// A macOS wallpaper, by file path. Missing files show the default gradient.
         case wallpaper(String)

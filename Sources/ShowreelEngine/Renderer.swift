@@ -222,6 +222,8 @@ public enum Renderer {
             return nil
         case .gradient(let id):
             return gradient(GradientPreset.named(id) ?? GradientPreset.all[0], canvas: canvas)
+        case .blend(let id):
+            return blend(BlendPreset.named(id) ?? BlendPreset.all[0], canvas: canvas)
         case .color(let rgb):
             return CIImage(color: color(rgb)).cropped(to: canvas)
         case .wallpaper, .image:
@@ -242,6 +244,25 @@ public enum Renderer {
             "inputColor0": color(preset.from),
             "inputColor1": color(preset.to),
         ])?.outputImage?.cropped(to: canvas) ?? CIImage(color: color(preset.to)).cropped(to: canvas)
+    }
+
+    /// A blend (docs/GLOSSARY.md): the base color with each glow over it, a
+    /// Gaussian falloff from its spot, so there are no edges or bands. Sizes
+    /// follow the canvas's longer side, so every aspect ratio and size looks alike.
+    public static func blend(_ preset: BlendPreset, canvas: CGRect) -> CIImage {
+        let long = max(canvas.width, canvas.height)
+        var image = CIImage(color: color(preset.base)).cropped(to: canvas)
+        for glow in preset.glows {
+            let c = color(glow.color)
+            guard let light = CIFilter(name: "CIGaussianGradient", parameters: [
+                "inputCenter": CIVector(x: canvas.minX + glow.x * canvas.width, y: canvas.maxY - glow.y * canvas.height),
+                "inputColor0": c,
+                "inputColor1": CIColor(red: c.red, green: c.green, blue: c.blue, alpha: 0, colorSpace: sRGB) ?? .clear,
+                "inputRadius": glow.radius * long,
+            ])?.outputImage else { continue }
+            image = light.cropped(to: canvas).composited(over: image)
+        }
+        return image
     }
 
     /// The picture scaled to cover the canvas, centered, blurred by `blur` (0...1).

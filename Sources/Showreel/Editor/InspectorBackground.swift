@@ -1,6 +1,7 @@
 import ImageIO
 import SwiftUI
 import UniformTypeIdentifiers
+import ShowreelEngine
 import ShowreelKit
 
 /// Inspector > Background (S-022): a gradient, a color, a wallpaper, or the
@@ -39,6 +40,21 @@ struct BackgroundSection: View {
                     }
                 }
                 .padding(.vertical, Space.xs)
+            }
+
+            Section {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Space.sm), count: 3), spacing: Space.sm) {
+                    ForEach(BlendPreset.all) { preset in
+                        Tile(name: preset.name, isSelected: background == .blend(preset.id), size: nil) {
+                            BlendThumbnail(preset: preset)
+                        } action: { set(.blend(preset.id), named: "Background Blend") }
+                    }
+                }
+                .padding(.vertical, Space.xs)
+            } header: {
+                Text("Blend")
+            } footer: {
+                Text("Soft light drawn by Showreel, sharp at any size.").foregroundStyle(.secondary)
             }
 
             Section("Color") {
@@ -83,7 +99,7 @@ struct BackgroundSection: View {
     private var showsPicture: Bool {
         switch background {
         case .wallpaper, .image: true
-        case .none, .gradient, .color: false
+        case .none, .gradient, .blend, .color: false
         }
     }
 
@@ -151,6 +167,28 @@ private struct Tile<Content: View>: View {
                 .aspectRatio(Layout.wallpaperTile.width / Layout.wallpaperTile.height, contentMode: .fit)
                 .overlay { content }
         }
+    }
+}
+
+/// A blend drawn by the same code as the video, small, once per preset.
+private struct BlendThumbnail: View {
+    let preset: BlendPreset
+
+    var body: some View {
+        if let image = BlendThumbnail.image(preset) {
+            Image(decorative: image, scale: 2).resizable().scaledToFill()
+        }
+    }
+
+    private static var cache: [String: CGImage] = [:]
+    private static let context = CIContext(options: [.cacheIntermediates: false])
+
+    static func image(_ preset: BlendPreset) -> CGImage? {
+        if let cached = cache[preset.id] { return cached }
+        let rect = CGRect(x: 0, y: 0, width: 192, height: 120) // grid: ok thumbnail pixels, 16:10
+        let image = context.createCGImage(Renderer.blend(preset, canvas: rect), from: rect)
+        cache[preset.id] = image
+        return image
     }
 }
 
