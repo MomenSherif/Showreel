@@ -288,7 +288,7 @@ extension Snapshot {
                                 editor.section = .background
                                 blendOriginal = editor.style
                                 var style = editor.style
-                                style.background = .blend("aurora")
+                                style.background = .blend(SeedData.steel ? "ink" : "aurora")
                                 style.padding = 0.12
                                 editor.previewStyle(style)
                                 try? await Task.sleep(for: .seconds(1))

@@ -16,6 +16,10 @@ enum SeedData {
         let ageHours: Double
     }
 
+    /// APP_SEED_LOOK=steel seeds quiet steel-grey samples on the Slate
+    /// gradient, for the landing page's screenshots (site/README.md).
+    static var steel: Bool { ProcessInfo.processInfo.environment["APP_SEED_LOOK"] == "steel" }
+
     static let samples = [
         Sample(title: "Onboarding walkthrough", duration: 42, hue: 0.62, ageHours: 2),
         Sample(title: "Pricing page tour", duration: 75, hue: 0.78, ageHours: 26),
@@ -37,6 +41,11 @@ enum SeedData {
             project.videoWidth = 1600
             project.videoHeight = 1000
             project.sourceName = "Built-in Retina Display"
+            if steel {
+                var style = Style()
+                style.background = .gradient("slate")
+                project.styleData = style.encoded()
+            }
             context.insert(project)
             _ = try? ProjectStore.makeFolder(for: project.uuid)
             let image = frame(hue: sample.hue)
@@ -140,8 +149,9 @@ enum SeedData {
     static func frame(hue: CGFloat, size: CGSize = CGSize(width: 1600, height: 1000)) -> CGImage {
         let ctx = CGContext(data: nil, width: Int(size.width), height: Int(size.height), bitsPerComponent: 8, bytesPerRow: 0,
                             space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue)!
-        let top = NSColor(hue: hue, saturation: 0.55, brightness: 0.95, alpha: 1).cgColor
-        let bottom = NSColor(hue: hue + 0.08, saturation: 0.7, brightness: 0.6, alpha: 1).cgColor
+        let tint: CGFloat = steel ? 0.18 : 1
+        let top = NSColor(hue: hue, saturation: 0.55 * tint, brightness: steel ? 0.62 : 0.95, alpha: 1).cgColor
+        let bottom = NSColor(hue: hue + 0.08 * tint, saturation: 0.7 * tint, brightness: steel ? 0.28 : 0.6, alpha: 1).cgColor
         let gradient = CGGradient(colorsSpace: nil, colors: [top, bottom] as CFArray, locations: [0, 1])!
         ctx.drawLinearGradient(gradient, start: CGPoint(x: 0, y: size.height), end: CGPoint(x: size.width, y: 0), options: [])
         let window = CGRect(x: 160, y: 110, width: 1280, height: 780)
