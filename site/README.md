@@ -31,15 +31,17 @@ ffmpeg -ss 0.5 -i assets/tour.mp4 -frames:v 1 /tmp/poster.png && cwebp -q 82 /tm
 
 The video plays with sound while it's on screen. Browsers refuse sound until the visitor has clicked or pressed a key, so until then it plays muted and the sound comes on with the first click or key press anywhere on the page. It pauses when it scrolls away and with Reduce Motion on, never on hover. The Pause and Turn sound off buttons sit under it. If the file is missing, the first frame shows and both buttons stay hidden.
 
-## Download link
+## Links
 
-Every Download button reads one constant at the top of `main.js`:
+The Download buttons, the Donate link, and the GitHub icon in the nav read three constants at the top of `main.js`:
 
 ```js
-const DOWNLOAD_URL = '#download';
+const DOWNLOAD_URL = '#download'; // a .dmg or a store page
+const DONATE_URL = '#donate';     // GitHub Sponsors, Buy Me a Coffee, Ko-fi, …
+const GITHUB_URL = '#github';     // the repository
 ```
 
-Set it to the `.dmg` or to the release page. A link that ends in `.dmg`, `.zip`, or `.pkg` also gets the `download` attribute.
+Set them before publishing. A download link that ends in `.dmg`, `.zip`, or `.pkg` also gets the `download` attribute. Donate and GitHub open in a new tab once they're `https://` links.
 
 ## Screenshots
 

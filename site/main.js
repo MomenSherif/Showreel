@@ -1,11 +1,20 @@
-// Set this to the real download (a .dmg or a store page) before publishing.
-const DOWNLOAD_URL = '#download';
+// Set these to the real links before publishing.
+const DOWNLOAD_URL = '#download'; // a .dmg or a store page
+const DONATE_URL = '#donate';     // GitHub Sponsors, Buy Me a Coffee, Ko-fi, …
+const GITHUB_URL = '#github';     // the repository
 
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 document.querySelectorAll('[data-download]').forEach((a) => {
   a.href = DOWNLOAD_URL;
   if (/\.(dmg|zip|pkg)$/i.test(DOWNLOAD_URL)) a.setAttribute('download', '');
+});
+// Donate and GitHub open in a new tab once they point somewhere real.
+[['[data-donate]', DONATE_URL], ['[data-github]', GITHUB_URL]].forEach(([sel, url]) => {
+  document.querySelectorAll(sel).forEach((a) => {
+    a.href = url;
+    if (/^https?:/i.test(url)) { a.target = '_blank'; a.rel = 'noopener'; }
+  });
 });
 
 // The tour video: plays with sound while on screen, pauses off screen and
