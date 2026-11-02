@@ -12,11 +12,6 @@ extension EditorModel {
     /// Selects a blur, or with nil, goes back to the inspector's section.
     func selectBlur(_ id: BlurRegion.ID?) {
         selectedBlur = id
-        if id != nil {
-            selectedSegment = nil
-            selectedZoom = nil
-            selectedCaption = nil
-        }
     }
 
     /// Replaces the blurs as one undoable step called `name`, and saves them.

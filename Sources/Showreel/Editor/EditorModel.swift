@@ -33,6 +33,14 @@ enum InspectorSection: String, CaseIterable, Identifiable {
     }
 }
 
+/// The one thing selected on the timeline (docs/architecture-review-2026-11-02-m9.md).
+enum TimelineSelection: Equatable {
+    case segment(EditList.Segment.ID)
+    case zoom(ZoomSegment.ID)
+    case blur(BlurRegion.ID)
+    case caption(Caption.ID)
+}
+
 /// The playhead position, observed only by the time label and the playhead
 /// line, because it changes 30 times a second while playing.
 @Observable
@@ -74,8 +82,13 @@ final class EditorModel {
     private(set) var edits = EditList(sourceDuration: 0)
     /// A trim being dragged, shown on the timeline before it is applied.
     private(set) var draft: EditList?
+    /// What is selected on the timeline: one thing at a time, whatever lane it is on.
+    var selection: TimelineSelection?
     /// The selected clip segment on the timeline.
-    var selectedSegment: EditList.Segment.ID?
+    var selectedSegment: EditList.Segment.ID? {
+        get { if case .segment(let id)? = selection { id } else { nil } }
+        set { select(newValue.map(TimelineSelection.segment), clearing: selectedSegment != nil) }
+    }
 
     /// The look (M4): background, padding, and more. Changed through
     /// `applyStyle` (EditorModel+Style.swift), like the cut.
@@ -83,7 +96,10 @@ final class EditorModel {
     /// The zooms (M5), in source time. Drawn without a rebuild, like the style.
     var zooms = ZoomTrack()
     /// The zoom selected on the timeline (S-031).
-    var selectedZoom: ZoomSegment.ID?
+    var selectedZoom: ZoomSegment.ID? {
+        get { if case .zoom(let id)? = selection { id } else { nil } }
+        set { select(newValue.map(TimelineSelection.zoom), clearing: selectedZoom != nil) }
+    }
     /// The captions (M7), in source time, like the zooms.
     var captions = CaptionTrack()
     /// Generate Captions while it runs, or when it failed (S-039).
@@ -97,9 +113,21 @@ final class EditorModel {
     /// The blurs (S-048), in source time, like the zooms.
     var blurs = BlurTrack()
     /// The blur selected on the timeline; its rectangle can be drawn on the canvas.
-    var selectedBlur: BlurRegion.ID?
+    var selectedBlur: BlurRegion.ID? {
+        get { if case .blur(let id)? = selection { id } else { nil } }
+        set { select(newValue.map(TimelineSelection.blur), clearing: selectedBlur != nil) }
+    }
     /// The caption selected on the timeline (S-040).
-    var selectedCaption: Caption.ID?
+    var selectedCaption: Caption.ID? {
+        get { if case .caption(let id)? = selection { id } else { nil } }
+        set { select(newValue.map(TimelineSelection.caption), clearing: selectedCaption != nil) }
+    }
+
+    /// Selecting replaces whatever was selected. Setting one lane's
+    /// selection to nil clears only when that lane held it.
+    private func select(_ new: TimelineSelection?, clearing: Bool) {
+        if let new { selection = new } else if clearing { selection = nil }
+    }
     /// A double-click asked the inspector to put the cursor in the caption's text.
     var editsCaptionText = false
     /// The zoom camera for the current zooms and speed, worked out once (S-033).

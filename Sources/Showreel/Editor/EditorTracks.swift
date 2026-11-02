@@ -156,9 +156,6 @@ struct ClipBlock: View {
         .onTapGesture { location in
             withMotion(Motion.select) {
                 editor.selectedSegment = segment.id
-                editor.selectedZoom = nil
-                editor.selectedCaption = nil
-                editor.selectedBlur = nil
             }
             editor.seek(to: start + scale.seconds(at: location.x))
         }
@@ -166,9 +163,6 @@ struct ClipBlock: View {
             Button("Split at Playhead") { editor.splitAtPlayhead() }
             Button(editor.audio.isMuted(from: segment.start, to: segment.end) ? "Unmute Section" : "Mute Section") {
                 editor.selectedSegment = segment.id
-                editor.selectedZoom = nil
-                editor.selectedCaption = nil
-                editor.selectedBlur = nil
                 editor.toggleMuteSelection()
             }
             .disabled(editor.sources?.audio.isEmpty ?? true)

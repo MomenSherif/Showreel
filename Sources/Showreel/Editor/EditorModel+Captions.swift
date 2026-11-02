@@ -147,12 +147,7 @@ extension EditorModel {
     /// With `editText`, the inspector puts the cursor in its text.
     func selectCaption(_ id: Caption.ID?, editText: Bool = false) {
         selectedCaption = id
-        if id != nil {
-            selectedZoom = nil
-            selectedSegment = nil
-            selectedBlur = nil
-            section = .captions
-        }
+        if id != nil { section = .captions }
         editsCaptionText = id != nil && editText
     }
 

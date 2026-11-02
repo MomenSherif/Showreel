@@ -4,6 +4,8 @@
 
 ```text
 Showreel (app: SwiftUI, AppKit panels) -> ShowreelEngine (AVFoundation, Core Image, ScreenCaptureKit) -> ShowreelKit (pure rules)
+ShowreelEngine -> whisper (binary target: whisper.cpp b5454 with Metal, Vendor/whisper.xcframework, git-ignored,
+                           fetched by tools/fetch-whisper.sh; build.sh copies it into Contents/Frameworks)
 ShowreelKitTests -> ShowreelKit
 ShowreelEngineTests -> ShowreelEngine   (golden frames in Tests/ShowreelEngineTests/Golden/)
 ```
@@ -11,7 +13,11 @@ ShowreelEngineTests -> ShowreelEngine   (golden frames in Tests/ShowreelEngineTe
 ShowreelKit knows nothing about SwiftUI, AppKit, or AVFoundation. It holds
 `ProjectFiles`, `SourceKind`, `EventLog` (events.json), `RecordingClock`
 (pauses removed), `AreaRules`, `DeviceChoice`, `TimeText`, `ProjectTitle`,
-the bubble rules, `Style`, and the zoom rules (`ZoomTrack`, `AutoZoom`).
+the bubble rules, `Style`, the zoom rules (`ZoomTrack`, `AutoZoom`), the blur
+rules (`BlurTrack`, and `Spans`, the timing rules of a lane of blocks that
+never overlap), caption lines and `TextDirection`, and the speech model
+catalog (`SpeechModel`, `ModelLocator` for Showreel's and Handy's model
+folders, `CaptionLanguage` with Whisper's language list and the Arabic prompt).
 
 ShowreelEngine holds the media code, with no SwiftUI or AppKit, so
 `swift test` can run it:
@@ -26,7 +32,8 @@ ShowreelEngine holds the media code, with no SwiftUI or AppKit, so
 | `BubbleScene` | The bubble's path, hidden ranges, size, and shape for a whole recording |
 | `BubbleCompositor` | The AVVideoCompositing adapter that feeds AVPlayer frames through `Renderer` |
 | `Transcriber` | The mic file to timed words with SpeechAnalyzer (`SpeechTranscriber`, `.audioTimeRange`), on this Mac; downloads the speech model when it is missing |
-| `CaptionPainter` | The caption on screen at a time: Core Text at output size, in its box, the spoken word on a pill; cached per caption and word |
+| `WhisperTranscriber` | The same job with a Whisper model through whisper.cpp on the GPU: 16 kHz mono samples, one timed word per segment, Automatic detects the language first, Arabic gets a mixed prompt; cancelling stops it within a decoding step |
+| `CaptionPainter` | The caption on screen at a time: Core Text at output size, in its box, the spoken word on a pill measured from glyph runs; right to left for Arabic and mixed lines; cached per caption and word |
 | `AudioLevels` | Track volumes and muted ranges as plain values; `audioMix()` is the AVAudioMix the preview and the export both play |
 | `WaveformReader` | An audio file's peaks, 50 a second, for the audio lane |
 | `NoiseReducer` | Reduce Noise: renders mic.m4a through AUSoundIsolation (offline AVAudioEngine, resampled to 48 kHz) into mic-clean.m4a |
@@ -44,6 +51,7 @@ the saved choice), and building the `BubbleScene` from a `Project`.
 | `Projects/` | `ProjectStore`: project folders, thumbnails, Rename, Duplicate, Move to Trash with Undo |
 | `Recording/` | Everything from the Record Panel to the saved files (below) |
 | `Editor/` | The project window (S-015): `EditorModel` per window, canvas (AVPlayerLayer), custom timeline, inspector. `PlayerBuilder` builds the composition and `BubbleScene`. `ExportSheet` and `EditorModel+Export` (`ExportRun`) export it (S-036); `ExportProgress` is the toolbar gauge and its progress and finished popover (S-037, S-038) |
+| `Captions/` | `SpeechModels`, the app's one store of the chosen speech model and language, where each model is, and downloads (S-050, S-051); `CaptionSettings`, `LanguagePicker`, and `ModelRow` for Settings > Captions and the inspector |
 | `Settings/` | The Settings window (S-045): `SettingsView` (one tab per `SettingsTab`), `RecordingSettings` with `ShortcutField`, and `AppSettings`, the observable home of the Record Shortcut, Countdown, Exports folder, and export choices (in `Store.defaults`) |
 | `UI/` | Design tokens, the shared `FloatingPanel`, and `AppIconImage` |
 
@@ -52,8 +60,11 @@ the saved choice), and building the `BubbleScene` from a `Project`.
 ```text
 EditorWindow (finds the Project) -> EditorView
   ├─ EditorModel (@Observable, one per window): player, duration, isPlaying, inspector section
-  │    └─ Playhead (@Observable): the time, 30 Hz, observed only by the time label and playhead line
-  ├─ EditorCanvas      AVPlayerLayer on the canvas backdrop, frames from BubbleCompositor
+  │    ├─ Playhead (@Observable): the time, 30 Hz, observed only by the time label and playhead line
+  │    └─ selection: TimelineSelection? — one segment, zoom, blur, or caption; selectedZoom and the
+  │       other three are computed views of it, so selecting one leaves the others unselected
+  ├─ EditorCanvas      AVPlayerLayer on the canvas backdrop, frames from BubbleCompositor;
+  │                    CameraHandle and BlurHandle (the selected blur's rectangle, through crop and zoom)
   ├─ EditorTimeline    transport row, ruler (TimelineScale in Kit), playhead
   │    └─ EditorTracks  one lane per TrackKind; ClipBlock trims, selects, and splits
   └─ EditorInspector   segmented section picker, one grouped Form per section
