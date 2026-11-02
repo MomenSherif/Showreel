@@ -30,9 +30,73 @@ struct CaptionsSection: View {
                         Text("Generating again replaces these captions.").foregroundStyle(.secondary)
                     }
                 }
+                CaptionStyleSection(editor: editor)
             }
             .formStyle(.grouped)
         }
+    }
+}
+
+/// How captions look in the video (S-041). Each change is one undo step,
+/// and presets carry it with the rest of the style.
+private struct CaptionStyleSection: View {
+    let editor: EditorModel
+    @State private var colorStart: Style?
+    @State private var colorCommit: Task<Void, Never>?
+
+    private var look: CaptionStyle { editor.style.captions }
+
+    var body: some View {
+        Section("Style") {
+            Toggle("Show in Video", isOn: binding(\.isVisible, named: "Show Captions"))
+            Group {
+                StyleSlider(title: "Size", editor: editor, value: \.captions.size, range: CaptionStyle.sizeRange,
+                            format: StyleSlider.percent, undoName: "Caption Size")
+                Picker("Position", selection: binding(\.position, named: "Caption Position")) {
+                    Text("Bottom").tag(CaptionStyle.Position.bottom)
+                    Text("Top").tag(CaptionStyle.Position.top)
+                }
+                .pickerStyle(.segmented)
+                Picker("Box", selection: binding(\.box, named: "Caption Box")) {
+                    Text("None").tag(CaptionStyle.Box.none)
+                    Text("Dark").tag(CaptionStyle.Box.dark)
+                    Text("Light").tag(CaptionStyle.Box.light)
+                }
+                .help("The box behind the caption text")
+                Toggle("Highlight Spoken Word", isOn: binding(\.highlightsWord, named: "Highlight Spoken Word"))
+                ColorPicker("Highlight Color", selection: colorBinding, supportsOpacity: false)
+                    .disabled(!look.highlightsWord)
+            }
+            .disabled(!look.isVisible)
+        }
+    }
+
+    /// A caption style value; each change is one undo step called `name`.
+    private func binding<Value>(_ path: WritableKeyPath<CaptionStyle, Value>, named name: String) -> Binding<Value> {
+        Binding(get: { editor.style.captions[keyPath: path] }, set: { value in
+            var style = editor.style
+            style.captions[keyPath: path] = value
+            withMotion(Motion.ui) { editor.applyStyle(style, named: name) }
+        })
+    }
+
+    /// The color well sends many changes while it is open: the canvas
+    /// follows each, and they settle into one undo step.
+    private var colorBinding: Binding<Color> {
+        Binding(get: { Color(look.highlightColor) }, set: { color in
+            let start = colorStart ?? editor.style
+            colorStart = start
+            var style = editor.style
+            style.captions.highlightColor = RGB(color)
+            editor.previewStyle(style)
+            colorCommit?.cancel()
+            colorCommit = Task {
+                try? await Task.sleep(for: .seconds(0.6))
+                guard !Task.isCancelled else { return }
+                editor.commitStyle(from: start, named: "Highlight Color")
+                colorStart = nil
+            }
+        })
     }
 }
 

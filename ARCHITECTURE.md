@@ -26,6 +26,7 @@ ShowreelEngine holds the media code, with no SwiftUI or AppKit, so
 | `BubbleScene` | The bubble's path, hidden ranges, size, and shape for a whole recording |
 | `BubbleCompositor` | The AVVideoCompositing adapter that feeds AVPlayer frames through `Renderer` |
 | `Transcriber` | The mic file to timed words with SpeechAnalyzer (`SpeechTranscriber`, `.audioTimeRange`), on this Mac; downloads the speech model when it is missing |
+| `CaptionPainter` | The caption on screen at a time: Core Text at output size, in its box, the spoken word on a pill; cached per caption and word |
 | `Exporter` | Reads a composition through its video composition (so `Renderer` draws every frame) and writes MP4 (H.264), MOV (HEVC), or GIF; cancelling deletes the file |
 
 The app keeps what needs AppKit or SwiftData: `CaptureSource` (the Record
@@ -107,7 +108,11 @@ JSON in `Project.captionsData`; nil means never made. Generate Captions
 runs `Transcriber` over mic.m4a, groups the words into lines of up to 42
 characters with `CaptionTrack.lines` (a sentence end or a 0.8 s pause also
 breaks a line), and applies them as one undo step. Each line keeps its
-words' times for the spoken-word highlight.
+words' times for the spoken-word highlight. Their look is `Style.captions`
+(`CaptionStyle`), so presets carry it; they reach the engine in
+`RenderStyle.captions`, and `Renderer` draws them last, on the canvas, so
+zooms and crops leave them in place. A caption edit only swaps the video
+composition, like a zoom edit.
 
 ## Recording
 

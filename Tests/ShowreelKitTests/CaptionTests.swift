@@ -104,4 +104,29 @@ struct CaptionTests {
         let t = track()
         #expect(t.changing(t.captions[0].id) { _ in nil }.captions.map(\.id) == [t.captions[1].id])
     }
+
+    /// S-041: the caption and word on screen at a moment.
+    @Test func captionAndWordAtATime() {
+        let t = track()
+        #expect(t.caption(at: 0.5) == nil)
+        #expect(t.caption(at: 1.1)?.id == t.captions[0].id)
+        #expect(t.caption(at: 3) == nil)
+        #expect(t.caption(at: 4.3)?.id == t.captions[1].id)
+        let caption = t.captions[0]
+        #expect(caption.wordIndex(at: 1.0) == 0)
+        #expect(caption.wordIndex(at: 1.22) == 0)  // between words: the last one holds
+        #expect(caption.wordIndex(at: 1.3) == 1)
+        #expect(caption.wordIndex(at: 0.9) == nil)
+    }
+
+    @Test func styleWithoutCaptionFieldsDecodesWithDefaults() throws {
+        let old = Data(#"{"padding":0.1}"#.utf8)
+        let style = try JSONDecoder().decode(Style.self, from: old)
+        #expect(style.captions == CaptionStyle())
+        var changed = Style()
+        changed.captions.position = .top
+        changed.captions.size = 1.4
+        #expect(Style.decode(changed.encoded()).captions == changed.captions)
+        #expect(changed.asPreset.captions == changed.captions)
+    }
 }

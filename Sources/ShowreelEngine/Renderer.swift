@@ -49,10 +49,13 @@ public struct RenderStyle: @unchecked Sendable {
     public var zoomPath: ZoomPath
     /// The cursor to draw (S-034). Nil draws none.
     public var cursor: CursorScene?
+    /// In source time (S-041). Drawn on top of everything, in `style.captions`' look.
+    public var captions: CaptionTrack
 
     public init(style: Style, backgroundImage: CIImage? = nil, zooms: ZoomTrack = ZoomTrack(), zoomPath: ZoomPath? = nil,
-                cursor: CursorScene? = nil) {
+                cursor: CursorScene? = nil, captions: CaptionTrack = CaptionTrack()) {
         self.cursor = cursor
+        self.captions = captions
         self.style = style
         self.backgroundImage = backgroundImage
         self.zooms = zooms
@@ -123,6 +126,10 @@ public enum Renderer {
         }
         if let background = background(style, canvas: canvas) {
             image = image.composited(over: background)
+        }
+        // Captions sit on the canvas, not the recording: zooms and crops leave them be.
+        if let caption = CaptionPainter.image(for: style.captions, style: look.captions, at: t, canvas: size) {
+            image = caption.composited(over: image)
         }
         return image.cropped(to: canvas)
     }

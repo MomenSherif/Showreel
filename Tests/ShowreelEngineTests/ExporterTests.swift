@@ -63,13 +63,16 @@ struct ExporterTests {
         style.padding = 0.08
         style.rounding = 20
         let scene = BubbleScene(bubble: [], fallbackCenter: CGPoint(x: 0.5, y: 0.5), hidden: [], diameter: 0.2)
+        // A caption on screen at 5 s, so the export is checked with captions too (S-041).
+        let captions = CaptionTrack(captions: [Caption(words: [CaptionWord(text: "Captions", start: 4.5, end: 4.9),
+                                                               CaptionWord(text: "match", start: 4.9, end: 5.5)])])
         var config = AVVideoComposition.Configuration()
         config.customVideoCompositorClass = BubbleCompositor.self
         config.renderSize = output
         config.frameDuration = CMTime(value: 1, timescale: fps)
         config.instructions = [BubbleInstruction(timeRange: CMTimeRange(start: .zero, duration: range.duration),
                                                  screenTrack: screen.trackID, cameraTrack: nil, scene: scene,
-                                                 style: RenderStyle(style: style))]
+                                                 style: RenderStyle(style: style, captions: captions))]
         return (composition.copy() as! AVComposition, AVVideoComposition(configuration: config))
     }
 

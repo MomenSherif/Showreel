@@ -644,7 +644,13 @@ Screens: editor-captions
 Depends: S-039
 Acceptance:
 - [snap] Captions render in the preview and in the export the same way.
-Status: todo
+UX:
+- Flow: Captions inspector > Style: Show in Video, Size, Position (Bottom, Top), Box (None, Dark,
+  Light), Highlight Spoken Word, Highlight Color -> the canvas follows at once -> each change is one undo
+  step; presets carry the caption style.
+- Surface: inspector, under the captions' summary (changes values on what is on screen).
+- Words: "Show in Video", "Box", "Highlight Spoken Word"; undo names "Caption Size", "Caption Position".
+Status: done
 
 ### S-042 Set track volumes and mute sections
 As the user, I set the mic and system audio volume and mute a selected

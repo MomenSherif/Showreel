@@ -1,4 +1,6 @@
 import AppKit
+import CoreImage
+import ShowreelEngine
 import ShowreelKit
 
 /// Self-test checks for captions (M7).
@@ -44,6 +46,7 @@ extension SelfTest {
         check("Undo removes the captions", editor.captions == original)
         undo.redo()
         await captionEditing(editor)
+        captionStyle(editor)
         undo.undo()
 
         // A cancelled run leaves the captions as they were.
@@ -112,5 +115,35 @@ extension SelfTest {
               "\(before) -> \(after ?? -1)")
         undo.undo()
         editor.selectCaption(nil)
+    }
+
+    /// S-041: the caption style is drawn by the same renderer the export
+    /// uses, and each change is one undo step.
+    static func captionStyle(_ editor: EditorModel) {
+        guard let undo = editor.undoManager, let caption = editor.captions.captions.first else { return }
+        let before = editor.style
+        let t = caption.start + 0.05
+        func frame(_ style: Style) -> [UInt8] {
+            let screen = CIImage(color: CIColor(red: 0.2, green: 0.3, blue: 0.8)).cropped(to: CGRect(x: 0, y: 0, width: 640, height: 400))
+            let image = Renderer.frame(screen: screen, camera: nil, at: t,
+                                       scene: BubbleScene(bubble: [], fallbackCenter: .zero, hidden: [], diameter: 0),
+                                       style: editor.renderStyle(for: style), size: CGSize(width: 640, height: 400))
+            var bytes = [UInt8](repeating: 0, count: 640 * 400 * 4)
+            CIContext().render(image, toBitmap: &bytes, rowBytes: 640 * 4, bounds: CGRect(x: 0, y: 0, width: 640, height: 400),
+                               format: .RGBA8, colorSpace: CGColorSpace(name: CGColorSpace.sRGB))
+            return bytes
+        }
+        var hidden = before
+        hidden.captions.isVisible = false
+        check("captions are drawn in the video", frame(before) != frame(hidden))
+        var top = before
+        top.captions.position = .top
+        undo.beginUndoGrouping()
+        editor.applyStyle(top, named: "Caption Position")
+        undo.endUndoGrouping()
+        check("a caption style change is saved", Style.decode(editor.project.styleData).captions.position == .top)
+        check("moving captions to the top changes the frame", frame(editor.style) != frame(before))
+        undo.undo()
+        check("Undo puts the caption style back", editor.style == before)
     }
 }

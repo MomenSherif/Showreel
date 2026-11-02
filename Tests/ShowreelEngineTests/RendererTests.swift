@@ -314,6 +314,60 @@ struct RendererTests {
         }.expectMatches(golden: "camera-style")
     }
 
+    // MARK: Captions (S-041)
+
+    static let captions = CaptionTrack(captions: [
+        Caption(words: ["Click", "Create", "Workspace", "to", "start."].enumerated().map { i, w in
+            CaptionWord(text: w, start: 1 + Double(i) * 0.4, end: 1.35 + Double(i) * 0.4)
+        }),
+    ])
+
+    static func captioned(at t: Double, size: CGSize = CGSize(width: 640, height: 400), _ change: (inout CaptionStyle) -> Void = { _ in }) -> Bitmap {
+        var style = Style()
+        style.background = .gradient("graphite")
+        change(&style.captions)
+        return Bitmap(Renderer.frame(screen: screen, camera: nil, at: t, scene: scene,
+                                     style: RenderStyle(style: style, captions: captions), size: size))
+    }
+
+    @Test func captionWithSpokenWordMatchesGolden() throws {
+        // 1.85 s: the third word, "Workspace", is being spoken.
+        try Self.captioned(at: 1.85).expectMatches(golden: "captions-dark-bottom")
+    }
+
+    @Test func lightBoxAtTheTopMatchesGolden() throws {
+        try Self.captioned(at: 2.7) { $0.box = .light; $0.position = .top; $0.size = 1.4 }
+            .expectMatches(golden: "captions-light-top")
+    }
+
+    @Test func captionsShowOnlyWhileTheirCaptionLasts() {
+        let none = Self.captioned(at: 0.5)
+        let after = Self.captioned(at: 4)
+        let hidden = Self.captioned(at: 1.85) { $0.isVisible = false }
+        #expect(none.bytes == after.bytes)
+        #expect(hidden.bytes == none.bytes)
+        #expect(Self.captioned(at: 1.85).bytes != none.bytes)
+    }
+
+    @Test func highlightMovesWithTheSpokenWord() {
+        let second = Self.captioned(at: 1.85), third = Self.captioned(at: 2.25)
+        #expect(second.bytes != third.bytes)
+        let plain = Self.captioned(at: 1.85) { $0.highlightsWord = false }
+        #expect(plain.bytes == Self.captioned(at: 2.25) { $0.highlightsWord = false }.bytes)
+    }
+
+    @Test func captionsAreSharpAt4K() {
+        // Drawn at the output size, not scaled up: white text on the dark box
+        // goes from dark to light within a pixel or two.
+        let big = Self.captioned(at: 1.85, size: CGSize(width: 3840, height: 2160))
+        var steepest = 0
+        // The caption sits 6% up from the bottom; bitmap rows count from the top.
+        for y in stride(from: Int(2160 * 0.86), to: Int(2160 * 0.92), by: 3) {
+            for x in 1200..<2640 { steepest = max(steepest, abs(big.pixel(x: x + 1, y: y).r - big.pixel(x: x, y: y).r)) }
+        }
+        #expect(steepest > 150, "a crisp text edge changes fast, got \(steepest) per pixel")
+    }
+
     @Test func solidColorShowsAroundTheRecording() {
         let frame = Self.styled { $0.background = .color(RGB(1, 0, 0)); $0.padding = 0.1 }
         let corner = frame.pixel(x: 4, y: 4)

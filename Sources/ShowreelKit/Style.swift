@@ -144,6 +144,9 @@ public struct Style: Codable, Equatable, Sendable {
     public var clickEffect: ClickEffect = .none
     public var clickColor: RGB = RGB(0.2, 0.5, 1)
 
+    /// How captions look in the video (S-041).
+    public var captions: CaptionStyle = CaptionStyle()
+
     public init() {}
 
     /// The recording edge to edge, nothing around it: how M1 to M3 played.
@@ -159,7 +162,7 @@ public struct Style: Codable, Equatable, Sendable {
 
     enum CodingKeys: String, CodingKey { case background, backgroundBlur, padding, rounding, effect, effectAmount, crop, frame, showsURLBar, url, aspect,
         cameraVisible, cameraScale, cameraShape, cameraBorder, cameraShadow, cameraPosition, zoomSpeed,
-        cursorScale, cursorSmoothing, cursorHidesWhenIdle, clickEffect, clickColor }
+        cursorScale, cursorSmoothing, cursorHidesWhenIdle, clickEffect, clickColor, captions }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -187,6 +190,7 @@ public struct Style: Codable, Equatable, Sendable {
         cursorHidesWhenIdle = (try? c.decodeIfPresent(Bool.self, forKey: .cursorHidesWhenIdle)) ?? d.cursorHidesWhenIdle
         clickEffect = (try? c.decodeIfPresent(ClickEffect.self, forKey: .clickEffect)) ?? d.clickEffect
         clickColor = (try? c.decodeIfPresent(RGB.self, forKey: .clickColor)) ?? d.clickColor
+        captions = (try? c.decodeIfPresent(CaptionStyle.self, forKey: .captions)) ?? d.captions
     }
 
     /// The style as a preset (S-029): without what belongs to one recording

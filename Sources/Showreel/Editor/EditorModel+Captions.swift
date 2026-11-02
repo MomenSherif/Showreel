@@ -94,7 +94,9 @@ extension EditorModel {
 
     /// Shows `new` on the timeline without an undo step or a save, while dragging.
     func previewCaptions(_ new: CaptionTrack) {
-        if new != captions { captions = new }
+        guard new != captions else { return }
+        captions = new
+        redraw()
     }
 
     /// Ends a drag that started at `old`: one undo step for the whole drag.
@@ -112,6 +114,7 @@ extension EditorModel {
         project.captionsData = new.captions.isEmpty && new.language.isEmpty ? nil : new.encoded()
         try? project.modelContext?.save()
         if let id = selectedCaption, !new.captions.contains(where: { $0.id == id }) { selectedCaption = nil }
+        redraw()
         refreshUndo()
     }
 
