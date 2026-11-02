@@ -2,7 +2,7 @@
 const DOWNLOAD_URL = '#download'; // a .dmg or a store page
 const DONATE_URL = '#donate';     // GitHub Sponsors, Buy Me a Coffee, Ko-fi, …
 const GITHUB_URL = '#github';     // the repository
-const MIXPANEL_TOKEN = '';        // the Mixpanel project token; empty turns analytics off
+const MIXPANEL_TOKEN = 'b2e49ab5f5faa4f986b9828b91b02882'; // the Mixpanel project token; empty turns analytics off
 const MIXPANEL_HOST = 'https://api-js.mixpanel.com'; // api-eu.mixpanel.com for an EU project
 
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
