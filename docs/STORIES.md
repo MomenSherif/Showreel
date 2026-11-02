@@ -478,7 +478,11 @@ Depends: S-030
 Acceptance:
 - [self] Zooms cannot overlap. Dragging one into another pushes it or
   stops at its edge.
-Status: todo
+UX: a click on an empty spot of the zoom lane, Add Zoom in the transport
+row, or Clip > Add Zoom (Z) adds a 2-second zoom on the cursor and selects
+it; on a zoom it selects that zoom, with no room it beeps. An empty lane
+says "Click to add a zoom". Drags stop at the neighbor's edge.
+Status: done
 
 ### S-033 Smooth zoom motion
 As the user, I set how fast zooms ease in and out (Slow, Medium, Fast).

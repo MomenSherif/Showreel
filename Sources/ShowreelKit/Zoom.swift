@@ -110,6 +110,67 @@ public struct ZoomTrack: Codable, Equatable, Sendable {
     }
 }
 
+/// Adding, moving, and resizing by hand (S-032). Zooms never overlap: a
+/// drag stops at the neighbor's edge and at the ends of the recording.
+extension ZoomTrack {
+    /// The shortest zoom a drag can leave.
+    public static let minLength = 0.5
+    /// A zoom added by hand.
+    public static let newLength = 2.0
+
+    public enum Edge: Sendable { case start, end }
+
+    /// Room around source time `t`: from the end of the zoom before to the
+    /// start of the zoom after. Nil when `t` is inside a zoom.
+    public func gap(around t: Double, duration: Double) -> ClosedRange<Double>? {
+        guard segment(at: t) == nil else { return nil }
+        let before = segments.last { $0.end <= t }?.end ?? 0
+        let after = segments.first { $0.start >= t }?.start ?? duration
+        return before <= after ? before...after : nil
+    }
+
+    /// Adds a zoom starting at `t` (or earlier, when it would not fit before
+    /// the next one) and returns it. Nil when there is no room for one.
+    public mutating func add(at t: Double, duration: Double, x: Double = 0.5, y: Double = 0.5) -> ZoomSegment? {
+        guard let gap = gap(around: t, duration: duration), gap.upperBound - gap.lowerBound >= Self.minLength else { return nil }
+        let length = min(Self.newLength, gap.upperBound - gap.lowerBound)
+        let start = min(max(t, gap.lowerBound), gap.upperBound - length)
+        let zoom = ZoomSegment(start: start, end: start + length, x: x, y: y, focus: .auto)
+        self = ZoomTrack(segments: segments + [zoom])
+        return zoom
+    }
+
+    /// The zoom `id` moved by `delta` seconds, stopped by its neighbors.
+    public func moving(_ id: ZoomSegment.ID, by delta: Double, duration: Double) -> ZoomTrack {
+        guard let i = segments.firstIndex(where: { $0.id == id }) else { return self }
+        let zoom = segments[i]
+        let lo = i > 0 ? segments[i - 1].end : 0
+        let hi = i + 1 < segments.count ? segments[i + 1].start : duration
+        let start = min(max(zoom.start + delta, lo), max(lo, hi - zoom.length))
+        var copy = self
+        copy.segments[i].start = start
+        copy.segments[i].end = start + zoom.length
+        return copy
+    }
+
+    /// The zoom `id` with one edge moved by `delta` seconds, stopped by its
+    /// neighbors and never shorter than `minLength`.
+    public func resizing(_ id: ZoomSegment.ID, edge: Edge, by delta: Double, duration: Double) -> ZoomTrack {
+        guard let i = segments.firstIndex(where: { $0.id == id }) else { return self }
+        var copy = self
+        let zoom = segments[i]
+        switch edge {
+        case .start:
+            let lo = i > 0 ? segments[i - 1].end : 0
+            copy.segments[i].start = min(max(zoom.start + delta, lo), zoom.end - Self.minLength)
+        case .end:
+            let hi = i + 1 < segments.count ? segments[i + 1].start : duration
+            copy.segments[i].end = max(min(zoom.end + delta, hi), zoom.start + Self.minLength)
+        }
+        return copy
+    }
+}
+
 /// Makes zooms from what happened during a recording (S-030): one where the
 /// person clicked, and one where they typed.
 public enum AutoZoom {

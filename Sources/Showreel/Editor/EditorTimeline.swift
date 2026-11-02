@@ -27,9 +27,11 @@ private struct TransportRow: View {
                 Button("Split", systemImage: "scissors") { editor.splitAtPlayhead() }
                     .help("Split at Playhead (S)")
                     .disabled(editor.player == nil)
-                Button("Add Zoom", systemImage: "plus.magnifyingglass") {}
-                    .help("Add Zoom (Z)")
-                    .disabled(true) // S-032
+                Button("Add Zoom", systemImage: "plus.magnifyingglass") {
+                    withMotion(Motion.select) { editor.addZoom(atEditTime: editor.playhead.time) }
+                }
+                .help("Add Zoom at the playhead (Z)")
+                .disabled(editor.player == nil)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 

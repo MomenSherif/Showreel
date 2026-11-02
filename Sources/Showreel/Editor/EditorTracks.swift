@@ -60,10 +60,27 @@ struct Lane: View {
                     }
                 }
             case .zoom:
+                // A click on an empty spot adds a zoom there (S-032).
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture { location in
+                        withMotion(Motion.select) { editor.addZoom(atEditTime: scale.seconds(at: location.x)) }
+                    }
+                    .help("Click to add a zoom")
+                if editor.zooms.segments.isEmpty {
+                    Text("Click to add a zoom")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, Space.sm)
+                        .frame(maxHeight: .infinity)
+                        .allowsHitTesting(false)
+                }
                 // Zooms are kept in source time; a cut shows them in pieces.
                 ForEach(editor.zooms.segments) { zoom in
-                    ForEach(Array(editor.edits.editRanges(fromSource: zoom.start, to: zoom.end).enumerated()), id: \.offset) { _, range in
-                        ZoomBlock(editor: editor, zoom: zoom)
+                    let ranges = editor.edits.editRanges(fromSource: zoom.start, to: zoom.end)
+                    ForEach(Array(ranges.enumerated()), id: \.offset) { i, range in
+                        ZoomBlock(editor: editor, zoom: zoom, scale: scale,
+                                  edges: (start: i == 0, end: i == ranges.count - 1))
                             .frame(width: max(scale.x(at: range.upperBound - range.lowerBound), 1))
                             .offset(x: scale.x(at: range.lowerBound)) // grid: ok position from time
                     }
@@ -196,12 +213,18 @@ struct Block: View {
 
 
 /// One zoom on the zoom lane. Click selects it and shows it in the
-/// inspector (S-031).
+/// inspector (S-031); drag it to move it and its edges to resize it (S-032).
+/// A drag stops at the next zoom. A zoom split by a cut shows in pieces;
+/// only the first has the start edge and only the last the end edge.
 struct ZoomBlock: View {
     let editor: EditorModel
     let zoom: ZoomSegment
+    let scale: TimelineScale
+    let edges: (start: Bool, end: Bool)
+    @State private var dragStart: ZoomTrack?
 
     private var isSelected: Bool { editor.selectedZoom == zoom.id }
+    private var duration: Double { editor.sources?.duration ?? editor.edits.sourceDuration }
 
     var body: some View {
         Block(kind: .zoom, title: Lane.scaleText(zoom.scale))
@@ -212,6 +235,11 @@ struct ZoomBlock: View {
             }
             .contentShape(Rectangle())
             .onTapGesture { withMotion(Motion.select) { editor.selectZoom(zoom.id) } }
+            .gesture(drag(named: "Move Zoom") { start, seconds in
+                start.moving(zoom.id, by: seconds, duration: duration)
+            })
+            .overlay(alignment: .leading) { if edges.start { handle(.start) } }
+            .overlay(alignment: .trailing) { if edges.end { handle(.end) } }
             .contextMenu {
                 Button("Edit Zoom") { editor.selectZoom(zoom.id) }
                 Button("Delete") {
@@ -219,10 +247,46 @@ struct ZoomBlock: View {
                     editor.deleteSelectedZoom()
                 }
             }
-            .help("Zoom \(Lane.scaleText(zoom.scale)), \(ClipBlock.length(zoom.length)). Click to edit.")
+            .help("Zoom \(Lane.scaleText(zoom.scale)), \(ClipBlock.length(zoom.length)). Click to edit, drag to move.")
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Zoom, \(Lane.scaleText(zoom.scale)), \(ClipBlock.length(zoom.length))")
             .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
             .accessibilityAction { editor.selectZoom(zoom.id) }
+    }
+
+    /// A drag that previews `change(start, seconds)` and is one undo step.
+    /// Global coordinates, since the block moves under the pointer.
+    private func drag(named name: String, _ change: @escaping (ZoomTrack, Double) -> ZoomTrack) -> some Gesture {
+        DragGesture(minimumDistance: 2, coordinateSpace: .global)
+            .onChanged { value in
+                let start = dragStart ?? editor.zooms
+                if dragStart == nil {
+                    dragStart = start
+                    editor.selectZoom(zoom.id)
+                }
+                editor.previewZooms(change(start, scale.seconds(at: value.translation.width)))
+            }
+            .onEnded { _ in
+                if let start = dragStart { editor.commitZooms(from: start, named: name) }
+                dragStart = nil
+            }
+    }
+
+    /// An edge to resize by: a grab area the full height, a bar when selected.
+    private func handle(_ edge: ZoomTrack.Edge) -> some View {
+        Rectangle()
+            .fill(.clear)
+            .frame(width: Space.sm)
+            .overlay {
+                if isSelected {
+                    Capsule().fill(Media.Track.label).frame(width: Layout.playheadWidth, height: Space.md)
+                }
+            }
+            .contentShape(Rectangle())
+            .pointerStyle(.columnResize)
+            .gesture(drag(named: "Resize Zoom") { start, seconds in
+                start.resizing(zoom.id, edge: edge, by: seconds, duration: duration)
+            })
+            .help(edge == .start ? "Drag to change where the zoom starts" : "Drag to change where the zoom ends")
     }
 }

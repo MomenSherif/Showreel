@@ -141,3 +141,47 @@ struct ZoomFocusTests {
         #expect(view.rect.midX == 0.5 && view.rect.midY == 0.5)
     }
 }
+
+@Suite("Zoom editing")
+struct ZoomEditingTests {
+    let a = ZoomSegment(start: 2, end: 4)
+    let b = ZoomSegment(start: 6, end: 8)
+    var track: ZoomTrack { ZoomTrack(segments: [b, a]) }
+
+    /// S-032: a click on an empty spot adds a 2-second zoom there.
+    @Test func addsInAGapAndNotOnAZoom() throws {
+        var t = track
+        let first = t.add(at: 10, duration: 20)
+        let added = try #require(first)
+        #expect(added.start == 10 && added.end == 12)
+        #expect(t.segments.map(\.start) == [2, 6, 10])
+        #expect(t.add(at: 3, duration: 20) == nil)
+        // A 2-second zoom does not fit before b: it starts earlier.
+        let second = t.add(at: 5, duration: 20)
+        let squeezed = try #require(second)
+        #expect(squeezed.start == 4 && squeezed.end == 6)
+        // No room left between a and b.
+        #expect(t.add(at: 4.2, duration: 20) == nil)
+        // Near the end of the recording it ends at the end.
+        var end = ZoomTrack()
+        #expect(end.add(at: 19.5, duration: 20)?.end == 20)
+    }
+
+    /// S-032: zooms cannot overlap; a drag stops at the neighbor's edge.
+    @Test func movingStopsAtTheNeighbor() {
+        let right = track.moving(a.id, by: 10, duration: 20)
+        #expect(right.segments[0].start == 4 && right.segments[0].end == 6)
+        let left = track.moving(a.id, by: -10, duration: 20)
+        #expect(left.segments[0].start == 0)
+        let last = track.moving(b.id, by: 30, duration: 20)
+        #expect(last.segments[1].end == 20)
+        #expect(last.segments[1].length == 2)
+    }
+
+    @Test func resizingStopsAtTheNeighborAndKeepsAMinimum() {
+        #expect(track.resizing(a.id, edge: .end, by: 5, duration: 20).segments[0].end == 6)
+        #expect(track.resizing(b.id, edge: .start, by: -5, duration: 20).segments[1].start == 4)
+        #expect(track.resizing(a.id, edge: .start, by: 5, duration: 20).segments[0].start == 4 - ZoomTrack.minLength)
+        #expect(track.resizing(b.id, edge: .end, by: 50, duration: 20).segments[1].end == 20)
+    }
+}

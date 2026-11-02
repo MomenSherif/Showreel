@@ -1,3 +1,4 @@
+import AppKit
 import AVFoundation
 import ShowreelKit
 
@@ -44,6 +45,25 @@ extension EditorModel {
         var track = zooms
         if let i = track.segments.firstIndex(where: { $0.id == id }) { change(&track.segments[i]) }
         return track
+    }
+
+    /// Add Zoom (Z) at the playhead, or a click on an empty spot of the zoom
+    /// lane (S-032): a 2-second zoom on the cursor, selected. On a zoom it
+    /// selects that zoom; with no room it beeps.
+    func addZoom(atEditTime t: Double) {
+        guard let sources, let source = edits.sourceTime(atEditTime: t) else { return }
+        if let existing = zooms.segment(at: source) {
+            selectZoom(existing.id)
+            return
+        }
+        var track = zooms
+        let spot = sources.scene.cursor.position(at: source) ?? CGPoint(x: 0.5, y: 0.5) // grid: ok normalized middle
+        guard let zoom = track.add(at: source, duration: sources.duration, x: spot.x, y: spot.y) else {
+            NSSound.beep()
+            return
+        }
+        applyZooms(track, named: "Add Zoom")
+        selectZoom(zoom.id)
     }
 
     /// Delete Zoom (⌫ or the inspector's button).

@@ -27,6 +27,8 @@ struct EditorCommands: Commands {
             Group {
                 Button("Split at Playhead") { act(.text("s")) { $0.splitAtPlayhead() } }
                     .keyboardShortcut("s", modifiers: [])
+                Button("Add Zoom") { act(.text("z")) { $0.addZoom(atEditTime: $0.playhead.time) } }
+                    .keyboardShortcut("z", modifiers: [])
                 Button(editor?.selectedZoom != nil ? "Delete Zoom" : "Delete Section") {
                     act(.deleteBackward) { $0.selectedZoom != nil ? $0.deleteSelectedZoom() : $0.deleteSelection() }
                 }
