@@ -47,7 +47,7 @@ Naming: events are `snake_case` `object_verb` in the past tense; properties are 
 
 1. Check the table above, then name it by the conventions.
 2. Call `track('event_name', { ... })` in the handler for the action. Throttle anything that can fire continuously (sliders, scroll) to once per visit.
-3. Add a row here and in the Analytics table in `README.md`.
+3. Add a row to the table above.
 4. Verify it: serve the page (`python3 -m http.server 8765`), trigger the event, and check Mixpanel > Live View, or the `api-js.mixpanel.com/track` request in DevTools. Filter local test data out with `current_domain` ≠ `localhost`.
 
 ## Don't
