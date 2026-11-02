@@ -177,7 +177,7 @@ Every command is in the menu bar. Toolbar and context menu items repeat it.
 | Clip | Split at Playhead | S | S-019 |
 | Clip | Trim Start to Playhead / Trim End to Playhead | ⌥[ / ⌥] | S-018 |
 | Clip | Add Zoom | Z | S-032 |
-| Clip | Generate Captions… | — | S-039 |
+| Clip | Generate Captions | — | S-039 |
 | Playback | Play / Pause | Space | S-016 |
 | Playback | Previous Frame / Next Frame | ← / → | S-016 |
 | Playback | Back 1 Second / Forward 1 Second | ⇧← / ⇧→ | S-016 |

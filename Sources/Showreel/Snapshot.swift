@@ -245,6 +245,18 @@ enum Snapshot {
                                    EditorModel.newest?.showsExportPopover = false
                                    EditorModel.newest?.export = nil
                                })
+        // S-039: Generate Captions running, and with no speech found.
+        let captionJob = { (name: String, state: CaptionJob.State) in
+            Surface(name: name, show: {
+                        guard let editor = await openEditor() else { return }
+                        editor.section = .captions
+                        editor.captionJob = .shown(state)
+                    },
+                    window: window,
+                    hide: { EditorModel.newest?.captionJob = nil })
+        }
+        let captionsProgress = captionJob("editor-captions-progress", .running(.listening(0.35)))
+        let captionsFailed = captionJob("editor-captions-failed", .failed("No speech found in the microphone recording."))
         // S-038: the finished export, with Share…, Show in Finder, and Copy.
         let done = Surface(name: "export-done", show: {
                                guard let editor = await openEditor() else { return }
@@ -266,7 +278,7 @@ enum Snapshot {
                     },
                     window: window,
                     hide: {})
-        } + [trim, split, crop, frame, aspect, savePreset, export, progress, done, zoomSelected, click, zoomed]
+        } + [trim, split, crop, frame, aspect, savePreset, export, progress, done, zoomSelected, click, zoomed, captionsProgress, captionsFailed]
     }
 
     static func runIfRequested(model: AppModel, openSettings: OpenSettingsAction) {

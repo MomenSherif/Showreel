@@ -29,6 +29,8 @@ struct EditorCommands: Commands {
                     .keyboardShortcut("s", modifiers: [])
                 Button("Add Zoom") { act(.text("z")) { $0.addZoom(atEditTime: $0.playhead.time) } }
                     .keyboardShortcut("z", modifiers: [])
+                Button("Generate Captions") { act(nil) { $0.generateCaptions() } }
+                    .disabled(editor?.canGenerateCaptions != true)
                 Button(editor?.selectedZoom != nil ? "Delete Zoom" : "Delete Section") {
                     act(.deleteBackward) { $0.selectedZoom != nil ? $0.deleteSelectedZoom() : $0.deleteSelection() }
                 }

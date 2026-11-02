@@ -78,6 +78,10 @@ final class EditorModel {
     var zooms = ZoomTrack()
     /// The zoom selected on the timeline (S-031).
     var selectedZoom: ZoomSegment.ID?
+    /// The captions (M7), in source time, like the zooms.
+    var captions = CaptionTrack()
+    /// Generate Captions while it runs, or when it failed (S-039).
+    var captionJob: CaptionJob?
     /// The zoom camera for the current zooms and speed, worked out once (S-033).
     @ObservationIgnored var zoomPathCache: (zooms: ZoomTrack, speed: ZoomSpeed, path: ZoomPath)?
     /// The drawn cursor for the current smoothing and idle setting (S-034).
@@ -108,6 +112,7 @@ final class EditorModel {
         edits = EditList.decode(project.editsData, sourceDuration: sources.duration)
         style = Style.decode(project.styleData)
         zooms = Self.zooms(for: project, sources: sources)
+        captions = CaptionTrack.decode(project.captionsData) ?? CaptionTrack()
         duration = edits.duration
         let built = sources.item(for: edits, style: renderStyle(for: style))
         slots = built.slots
@@ -332,6 +337,7 @@ final class EditorModel {
 
     func stop() {
         export?.cancel()
+        captionJob?.cancel()
         player?.pause()
         if let timeObserver { player?.removeTimeObserver(timeObserver) }
         timeObserver = nil

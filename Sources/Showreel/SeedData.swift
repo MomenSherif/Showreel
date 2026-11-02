@@ -48,6 +48,10 @@ enum SeedData {
             if sample.title == samples[0].title {
                 project.hasCamera = true
                 writeMovie(cameraFrame(), seconds: Int(sample.duration), to: ProjectStore.file(ProjectFiles.camera, of: project.uuid))
+                // …and the mic, with captions made from it (S-039).
+                project.hasMicrophone = true
+                speak(narration.map(\.text).joined(separator: " "), to: ProjectStore.file(ProjectFiles.microphone, of: project.uuid))
+                project.captionsData = CaptionTrack(captions: CaptionTrack.lines(from: narrationWords), language: "en_US").encoded()
             }
         }
         // Two presets, as a person would save them (S-029).
@@ -62,6 +66,35 @@ enum SeedData {
         docs.effectAmount = 0.3
         model.savePreset(named: "Docs", style: docs)
         try? context.save()
+    }
+
+    /// What the first sample's narrator says, and when each sentence starts.
+    static let narration: [(start: Double, text: String)] = [
+        (1.0, "Welcome to the new onboarding flow."),
+        (4.5, "First, click Create Workspace and give it a name your team will recognize."),
+        (13.0, "Next, invite a teammate by typing their email address."),
+        (20.0, "You can change their role at any time from the members page."),
+        (28.0, "Then pick a plan, and you are ready to go."),
+        (35.0, "That is the whole setup, in under a minute."),
+    ]
+
+    /// The narration's words, a third of a second each.
+    static var narrationWords: [CaptionWord] {
+        narration.flatMap { sentence in
+            sentence.text.split(separator: " ").enumerated().map { i, word in
+                let start = sentence.start + Double(i) * 0.34
+                return CaptionWord(text: String(word), start: start, end: start + 0.3)
+            }
+        }
+    }
+
+    /// A spoken mic track, made with `say`.
+    private static func speak(_ text: String, to url: URL) {
+        let say = Process()
+        say.executableURL = URL(fileURLWithPath: "/usr/bin/say")
+        say.arguments = ["-o", url.path, "--data-format=aac", text]
+        try? say.run()
+        say.waitUntilExit()
     }
 
     /// Clicks, a typing burst, and the cursor, spread over the recording.

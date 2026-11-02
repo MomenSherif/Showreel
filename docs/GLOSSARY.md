@@ -28,6 +28,7 @@ titles, tooltips, errors, and VoiceOver labels.
 | Style | Background, padding, rounding, shadow, and frame together | theme, look, design |
 | Preset | A saved style | template |
 | Captions | Timed text from your voice | subtitles, transcript |
+| Caption | One line of captions, shown for a few seconds | subtitle, line, segment |
 | Export | Render the project to a video file | download, render, save as |
 | Format | MP4, MOV, or GIF: the kind of file an export makes | file type, container, codec |
 | Resolution | 720p, 1080p, or 4K: the video's short side in pixels | size, dimensions |
@@ -48,3 +49,4 @@ titles, tooltips, errors, and VoiceOver labels.
 | Show in Finder | Reveal the project folder | open folder, reveal |
 | Duplicate | Copy a project with its edits | clone, copy |
 | Move to Trash | Remove a project. It can be restored from the Trash or with Undo | delete, remove |
+| Generate Captions | Make captions from the microphone recording, on this Mac | transcribe, auto caption |

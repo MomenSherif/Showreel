@@ -86,7 +86,15 @@ struct Lane: View {
                     }
                 }
             case .captions:
-                EmptyView()
+                // Captions are kept in source time; a cut shows them in pieces (S-039).
+                ForEach(editor.captions.captions) { caption in
+                    let ranges = editor.edits.editRanges(fromSource: caption.start, to: caption.end)
+                    ForEach(Array(ranges.enumerated()), id: \.offset) { _, range in
+                        CaptionBlock(caption: caption)
+                            .frame(width: max(scale.x(at: range.upperBound - range.lowerBound), 1))
+                            .offset(x: scale.x(at: range.lowerBound)) // grid: ok position from time
+                    }
+                }
             }
         }
         .padding(.vertical, Space.xs)
@@ -211,6 +219,16 @@ struct Block: View {
     }
 }
 
+/// One caption on the captions lane, its text cut to fit; the tooltip has it all.
+struct CaptionBlock: View {
+    let caption: Caption
+
+    var body: some View {
+        Block(kind: .captions, title: caption.text)
+            .help(caption.text)
+            .accessibilityLabel("Caption, \(caption.text), \(ClipBlock.length(caption.length))")
+    }
+}
 
 /// One zoom on the zoom lane. Click selects it and shows it in the
 /// inspector (S-031); drag it to move it and its edges to resize it (S-032).

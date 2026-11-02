@@ -599,7 +599,22 @@ Acceptance:
 - [unit] SpeechAnalyzer produces word-level timings, grouped into lines of
   up to 42 characters.
 - [snap] Caption blocks show on the caption track.
-Status: todo
+UX:
+- Flow: Captions inspector "Generate Captions" button, or Clip > Generate Captions -> progress in the
+  inspector ("Making captions from your voice…", bar, Cancel) -> caption blocks appear on the
+  captions lane -> ⌘Z removes them ("Undo Generate Captions"). Generating again replaces them, one undo step.
+- Surface: inspector (Captions section) for the button, progress, and result; the timeline lane for the
+  blocks. No sheet: there is nothing to choose before it runs.
+- States: no mic "No Voice Recorded" (unchanged); mic and no captions "No Captions", "Make timed captions
+  from your voice. It runs on this Mac." + Generate Captions; model missing "Downloading the speech
+  model…" with its bar; running bar with Cancel; no words heard "No speech found in the microphone
+  recording." + Try Again; language not supported "Captions aren't available in <language> yet.";
+  done: Form with Captions "12 lines", Language, and Generate Again.
+- Words: "Generate Captions", "Generate Again", "Undo Generate Captions"; a caption block's tooltip is its
+  full text.
+- Access: the button is the first control in the section; VoiceOver reads a block as "Caption, <text>,
+  1.8s"; progress reads as a percentage.
+Status: done
 
 ### S-040 Edit caption text and timing
 As the user, I double-click a caption to fix its text and drag its edges

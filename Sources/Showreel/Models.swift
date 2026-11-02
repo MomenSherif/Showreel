@@ -39,6 +39,8 @@ final class Project {
     /// The zooms, a `ZoomTrack` as JSON. Nil means not made yet: the editor
     /// makes them from the recording's clicks and typing the first time it opens (S-030).
     var zoomsData: Data? = nil
+    /// The captions, a `CaptionTrack` as JSON. Nil means never made (S-039).
+    var captionsData: Data? = nil
 
     init(title: String, duration: Double = 0, uuid: UUID = UUID()) {
         self.title = ProjectTitle.clean(title)
@@ -77,6 +79,7 @@ struct ProjectRecord {
     var editsData: Data?
     var styleData: Data?
     var zoomsData: Data?
+    var captionsData: Data?
 
     init(_ p: Project) {
         title = p.title; sourceKind = p.sourceKind; sourceName = p.sourceName
@@ -88,6 +91,7 @@ struct ProjectRecord {
         editsData = p.editsData
         styleData = p.styleData
         zoomsData = p.zoomsData
+        captionsData = p.captionsData
     }
 
     /// A model with these fields. With `newID`, a duplicate made now.
@@ -102,6 +106,7 @@ struct ProjectRecord {
         p.editsData = editsData
         p.styleData = styleData
         p.zoomsData = zoomsData
+        p.captionsData = captionsData
         return p
     }
 }

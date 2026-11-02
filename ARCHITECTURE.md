@@ -25,6 +25,7 @@ ShowreelEngine holds the media code, with no SwiftUI or AppKit, so
 | `Renderer` | `frame(screen:camera:at:scene:size:) -> CIImage`, one output frame. The preview and the export both draw with it |
 | `BubbleScene` | The bubble's path, hidden ranges, size, and shape for a whole recording |
 | `BubbleCompositor` | The AVVideoCompositing adapter that feeds AVPlayer frames through `Renderer` |
+| `Transcriber` | The mic file to timed words with SpeechAnalyzer (`SpeechTranscriber`, `.audioTimeRange`), on this Mac; downloads the speech model when it is missing |
 | `Exporter` | Reads a composition through its video composition (so `Renderer` draws every frame) and writes MP4 (H.264), MOV (HEVC), or GIF; cancelling deletes the file |
 
 The app keeps what needs AppKit or SwiftData: `CaptureSource` (the Record
@@ -99,6 +100,14 @@ recorded area. `CursorTrack` (ShowreelKit) smooths the path with the same
 spring and fades it when idle or away; `CursorScene` (engine) adds the
 system's cursor pictures, which the app loads at their largest size
 (`CursorSprites`), and `Renderer` draws it through the crop and the zoom.
+
+Captions (M7) are a `CaptionTrack` (ShowreelKit) in source time, stored as
+JSON in `Project.captionsData`; nil means never made. Generate Captions
+(`EditorModel+Captions`, a `CaptionJob` for progress, Cancel, and errors)
+runs `Transcriber` over mic.m4a, groups the words into lines of up to 42
+characters with `CaptionTrack.lines` (a sentence end or a 0.8 s pause also
+breaks a line), and applies them as one undo step. Each line keeps its
+words' times for the spoken-word highlight.
 
 ## Recording
 

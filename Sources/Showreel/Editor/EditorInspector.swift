@@ -128,7 +128,7 @@ private struct SectionPage: View {
             }
         case .captions:
             if project.hasMicrophone {
-                Empty(title: "No Captions", symbol: section.symbol, line: "Captions are made from your voice.")
+                CaptionsSection(editor: editor)
             } else {
                 Empty(title: "No Voice Recorded", symbol: "mic.slash",
                       line: "Turn on the mic for your next recording to get captions.")
