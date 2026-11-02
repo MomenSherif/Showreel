@@ -118,3 +118,15 @@ records the real display, so a click from the person at the Mac cancelled the te
 Fix: in a self-test run, a click on the Countdown is logged (`INFO Countdown ignored a click`)
 and ignored. Escape and the shortcut still cancel. The self-test never tests cancel-by-click.
 Rule: a self-test that runs on the real screen must ignore input it did not send itself.
+
+## 2026-11-02 Cancelling an export could crash the app
+Symptom: the unit tests crashed now and then (signal 11, about 2 runs in 7) with EXC_BAD_ACCESS
+in `-[AVAssetReaderOutput copyNextSampleBuffer]`, called from `Exporter.pump` on the writer's
+queue. The same path runs when someone clicks Cancel on a running export.
+Cause: the task's cancellation handler called `reader.cancelReading()` on another thread while
+a pump was inside `copyNextSampleBuffer()` on the same reader. AVAssetReader is not safe for that.
+Fix: Cancel only raises a `StopFlag`. Each pump checks it between samples, marks its input
+finished, and leaves the group; the reader and writer are cancelled after both pumps stopped.
+10 test runs in a row passed after the fix.
+Rule: never cancel an AVAssetReader from another thread while something may be reading from
+it; signal the readers and cancel after they stop.

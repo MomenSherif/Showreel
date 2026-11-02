@@ -2,6 +2,7 @@ import AVFoundation
 import CoreImage
 import ImageIO
 import ShowreelKit
+import Synchronization
 import UniformTypeIdentifiers
 
 /// Why an export stopped.
@@ -109,24 +110,28 @@ public enum Exporter {
         writer.startSession(atSourceTime: .zero)
         guard reader.startReading() else { throw ExportError.cannotRead(reader.error?.localizedDescription ?? "") }
 
-        let parts = Unchecked((reader: reader, writer: writer))
+        // Cancel only raises this flag. The pumps see it between samples and
+        // stop; the reader is cancelled after both have stopped. Cancelling it
+        // while a pump is inside copyNextSampleBuffer() crashed (FIXLOG).
+        let stop = StopFlag()
         let total = max(duration.seconds, 0.001)
         await withTaskCancellationHandler {
             await withCheckedContinuation { (done: CheckedContinuation<Void, Never>) in
                 // Both tracks move at once: the writer interleaves them and
                 // waits for the one that falls behind.
                 let group = DispatchGroup()
-                pump(video, into: videoInput, label: "video", group: group) { time in
+                pump(video, into: videoInput, label: "video", group: group, stop: stop) { time in
                     progress(min(max(time.seconds / total, 0), 1))
                 }
-                if let audio, let audioInput { pump(audio, into: audioInput, label: "audio", group: group) { _ in } }
+                if let audio, let audioInput { pump(audio, into: audioInput, label: "audio", group: group, stop: stop) { _ in } }
                 group.notify(queue: .global()) { done.resume() }
             }
         } onCancel: {
-            parts.value.reader.cancelReading()
+            stop.raise()
         }
 
-        if Task.isCancelled || reader.status == .cancelled {
+        if Task.isCancelled || stop.isRaised {
+            reader.cancelReading()
             writer.cancelWriting()
             throw CancellationError()
         }
@@ -142,17 +147,18 @@ public enum Exporter {
     /// Moves samples from `output` to `input` on their own queue until the
     /// output runs dry, inside `group`.
     private static func pump(_ output: AVAssetReaderOutput, into input: AVAssetWriterInput, label: String,
-                             group: DispatchGroup, appended: @escaping @Sendable (CMTime) -> Void) {
+                             group: DispatchGroup, stop: StopFlag,
+                             appended: @escaping @Sendable (CMTime) -> Void) {
         let queue = DispatchQueue(label: "com.momensherif.showreel.export.\(label)")
         let pair = Unchecked((output: output, input: input, once: Once()))
         group.enter()
         input.requestMediaDataWhenReady(on: queue) {
             let (output, input, once) = pair.value
             while input.isReadyForMoreMediaData {
-                // Nil when the output is done, or the reader failed or was
-                // cancelled; a failed append means the writer failed. The
+                // Nil when the output is done or the reader failed; a failed
+                // append means the writer failed; `stop` means Cancel. The
                 // caller reads which.
-                guard let sample = output.copyNextSampleBuffer(), input.append(sample) else {
+                guard !stop.isRaised, let sample = output.copyNextSampleBuffer(), input.append(sample) else {
                     input.markAsFinished()
                     if once.claim() { group.leave() }
                     return
@@ -226,6 +232,13 @@ private final class Unchecked<Value>: @unchecked Sendable {
 }
 
 /// True the first time only, so a continuation resumes once.
+/// Raised once by Cancel, read by the pumps on their queues.
+private final class StopFlag: Sendable {
+    private let raised = Mutex(false)
+    func raise() { raised.withLock { $0 = true } }
+    var isRaised: Bool { raised.withLock { $0 } }
+}
+
 private final class Once {
     private var used = false
     func claim() -> Bool {
