@@ -109,3 +109,12 @@ Fix: the step is wrapped in `beginUndoGrouping` / `endUndoGrouping` like the oth
 Rule: with `groupsByEvent` off, wrap every undoable call in a group. A crash in
 `swift_task_isCurrentExecutor` far from your code means look for an Objective-C exception
 earlier in the log.
+
+## 2026-11-02 The self-test failed whenever someone clicked during the Countdown
+Symptom: `tools/selftest.sh` failed "recording starts after the Countdown" (state `panel`)
+twice in a row while the Mac was in use; the run printed `INFO Countdown cancelled by click`.
+Cause: the Countdown covers the screen and cancels on any click (S-007). The self-test
+records the real display, so a click from the person at the Mac cancelled the test's recording.
+Fix: in a self-test run, a click on the Countdown is logged (`INFO Countdown ignored a click`)
+and ignored. Escape and the shortcut still cancel. The self-test never tests cancel-by-click.
+Rule: a self-test that runs on the real screen must ignore input it did not send itself.

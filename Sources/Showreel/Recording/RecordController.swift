@@ -297,6 +297,12 @@ final class RecordController {
     /// self-test run prints it, since a stray click on the real screen cancels too.
     func cancelCountdown(reason: String = "shortcut") {
         guard state == .countdown else { return }
+        // A click in a self-test run comes from someone using the Mac, not
+        // from the test, and would fail the end-to-end check for no reason.
+        if SelfTest.requested, reason == "click" {
+            print("INFO Countdown ignored a click (self-test run)")
+            return
+        }
         if SelfTest.requested { print("INFO Countdown cancelled by \(reason)") }
         countdownTask?.cancel()
         Countdown.shared.hide()
