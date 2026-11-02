@@ -130,6 +130,8 @@ final class EditorModel {
     }
     /// A double-click asked the inspector to put the cursor in the caption's text.
     var editsCaptionText = false
+    /// Clip > Save Caption Style… asks the Captions section to name the style (S-057).
+    var savesCaptionStyle = false
     /// The zoom camera for the current zooms and speed, worked out once (S-033).
     @ObservationIgnored var zoomPathCache: (zooms: ZoomTrack, speed: ZoomSpeed, path: ZoomPath)?
     /// The drawn cursor for the current smoothing and idle setting (S-034).

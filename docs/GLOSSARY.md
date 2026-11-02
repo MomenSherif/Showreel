@@ -29,6 +29,7 @@ titles, tooltips, errors, and VoiceOver labels.
 | Preset | A saved style | template |
 | Captions | Timed text from your voice | subtitles, transcript |
 | Caption | One line of captions, shown for a few seconds | subtitle, line, segment |
+| Caption Style | How captions look: font, colors, box, outline, shadow, and the spoken-word highlight. Showreel has eight; you can save your own | theme, template, caption preset |
 | Blend | A background Showreel draws itself: soft glows of color over a base, sharp at any size | mesh gradient, aurora, glow background |
 | Blur | A timed rectangle that hides part of the screen, blurred or pixelated | redact, mask, censor, blur region |
 | Speech Model | The on-device model that turns your voice into captions: Apple, Whisper Small, or Whisper Large v3 Turbo | engine, ASR, transcriber |

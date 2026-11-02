@@ -172,41 +172,6 @@ extension CaptionTrack {
     }
 }
 
-/// How captions look in the video (S-041). Part of `Style`, so presets
-/// carry it. Every field decodes with a default.
-public struct CaptionStyle: Codable, Equatable, Hashable, Sendable {
-    public enum Position: String, Codable, CaseIterable, Sendable { case bottom, top }
-    /// The box behind the text.
-    public enum Box: String, Codable, CaseIterable, Sendable { case none, dark, light }
-
-    /// Captions show in the video.
-    public var isVisible = true
-    /// 0.6...1.6 times the standard size (46 px on a 1080-pixel canvas).
-    public var size: Double = 1
-    public var position: Position = .bottom
-    public var box: Box = .dark
-    /// The word being spoken gets a colored pill.
-    public var highlightsWord = true
-    public var highlightColor: RGB = RGB(hex: 0xFFD60A)
-
-    public static let sizeRange: ClosedRange<Double> = 0.6...1.6
-
-    public init() {}
-
-    enum CodingKeys: String, CodingKey { case isVisible, size, position, box, highlightsWord, highlightColor }
-
-    public init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        let d = CaptionStyle()
-        isVisible = (try? c.decodeIfPresent(Bool.self, forKey: .isVisible)) ?? d.isVisible
-        size = (try? c.decodeIfPresent(Double.self, forKey: .size)) ?? d.size
-        position = (try? c.decodeIfPresent(Position.self, forKey: .position)) ?? d.position
-        box = (try? c.decodeIfPresent(Box.self, forKey: .box)) ?? d.box
-        highlightsWord = (try? c.decodeIfPresent(Bool.self, forKey: .highlightsWord)) ?? d.highlightsWord
-        highlightColor = (try? c.decodeIfPresent(RGB.self, forKey: .highlightColor)) ?? d.highlightColor
-    }
-}
-
 /// What shows at one moment (S-041).
 extension CaptionTrack {
     /// The caption on screen at source time `t`, or nil between captions.

@@ -146,5 +146,52 @@ extension SelfTest {
         check("moving captions to the top changes the frame", frame(editor.style) != frame(before))
         undo.undo()
         check("Undo puts the caption style back", editor.style == before)
+        captionLooks(editor, frame: frame)
+    }
+
+    /// S-056, S-057: picking a caption style keeps size and position and is
+    /// one undo step; a saved style is kept for every project and can be deleted.
+    static func captionLooks(_ editor: EditorModel, frame: (Style) -> [UInt8]) {
+        guard let undo = editor.undoManager, let pop = CaptionLook.named("bold-pop") else { return }
+        let before = editor.style
+        var picked = before
+        picked.captions.position = .top
+        picked.captions.size = 1.3
+        undo.beginUndoGrouping()
+        editor.applyStyle(picked, named: "Caption Position")
+        undo.endUndoGrouping()
+        var styled = editor.style
+        styled.captions = editor.style.captions.withLook(of: pop.style)
+        undo.beginUndoGrouping()
+        editor.applyStyle(styled, named: "\(pop.name) Captions")
+        undo.endUndoGrouping()
+        let saved = Style.decode(editor.project.styleData).captions
+        check("picking Bold Pop is saved and keeps the size and position",
+              saved.hasLook(of: pop.style) && saved.position == .top && saved.size == 1.3)
+        check("Undo Bold Pop Captions is offered", undo.undoActionName == "Bold Pop Captions", undo.undoActionName)
+        check("a caption style changes the frame", frame(editor.style) != frame(picked))
+
+        var custom = editor.style
+        custom.captions.font = .serif
+        custom.captions.outline = 0.3
+        custom.captions.textColor = RGB(1, 0.4, 0.2)
+        undo.beginUndoGrouping()
+        editor.applyStyle(custom, named: "Caption Font")
+        undo.endUndoGrouping()
+        let looks = CaptionLooks.shared
+        check("a changed style is Custom", looks.match(editor.style.captions) == nil)
+        let mine = looks.save(editor.style.captions, named: "Self-test style")
+        check("a saved caption style is kept in the app's settings",
+              SavedCaptionLooks.decode(Store.defaults.data(forKey: "captions.savedStyles")).looks.contains { $0.id == mine.id }
+              && looks.match(editor.style.captions)?.id == mine.id)
+        looks.delete(mine.id)
+        check("Delete Style removes a saved style", !looks.saved.looks.contains { $0.id == mine.id })
+
+        let clip = NSApp.mainMenu?.item(withTitle: "Clip")?.submenu?.items.map(\.title) ?? []
+        check("the Clip menu has Save Caption Style…", clip.contains("Save Caption Style…"), clip.joined(separator: ", "))
+        undo.undo()
+        undo.undo()
+        undo.undo()
+        check("Undo puts the caption style back after picking styles", editor.style == before)
     }
 }

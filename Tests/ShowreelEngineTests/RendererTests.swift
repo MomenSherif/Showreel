@@ -336,7 +336,10 @@ struct RendererTests {
     }
 
     @Test func lightBoxAtTheTopMatchesGolden() throws {
-        try Self.captioned(at: 2.7) { $0.box = .light; $0.position = .top; $0.size = 1.4 }
+        try Self.captioned(at: 2.7) {
+            $0.boxColor = RGB(1, 1, 1); $0.boxOpacity = 0.92; $0.textColor = RGB(0.08, 0.08, 0.1)
+            $0.position = .top; $0.size = 1.4
+        }
             .expectMatches(golden: "captions-light-top")
     }
 
@@ -352,8 +355,69 @@ struct RendererTests {
     @Test func highlightMovesWithTheSpokenWord() {
         let second = Self.captioned(at: 1.85), third = Self.captioned(at: 2.25)
         #expect(second.bytes != third.bytes)
-        let plain = Self.captioned(at: 1.85) { $0.highlightsWord = false }
-        #expect(plain.bytes == Self.captioned(at: 2.25) { $0.highlightsWord = false }.bytes)
+        let plain = Self.captioned(at: 1.85) { $0.highlight = .none }
+        #expect(plain.bytes == Self.captioned(at: 2.25) { $0.highlight = .none }.bytes)
+    }
+
+    // MARK: Caption styles (S-056)
+
+    @Test func everyCaptionStyleDrawsDifferently() {
+        let frames = CaptionLook.all.map { look in Self.captioned(at: 1.85) { $0 = $0.withLook(of: look.style) } }
+        for (i, a) in frames.enumerated() {
+            for (j, b) in frames.enumerated() where j > i {
+                #expect(a.bytes != b.bytes, "\(CaptionLook.all[i].name) and \(CaptionLook.all[j].name) look the same")
+            }
+        }
+    }
+
+    @Test func boldPopMatchesGolden() throws {
+        try Self.captioned(at: 1.85) { $0 = $0.withLook(of: CaptionLook.named("bold-pop")!.style) }
+            .expectMatches(golden: "captions-bold-pop")
+    }
+
+    @Test func neonMatchesGolden() throws {
+        try Self.captioned(at: 2.25) { $0 = $0.withLook(of: CaptionLook.named("neon")!.style); $0.position = .middle }
+            .expectMatches(golden: "captions-neon-middle")
+    }
+
+    @Test func eachCaptionSettingChangesTheFrame() {
+        let base = Self.captioned(at: 1.85)
+        let changes: [(String, (inout CaptionStyle) -> Void)] = [
+            ("font", { $0.font = .serif }), ("weight", { $0.weight = .regular }), ("text color", { $0.textColor = RGB(1, 0, 0) }),
+            ("all caps", { $0.allCaps = true }), ("box", { $0.showsBox = false }), ("box color", { $0.boxColor = RGB(0, 0, 1) }),
+            ("box opacity", { $0.boxOpacity = 0.3 }), ("outline", { $0.outline = 0.5 }), ("shadow", { $0.shadow = .glow }),
+            ("highlight", { $0.highlight = .karaoke }), ("position", { $0.position = .middle }),
+        ]
+        for (name, change) in changes { #expect(Self.captioned(at: 1.85, change).bytes != base.bytes, "\(name) changes nothing") }
+    }
+
+    @Test func karaokeColorsEveryWordSaidSoFar() {
+        // At 2.25 s the fourth word is spoken: karaoke colors three more words than Word Color.
+        let word = Self.captioned(at: 2.25) { $0.highlight = .word; $0.highlightColor = RGB(0, 1, 0) }
+        let karaoke = Self.captioned(at: 2.25) { $0.highlight = .karaoke; $0.highlightColor = RGB(0, 1, 0) }
+        func green(_ b: Bitmap) -> Int {
+            var n = 0
+            for y in stride(from: 0, to: b.height, by: 2) {
+                for x in stride(from: 0, to: b.width, by: 2) { let p = b.pixel(x: x, y: y); if p.g > 200 && p.r < 80 { n += 1 } }
+            }
+            return n
+        }
+        #expect(green(karaoke) > 2 * green(word), "\(green(karaoke)) vs \(green(word))")
+    }
+
+    @Test func aMissingFontDrawsAsSystem() {
+        let missing = Self.captioned(at: 1.85) { $0.font = .family("No Such Font 123"); $0.weight = .semibold }
+        let system = Self.captioned(at: 1.85) { $0.weight = .semibold }
+        #expect(missing.bytes == system.bytes)
+        #expect(Self.captioned(at: 1.85) { $0.font = .family("Helvetica") }.bytes != Self.captioned(at: 1.85).bytes)
+    }
+
+    @Test func sampleTileShowsTheStyle() throws {
+        let size = CGSize(width: 120, height: 56)
+        let classic = try #require(CaptionPainter.sample(CaptionStyle(), size: size))
+        let neon = try #require(CaptionPainter.sample(CaptionLook.named("neon")!.style, size: size))
+        #expect(classic.width == 120 && classic.height == 56)
+        #expect(Bitmap(CIImage(cgImage: classic)).bytes != Bitmap(CIImage(cgImage: neon)).bytes)
     }
 
     @Test func captionsAreSharpAt4K() {

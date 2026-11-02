@@ -25,6 +25,8 @@ enum Layout {
     /// Inspector tiles: gradient swatches and wallpaper thumbnails (16:10).
     static let swatch: CGFloat = 36
     static let wallpaperTile = CGSize(width: 64, height: 40)
+    /// A caption style's tile: "Say hello" in that style (S-056).
+    static let captionTile = CGSize(width: 72, height: 40)
     /// The frame area in the Crop Screen sheet.
     static let cropArea = CGSize(width: 640, height: 400)
 

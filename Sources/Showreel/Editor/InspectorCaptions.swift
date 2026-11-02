@@ -1,4 +1,5 @@
 import SwiftUI
+import ShowreelEngine
 import ShowreelKit
 
 /// The Captions section (S-039): Generate Captions, its progress, and what it made.
@@ -45,37 +46,177 @@ struct CaptionsSection: View {
     }
 }
 
-/// How captions look in the video (S-041). Each change is one undo step,
-/// and presets carry it with the rest of the style.
+/// How captions look in the video (S-041, S-056, S-057): a caption style
+/// to start from, where and how big, and every part of the look to make it
+/// your own. Each change is one undo step, and presets carry it with the
+/// rest of the style.
 private struct CaptionStyleSection: View {
     let editor: EditorModel
+    @Bindable private var looks = CaptionLooks.shared
+    /// A color change in progress: the well sends many values; one undo step
+    /// is made when they stop.
     @State private var colorStart: Style?
     @State private var colorCommit: Task<Void, Never>?
+    @State private var saving = false
+    @State private var renaming: CaptionLook?
+    @State private var name = ""
 
     private var look: CaptionStyle { editor.style.captions }
 
     var body: some View {
-        Section("Style") {
+        Section {
             Toggle("Show in Video", isOn: binding(\.isVisible, named: "Show Captions"))
             Group {
-                StyleSlider(title: "Size", editor: editor, value: \.captions.size, range: CaptionStyle.sizeRange,
-                            format: StyleSlider.percent, undoName: "Caption Size")
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: Layout.captionTile.width), spacing: Space.sm)], spacing: Space.sm) {
+                    ForEach(CaptionLook.all) { tile($0) }
+                    ForEach(looks.saved.looks) { saved in
+                        tile(saved)
+                            .contextMenu {
+                                Button("Rename…") {
+                                    name = saved.name
+                                    renaming = saved
+                                }
+                                Button("Delete Style", role: .destructive) { looks.delete(saved.id) }
+                            }
+                    }
+                }
+                .padding(.vertical, Space.xs)
+                LabeledContent {
+                    Button("Save Style…") { askToSave() }
+                        .help("Keep this look to use in any project (⌥⇧⌘S)")
+                } label: {
+                    Text(looks.match(look)?.name ?? "Custom")
+                    Text(looks.match(look) == nil ? "Your own look." : "Change anything below to make it your own.")
+                        .foregroundStyle(.secondary)
+                }
                 Picker("Position", selection: binding(\.position, named: "Caption Position")) {
                     Text("Bottom").tag(CaptionStyle.Position.bottom)
+                    Text("Middle").tag(CaptionStyle.Position.middle)
                     Text("Top").tag(CaptionStyle.Position.top)
                 }
                 .pickerStyle(.segmented)
-                Picker("Box", selection: binding(\.box, named: "Caption Box")) {
-                    Text("None").tag(CaptionStyle.Box.none)
-                    Text("Dark").tag(CaptionStyle.Box.dark)
-                    Text("Light").tag(CaptionStyle.Box.light)
-                }
-                .help("The box behind the caption text")
-                Toggle("Highlight Spoken Word", isOn: binding(\.highlightsWord, named: "Highlight Spoken Word"))
-                ColorPicker("Highlight Color", selection: colorBinding, supportsOpacity: false)
-                    .disabled(!look.highlightsWord)
+                StyleSlider(title: "Size", editor: editor, value: \.captions.size, range: CaptionStyle.sizeRange,
+                            format: StyleSlider.percent, undoName: "Caption Size")
             }
             .disabled(!look.isVisible)
+        } header: {
+            Text("Style")
+        }
+        Group {
+            Section("Text") {
+                Picker("Font", selection: binding(\.font, named: "Caption Font")) {
+                    Text("System").tag(CaptionStyle.Font.system)
+                    Text("Rounded").tag(CaptionStyle.Font.rounded)
+                    Text("Serif").tag(CaptionStyle.Font.serif)
+                    Text("Monospaced").tag(CaptionStyle.Font.mono)
+                    Divider()
+                    ForEach(families, id: \.self) { Text($0).tag(CaptionStyle.Font.family($0)) }
+                }
+                Picker("Weight", selection: binding(\.weight, named: "Caption Weight")) {
+                    ForEach(CaptionStyle.Weight.allCases, id: \.self) { Text(Self.title($0)).tag($0) }
+                }
+                ColorPicker("Color", selection: colorBinding(\.textColor, named: "Caption Text Color"), supportsOpacity: false)
+                Toggle("All Caps", isOn: binding(\.allCaps, named: "All Caps"))
+            }
+            Section("Box") {
+                Toggle("Show Box", isOn: binding(\.showsBox, named: "Caption Box"))
+                    .help("A rounded box behind the caption text")
+                Group {
+                    ColorPicker("Color", selection: colorBinding(\.boxColor, named: "Caption Box Color"), supportsOpacity: false)
+                    StyleSlider(title: "Opacity", editor: editor, value: \.captions.boxOpacity, range: 0.1...1,
+                                format: StyleSlider.percent, undoName: "Caption Box Opacity")
+                }
+                .disabled(!look.showsBox)
+            }
+            Section("Outline and Shadow") {
+                StyleSlider(title: "Outline", editor: editor, value: \.captions.outline, range: 0...1,
+                            format: { $0 < 0.005 ? "None" : StyleSlider.percent($0) }, undoName: "Caption Outline")
+                ColorPicker("Outline Color", selection: colorBinding(\.outlineColor, named: "Caption Outline Color"),
+                            supportsOpacity: false)
+                    .disabled(look.outline < 0.005)
+                Picker("Shadow", selection: binding(\.shadow, named: "Caption Shadow")) {
+                    Text("None").tag(CaptionStyle.Shadow.none)
+                    Text("Soft").tag(CaptionStyle.Shadow.soft)
+                    Text("Glow").tag(CaptionStyle.Shadow.glow)
+                }
+                .pickerStyle(.segmented)
+                .help("Soft: a drop shadow. Glow: light in the text color.")
+            }
+            Section {
+                Picker("Highlight", selection: binding(\.highlight, named: "Highlight Spoken Word")) {
+                    Text("None").tag(CaptionStyle.Highlight.none)
+                    Text("Pill").tag(CaptionStyle.Highlight.pill)
+                    Text("Word Color").tag(CaptionStyle.Highlight.word)
+                    Text("Karaoke").tag(CaptionStyle.Highlight.karaoke)
+                }
+                ColorPicker("Highlight Color", selection: colorBinding(\.highlightColor, named: "Highlight Color"), supportsOpacity: false)
+                    .disabled(!look.highlightsWord)
+            } header: {
+                Text("Spoken Word")
+            } footer: {
+                Text(highlightFooter).foregroundStyle(.secondary)
+            }
+        }
+        .disabled(!look.isVisible)
+        .alert("Save Caption Style", isPresented: $saving) {
+            TextField("Name", text: $name)
+            Button("Save") { looks.save(look, named: name) }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Keep this look to use in any project. Size and position are not part of it.")
+        }
+        .alert("Rename Caption Style", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
+            TextField("Name", text: $name)
+            Button("Rename") { if let renaming { looks.rename(renaming.id, to: name) } }
+            Button("Cancel", role: .cancel) {}
+        }
+        .onAppear { if editor.savesCaptionStyle { askToSave() } }
+        .onChange(of: editor.savesCaptionStyle) { _, asked in if asked { askToSave() } }
+    }
+
+    /// One caption style, drawn by the video's own caption code.
+    private func tile(_ named: CaptionLook) -> some View {
+        Tile(name: named.name, isSelected: look.hasLook(of: named.style),
+             size: Layout.captionTile) {
+            CaptionSample(style: named.style)
+        } action: {
+            var style = editor.style
+            style.captions = look.withLook(of: named.style)
+            withMotion(Motion.select) { editor.applyStyle(style, named: "\(named.name) Captions") }
+        }
+    }
+
+    private func askToSave() {
+        editor.savesCaptionStyle = false
+        name = ""
+        saving = true
+    }
+
+    /// Every font on this Mac, plus the chosen one when it is not here.
+    private var families: [String] {
+        if case .family(let chosen) = look.font, !CaptionLooks.fontFamilies.contains(chosen) {
+            return [chosen] + CaptionLooks.fontFamilies
+        }
+        return CaptionLooks.fontFamilies
+    }
+
+    private var highlightFooter: String {
+        switch look.highlight {
+        case .none: "Every word looks the same."
+        case .pill: "A colored pill behind the word being spoken."
+        case .word: "The word being spoken turns the highlight color."
+        case .karaoke: "Words turn the highlight color as they are spoken."
+        }
+    }
+
+    static func title(_ weight: CaptionStyle.Weight) -> String {
+        switch weight {
+        case .regular: "Regular"
+        case .medium: "Medium"
+        case .semibold: "Semibold"
+        case .bold: "Bold"
+        case .heavy: "Heavy"
+        case .black: "Black"
         }
     }
 
@@ -90,21 +231,45 @@ private struct CaptionStyleSection: View {
 
     /// The color well sends many changes while it is open: the canvas
     /// follows each, and they settle into one undo step.
-    private var colorBinding: Binding<Color> {
-        Binding(get: { Color(look.highlightColor) }, set: { color in
+    private func colorBinding(_ path: WritableKeyPath<CaptionStyle, RGB>, named name: String) -> Binding<Color> {
+        Binding(get: { Color(editor.style.captions[keyPath: path]) }, set: { color in
             let start = colorStart ?? editor.style
             colorStart = start
             var style = editor.style
-            style.captions.highlightColor = RGB(color)
+            style.captions[keyPath: path] = RGB(color)
             editor.previewStyle(style)
             colorCommit?.cancel()
             colorCommit = Task {
                 try? await Task.sleep(for: .seconds(0.6))
                 guard !Task.isCancelled else { return }
-                editor.commitStyle(from: start, named: "Highlight Color")
+                editor.commitStyle(from: start, named: name)
                 colorStart = nil
             }
         })
+    }
+}
+
+/// "Say hello" in a caption style, small, drawn once per style.
+private struct CaptionSample: View {
+    let style: CaptionStyle
+    @Environment(\.displayScale) private var scale
+
+    var body: some View {
+        if let image = Self.image(style, scale: scale) {
+            Image(decorative: image, scale: scale)
+                .resizable()
+        }
+    }
+
+    @MainActor private static var cache: [CaptionStyle: CGImage] = [:]
+
+    @MainActor static func image(_ style: CaptionStyle, scale: CGFloat) -> CGImage? {
+        if let cached = cache[style] { return cached }
+        let size = CGSize(width: Layout.captionTile.width * scale, height: Layout.captionTile.height * scale)
+        let image = CaptionPainter.sample(style, size: size, scale: 9)
+        if cache.count > 64 { cache.removeAll() }
+        cache[style] = image
+        return image
     }
 }
 

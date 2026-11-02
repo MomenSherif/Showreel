@@ -60,6 +60,14 @@ struct EditorCommands: Commands {
                 Toggle("Show Captions", isOn: styleBinding(\.captions.isVisible, named: "Show Captions"))
                     .keyboardShortcut("c", modifiers: [.shift, .command])
                     .disabled(editor?.captions.captions.isEmpty != false)
+                Button("Save Caption Style…") {
+                    act(nil) { editor in
+                        editor.section = .captions
+                        editor.savesCaptionStyle = true
+                    }
+                }
+                .keyboardShortcut("s", modifiers: [.option, .shift, .command])
+                .disabled(editor?.captions.captions.isEmpty != false)
                 Toggle("Show Camera", isOn: styleBinding(\.cameraVisible, named: "Show Camera"))
                     .keyboardShortcut("k", modifiers: [.option, .command])
                     .disabled(editor?.project.hasCamera != true)

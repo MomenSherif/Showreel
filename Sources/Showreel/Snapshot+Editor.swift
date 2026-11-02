@@ -212,6 +212,26 @@ extension Snapshot {
                                       },
                                       window: window,
                                       hide: { EditorModel.newest?.selectCaption(nil) })
+        // S-056: the Bold Pop caption style picked, shown without saving.
+        var stylesOriginal = CaptionStyle()
+        let captionStyles = Surface(name: "editor-caption-styles", show: {
+                                        guard let editor = await openEditor() else { return }
+                                        stylesOriginal = editor.style.captions
+                                        editor.zoom = TimelineZoom()
+                                        editor.section = .captions
+                                        var style = editor.style
+                                        style.captions = style.captions.withLook(of: CaptionLook.named("bold-pop")!.style)
+                                        editor.previewStyle(style)
+                                        let caption = editor.captions.captions.dropFirst().first
+                                        editor.seek(to: (caption?.words.dropFirst().first?.start ?? 0) + 0.05)
+                                    },
+                                    window: window,
+                                    hide: {
+                                        guard let editor = EditorModel.newest else { return }
+                                        var style = editor.style
+                                        style.captions = stylesOriginal
+                                        editor.previewStyle(style)
+                                    })
         // S-054: Arabic captions with English words, one selected, shown without saving.
         var arabicOriginal: CaptionTrack?
         let captionsArabic = Surface(name: "editor-captions-arabic", show: {
@@ -319,7 +339,7 @@ extension Snapshot {
                     },
                     window: window,
                     hide: {})
-        } + [trim, split, crop, frame, aspect, savePreset, export, progress, done, zoomSelected, blurSelected, wallpapers, blend, click, cursorStyle, zoomed, captionsProgress, captionsFailed, captionSelected, captionsArabic, audioMuted, noiseProgress]
+        } + [trim, split, crop, frame, aspect, savePreset, export, progress, done, zoomSelected, blurSelected, wallpapers, blend, click, cursorStyle, zoomed, captionsProgress, captionsFailed, captionSelected, captionStyles, captionsArabic, audioMuted, noiseProgress]
     }
 }
 

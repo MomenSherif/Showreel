@@ -930,6 +930,62 @@ Status: done
 
 ---
 
+## M11 Caption styles
+Done when captions can start from a ready-made style, every part of their
+look can be changed, and a look can be saved for any project.
+
+### S-056 Pick and customize a caption style
+As the user, I pick a caption style in Inspector > Captions > Style
+(Classic, Clean, Bold Pop, Karaoke, Neon, Paper, Terminal, Minimal), then
+change its font, weight, colors, box, outline, shadow, and highlight.
+Screens: editor-captions, editor-caption-styles
+Depends: S-041
+Acceptance:
+- [unit] Styles saved before S-056 (box None, Dark, Light; Highlight Spoken
+  Word on or off) load as the same look; every field round-trips; Classic is
+  the default; picking a style keeps Show in Video, Size, and Position.
+- [unit] Every style draws differently; every setting changes the frame;
+  Karaoke colors every word said so far; a missing font draws as System;
+  Bold Pop and Neon (middle) match golden frames.
+- [selftest] Picking a style is one undo step ("Bold Pop Captions"), is saved,
+  and changes the frame; a changed look shows as Custom.
+- [snap] The style tiles show "Say hello" in each style; Bold Pop shows in the video.
+UX:
+- Flow: Style: Show in Video, the style tiles, the style's name (or Custom)
+  with Save Style…, Position (Bottom, Middle, Top), Size. Text: Font (System,
+  Rounded, Serif, Monospaced, then every installed font), Weight, Color, All
+  Caps. Box: Show Box, Color, Opacity. Outline and Shadow: Outline, Outline
+  Color, Shadow (None, Soft, Glow). Spoken Word: Highlight (None, Pill, Word
+  Color, Karaoke), Highlight Color. Each change is one undo step; color wells
+  settle into one.
+- Words: "Custom", "Your own look.", "Change anything below to make it your own."
+Notes: tiles are drawn by `CaptionPainter.sample`, the video's own caption
+code. Rounded, Serif, and Monospaced are the system's own fonts, read from
+/System/Library/Fonts, so they are on every Mac. An outline spaces the letters
+apart as it grows.
+Status: done
+
+### S-057 Save my own caption style
+As the user, I save the look I made as a caption style with a name and use
+it in any project, and rename or delete it.
+Screens: editor-captions
+Depends: S-056
+Acceptance:
+- [unit] A saved style keeps its look, not its size or position; a blank
+  name becomes "My Style"; rename and delete work; bad data loads as none.
+- [selftest] A saved style is kept in the app's settings and matches the
+  look; Delete Style removes it; the Clip menu has Save Caption Style….
+UX:
+- Flow: Save Style… or Clip > Save Caption Style… (⌥⇧⌘S) -> "Save Caption
+  Style" alert with a Name field -> the style joins the tiles after
+  Showreel's. A saved tile's context menu: Rename…, Delete Style.
+- Words: "Keep this look to use in any project. Size and position are not part of it."
+Notes: saved styles live in `Store.defaults` ("captions.savedStyles"), so every
+project sees them; presets still carry a project's whole caption style.
+Status: done
+
+---
+
 ## Later
 - Speed changes for a section (1.5×, 2×, skip silence)
 - Multiple clips per project, intro and outro cards
