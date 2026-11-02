@@ -28,6 +28,12 @@ struct EditorInspector: View {
                 }
                 ZoomInspector(editor: editor, zoom: zoom)
                     .frame(maxHeight: .infinity, alignment: .top)
+            } else if let blur = editor.selectedBlurRegion {
+                SelectionHeader(title: "Blur", symbol: TrackKind.blur.symbol, editor: editor) {
+                    editor.selectBlur(nil)
+                }
+                BlurInspector(editor: editor, blur: blur)
+                    .frame(maxHeight: .infinity, alignment: .top)
             } else if let caption = editor.selectedCaptionItem {
                 SelectionHeader(title: "Caption", symbol: TrackKind.captions.symbol, editor: editor) {
                     editor.selectCaption(nil)
@@ -53,6 +59,7 @@ struct EditorInspector: View {
         Binding(get: { editor.section }, set: { section in
             editor.selectZoom(nil)
             editor.selectCaption(nil)
+            editor.selectBlur(nil)
             editor.section = section
         })
     }

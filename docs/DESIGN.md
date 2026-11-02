@@ -111,7 +111,7 @@ toggles with ⌃⌘I.
 │               canvas (preview)               │ Background         │ 280–340 pt
 │                                              │  …grouped Form…    │
 ├──────────────────────────────────────────────┤                    │
-│ ✂ Split  ⊕ Add Zoom   ▶ 0:00.0 / 0:42.0   − ━━● + Fit │          │
+│ ✂ Split  ⊕ Add Zoom  ⊘ Add Blur ▶ 0:00.0 / 0:42.0   − ━━● + Fit │          │
 │ ▭ clip  ████████████████████                 │                    │
 │ 🔍 zoom   ▓▓▓     ▓▓▓▓    ▓▓                  │                    │
 │ 💬 captions ▒▒ ▒▒▒ ▒▒                         │                    │
@@ -141,13 +141,14 @@ toggles with ⌃⌘I.
   get a 2 pt accent ring and edge handles. The playhead token is a
   contrasting line with a cap.
 - **Transport row** above the tracks: Split (`scissors`), Add Zoom
-  (`plus.magnifyingglass`), then centered Play/Pause with the time in
+  (`plus.magnifyingglass`), Add Blur (`eye.slash`), then centered Play/Pause with the time in
   monospaced digits, then trailing timeline zoom `−` slider `+` and Fit.
   `.controlSize(.small)`.
 - **Inspector empty states:** Captions with no mic track shows "No Voice
   Recorded" and "Turn on the mic for your next recording to get captions."
   Camera with no camera track shows "No Camera in This Recording". The zoom
-  track with no zooms shows the inline hint "Click to add a zoom".
+  track with no zooms shows the inline hint "Click to add a zoom"; the blur
+  track with no blurs shows "Click to hide part of the screen".
 
 ## Command map
 
@@ -166,7 +167,7 @@ Every command is in the menu bar. Toolbar and context menu items repeat it.
 | File | Move to Trash | ⌘⌫ | S-010 |
 | Edit | Undo / Redo <action> | ⌘Z / ⇧⌘Z | S-020 |
 | Edit | Cut, Copy, Paste, Delete, Select All | standard | S-032 |
-| Clip | Delete Section / Delete Zoom (follows the selection) | ⌫ | S-019, S-031 |
+| Clip | Delete Section / Zoom / Blur / Caption (follows the selection) | ⌫ | S-019, S-031, S-049 |
 | View | Show/Hide Toolbar, Show/Hide Inspector | ⌥⌘T, ⌃⌘I | S-015 |
 | View | Zoom In / Zoom Out / Zoom to Fit (timeline) | ⌘+ / ⌘− / ⇧Z | S-017 |
 | View | Background, Screen, Effects, Camera, Captions, Audio (inspector section) | ⌘1–⌘6 | S-044 |
@@ -178,6 +179,7 @@ Every command is in the menu bar. Toolbar and context menu items repeat it.
 | Clip | Split at Playhead | S | S-019 |
 | Clip | Trim Start to Playhead / Trim End to Playhead | ⌥[ / ⌥] | S-018 |
 | Clip | Add Zoom | Z | S-032 |
+| Clip | Add Blur | B | S-048 |
 | Clip | Mute Section / Unmute Section (follows the selection) | M | S-042 |
 | Clip | Unmute All | ⇧M | S-042, S-044 |
 | Clip | Reduce Noise (checkmark) | ⌥⌘N | S-043, S-044 |

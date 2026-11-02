@@ -773,7 +773,14 @@ Acceptance:
 - [self] Add Blur puts a 3-second blur on the playhead and selects it; ⌘Z
   removes it. Blurs on the blur lane cannot overlap; a cut removes or
   shortens them like zooms (S-019).
-Status: todo
+UX: Clip > Add Blur (B), Add Blur in the transport row, or a click on an
+empty spot of the blur lane ("Click to hide part of the screen") adds a blur
+in the middle of what is on screen and selects it. A selected blur shows its
+rectangle on the canvas: drag inside to move, a handle to resize, elsewhere
+on the screen to draw a new one ("Undo Draw Blur"). The blur is drawn into
+the recording before crop and zoom, so the cursor and click marks stay on
+top of it. Golden frames: Golden/blur.png, Golden/pixelate.png.
+Status: done
 
 ### S-049 Edit, move, and delete a blur
 As the user, I select a blur to drag or resize its rectangle on the canvas,
@@ -786,7 +793,7 @@ Acceptance:
 - [self] Each change is one undo step; ⌫ deletes the selected blur.
 - [snap] A selected blur shows its rectangle with handles on the canvas; an
   unselected one shows no outline.
-Status: todo
+Status: done
 
 ### S-050 Pick the speech model for captions
 As the user, I choose which speech model makes my captions, and the

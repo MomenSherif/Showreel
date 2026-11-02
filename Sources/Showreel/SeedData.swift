@@ -52,6 +52,10 @@ enum SeedData {
                 project.hasMicrophone = true
                 speak(narrationScript, to: ProjectStore.file(ProjectFiles.microphone, of: project.uuid))
                 project.captionsData = CaptionTrack(captions: CaptionTrack.lines(from: narrationWords), language: "en_US").encoded()
+                // A blur over the first row of the page, as if it held an email (S-048).
+                project.blursData = BlurTrack(regions: [
+                    BlurRegion(start: 4, end: 9, rect: CropRect(x: 0.28, y: 0.3, width: 0.57, height: 0.06)), // grid: ok normalized
+                ]).encoded()
             }
         }
         // Two presets, as a person would save them (S-029).

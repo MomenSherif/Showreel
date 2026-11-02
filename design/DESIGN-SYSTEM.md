@@ -30,7 +30,7 @@ radii, durations, or springs. Layout decisions live in `docs/DESIGN.md`.
 - `Media.record`: Start Recording, the recording dot, and the menu bar extra
   while recording. Never decoration.
 - `Media.playhead`: the playhead line and its cap.
-- `Media.Track.clip / zoom / caption / audio`: timeline block fills. White
+- `Media.Track.clip / zoom / blur / caption / audio`: timeline block fills. White
   text on each passes 4.5:1 in every mode, and labels use `Media.Track.label`.
   Each track's header shows its SF Symbol, so color is never the only cue.
   `Media.Track.lane` is the empty row behind blocks.

@@ -72,6 +72,7 @@ extension SelfTest {
 
         await background(editor)
         await zooms(editor)
+        await blurs(editor)
         await captions(editor)
         await audio(editor)
         await menus(editor)

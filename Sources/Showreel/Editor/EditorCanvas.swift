@@ -18,6 +18,9 @@ struct EditorCanvas: View {
                 if editor.project.hasCamera, editor.style.cameraVisible {
                     CameraHandle(editor: editor, playhead: editor.playhead)
                 }
+                if editor.selectedBlur != nil {
+                    BlurHandle(editor: editor, playhead: editor.playhead)
+                }
             } else {
                 ProgressView().controlSize(.small)
             }

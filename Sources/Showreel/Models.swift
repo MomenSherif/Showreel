@@ -43,6 +43,8 @@ final class Project {
     var captionsData: Data? = nil
     /// Track volumes and muted parts, an `AudioMix` as JSON. Nil plays as recorded (S-042).
     var audioData: Data? = nil
+    /// The blurs, a `BlurTrack` as JSON. Nil means none (S-048).
+    var blursData: Data? = nil
 
     init(title: String, duration: Double = 0, uuid: UUID = UUID()) {
         self.title = ProjectTitle.clean(title)
@@ -83,6 +85,7 @@ struct ProjectRecord {
     var zoomsData: Data?
     var captionsData: Data?
     var audioData: Data?
+    var blursData: Data?
 
     init(_ p: Project) {
         title = p.title; sourceKind = p.sourceKind; sourceName = p.sourceName
@@ -96,6 +99,7 @@ struct ProjectRecord {
         zoomsData = p.zoomsData
         captionsData = p.captionsData
         audioData = p.audioData
+        blursData = p.blursData
     }
 
     /// A model with these fields. With `newID`, a duplicate made now.
@@ -112,6 +116,7 @@ struct ProjectRecord {
         p.zoomsData = zoomsData
         p.captionsData = captionsData
         p.audioData = audioData
+        p.blursData = blursData
         return p
     }
 }

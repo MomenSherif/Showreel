@@ -16,7 +16,7 @@ struct EditorTimeline: View {
     }
 }
 
-/// Split and Add Zoom, Play with the time in the middle, and the timeline
+/// Split, Add Zoom, and Add Blur, Play with the time in the middle, and the timeline
 /// zoom on the trailing side.
 private struct TransportRow: View {
     let editor: EditorModel
@@ -31,6 +31,11 @@ private struct TransportRow: View {
                     withMotion(Motion.select) { editor.addZoom(atEditTime: editor.playhead.time) }
                 }
                 .help("Add Zoom at the playhead (Z)")
+                .disabled(editor.player == nil)
+                Button("Add Blur", systemImage: TrackKind.blur.symbol) {
+                    withMotion(Motion.select) { editor.addBlur(atEditTime: editor.playhead.time) }
+                }
+                .help("Add Blur at the playhead to hide part of the screen (B)")
                 .disabled(editor.player == nil)
             }
             .frame(maxWidth: .infinity, alignment: .leading)

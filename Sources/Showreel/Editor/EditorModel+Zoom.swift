@@ -15,6 +15,7 @@ extension EditorModel {
         if id != nil {
             selectedSegment = nil
             selectedCaption = nil
+            selectedBlur = nil
         }
     }
 

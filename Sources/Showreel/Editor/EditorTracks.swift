@@ -4,7 +4,7 @@ import ShowreelKit
 /// The kinds of lanes, top to bottom. Each has a symbol, so color is never
 /// the only cue.
 enum TrackKind: CaseIterable, Identifiable {
-    case clip, zoom, captions, audio
+    case clip, zoom, blur, captions, audio
 
     var id: Self { self }
 
@@ -12,6 +12,7 @@ enum TrackKind: CaseIterable, Identifiable {
         switch self {
         case .clip: "Clip"
         case .zoom: "Zoom"
+        case .blur: "Blur"
         case .captions: "Captions"
         case .audio: "Audio"
         }
@@ -21,6 +22,7 @@ enum TrackKind: CaseIterable, Identifiable {
         switch self {
         case .clip: "film"
         case .zoom: "plus.magnifyingglass"
+        case .blur: "eye.slash"
         case .captions: "captions.bubble"
         case .audio: "waveform"
         }
@@ -30,6 +32,7 @@ enum TrackKind: CaseIterable, Identifiable {
         switch self {
         case .clip: Media.Track.clip
         case .zoom: Media.Track.zoom
+        case .blur: Media.Track.blur
         case .captions: Media.Track.caption
         case .audio: Media.Track.audio
         }
@@ -85,6 +88,8 @@ struct Lane: View {
                             .offset(x: scale.x(at: range.lowerBound)) // grid: ok position from time
                     }
                 }
+            case .blur:
+                BlurLane(editor: editor, scale: scale)
             case .captions:
                 // Captions are kept in source time; a cut shows them in pieces (S-039).
                 ForEach(editor.captions.captions) { caption in
@@ -153,6 +158,7 @@ struct ClipBlock: View {
                 editor.selectedSegment = segment.id
                 editor.selectedZoom = nil
                 editor.selectedCaption = nil
+                editor.selectedBlur = nil
             }
             editor.seek(to: start + scale.seconds(at: location.x))
         }
@@ -162,6 +168,7 @@ struct ClipBlock: View {
                 editor.selectedSegment = segment.id
                 editor.selectedZoom = nil
                 editor.selectedCaption = nil
+                editor.selectedBlur = nil
                 editor.toggleMuteSelection()
             }
             .disabled(editor.sources?.audio.isEmpty ?? true)

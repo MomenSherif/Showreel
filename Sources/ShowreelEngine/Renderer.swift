@@ -51,9 +51,12 @@ public struct RenderStyle: @unchecked Sendable {
     public var cursor: CursorScene?
     /// In source time (S-041). Drawn on top of everything, in `style.captions`' look.
     public var captions: CaptionTrack
+    /// In source time (S-048). Drawn into the recording, before crop and zoom.
+    public var blurs: BlurTrack
 
     public init(style: Style, backgroundImage: CIImage? = nil, zooms: ZoomTrack = ZoomTrack(), zoomPath: ZoomPath? = nil,
-                cursor: CursorScene? = nil, captions: CaptionTrack = CaptionTrack()) {
+                cursor: CursorScene? = nil, captions: CaptionTrack = CaptionTrack(), blurs: BlurTrack = BlurTrack()) {
+        self.blurs = blurs
         self.cursor = cursor
         self.captions = captions
         self.style = style
@@ -78,7 +81,9 @@ public enum Renderer {
                              style: RenderStyle = .plain, size: CGSize) -> CIImage {
         let canvas = CGRect(origin: .zero, size: size)
         let crop = style.style.crop
-        let screen = cropped(screen, to: crop)
+        // A blur hides part of the recording itself, so crops, zooms, and the
+        // frame carry it along; the cursor is drawn over it (S-048).
+        let screen = cropped(blurred(screen, by: style.blurs.region(at: t)), to: crop)
         // Layout uses a top-left origin; Core Image a bottom-left one.
         let chrome = CanvasLayout.chrome(for: style.style, canvasHeight: size.height)
         let top = CanvasLayout.screenRect(content: screen.extent.size, canvas: size, padding: style.style.padding, chrome: chrome)
@@ -142,6 +147,29 @@ public enum Renderer {
         // Top-left crop to Core Image's bottom-left extent.
         let rect = CGRect(x: e.minX + top.minX, y: e.minY + e.height - top.maxY, width: top.width, height: top.height)
         return screen.cropped(to: rect).transformed(by: CGAffineTransform(translationX: -rect.minX, y: -rect.minY))
+    }
+
+    /// The recording with `blur`'s rectangle blurred or pixelated, in the
+    /// recording's own pixels, so the preview and the export look the same.
+    static func blurred(_ screen: CIImage, by blur: BlurRegion?) -> CIImage {
+        guard let blur else { return screen }
+        let extent = screen.extent
+        let area = blur.pixelRect(in: extent)
+        guard area.width >= 1, area.height >= 1 else { return screen }
+        let long = Double(max(extent.width, extent.height))
+        let hidden: CIImage
+        switch blur.style {
+        case .blur:
+            // Clamped to the area, so the edges blur the hidden pixels, not
+            // the ones around them, and nothing readable bleeds in.
+            hidden = screen.cropped(to: area).clampedToExtent().applyingGaussianBlur(sigma: blur.blurSigma(long: long))
+        case .pixelate:
+            hidden = screen.cropped(to: area).clampedToExtent().applyingFilter("CIPixellate", parameters: [
+                kCIInputCenterKey: CIVector(x: area.minX, y: area.minY),
+                kCIInputScaleKey: blur.blockSize(long: long),
+            ])
+        }
+        return hidden.cropped(to: area).composited(over: screen)
     }
 
     /// The part of `extent` a zoom shows, in Core Image's bottom-left coordinates.

@@ -36,6 +36,8 @@ struct EditorCommands: Commands {
                     .keyboardShortcut("s", modifiers: [])
                 Button("Add Zoom") { act(.text("z")) { $0.addZoom(atEditTime: $0.playhead.time) } }
                     .keyboardShortcut("z", modifiers: [])
+                Button("Add Blur") { act(.text("b")) { $0.addBlur(atEditTime: $0.playhead.time) } }
+                    .keyboardShortcut("b", modifiers: [])
                 Button(editor?.isSelectionMuted == true ? "Unmute Section" : "Mute Section") {
                     act(.text("m")) { $0.toggleMuteSelection() }
                 }
@@ -67,13 +69,16 @@ struct EditorCommands: Commands {
                             editor.deleteSelectedCaption()
                         } else if editor.selectedZoom != nil {
                             editor.deleteSelectedZoom()
+                        } else if editor.selectedBlur != nil {
+                            editor.deleteSelectedBlur()
                         } else {
                             editor.deleteSelection()
                         }
                     }
                 }
                 .keyboardShortcut(.delete, modifiers: [])
-                .disabled(editor?.selectedCaption == nil && editor?.selectedZoom == nil && editor?.canDeleteSelection != true)
+                .disabled(editor?.selectedCaption == nil && editor?.selectedZoom == nil && editor?.selectedBlur == nil
+                           && editor?.canDeleteSelection != true)
                 Divider()
                 if let editor {
                     Picker("Aspect Ratio", selection: aspectBinding(editor)) {
@@ -123,16 +128,17 @@ struct EditorCommands: Commands {
         }
     }
 
-    /// Delete follows the selection: a caption, a zoom, or a section.
     /// An on/off part of the style, flipped as one undo step.
     private func styleBinding(_ key: WritableKeyPath<Style, Bool>, named name: String) -> Binding<Bool> {
         Binding(get: { editor?.style[keyPath: key] == true },
                 set: { _ in act(nil) { $0.toggleStyle(key, named: name) } })
     }
 
+    /// Delete follows the selection: a caption, a zoom, a blur, or a section.
     private var deleteTitle: String {
         if editor?.selectedCaption != nil { return "Delete Caption" }
-        return editor?.selectedZoom != nil ? "Delete Zoom" : "Delete Section"
+        if editor?.selectedZoom != nil { return "Delete Zoom" }
+        return editor?.selectedBlur != nil ? "Delete Blur" : "Delete Section"
     }
 
     /// Runs `action` on the Editor, unless a text field is being edited:

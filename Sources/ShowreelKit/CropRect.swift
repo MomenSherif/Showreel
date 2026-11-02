@@ -45,24 +45,6 @@ public struct CropRect: Codable, Equatable, Sendable {
     /// The crop after dragging `handle` by `dx`, `dy` (normalized). Edges stop
     /// at the recording and at `minSide`; moving keeps the size.
     public func dragging(_ handle: Handle, dx: Double, dy: Double) -> CropRect {
-        var left = x, top = y, right = x + width, bottom = y + height
-        switch handle {
-        case .move:
-            let nx = min(max(x + dx, 0), 1 - width), ny = min(max(y + dy, 0), 1 - height)
-            return CropRect(x: nx, y: ny, width: width, height: height)
-        case .topLeading: left += dx; top += dy
-        case .top: top += dy
-        case .topTrailing: right += dx; top += dy
-        case .leading: left += dx
-        case .trailing: right += dx
-        case .bottomLeading: left += dx; bottom += dy
-        case .bottom: bottom += dy
-        case .bottomTrailing: right += dx; bottom += dy
-        }
-        left = min(max(left, 0), right - Self.minSide)
-        top = min(max(top, 0), bottom - Self.minSide)
-        right = max(min(right, 1), left + Self.minSide)
-        bottom = max(min(bottom, 1), top + Self.minSide)
-        return CropRect(x: left, y: top, width: right - left, height: bottom - top)
+        dragging(handle, dx: dx, dy: dy, minSide: Self.minSide)
     }
 }

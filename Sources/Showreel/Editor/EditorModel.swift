@@ -94,6 +94,10 @@ final class EditorModel {
     var waveforms: [AudioSource: Waveform] = [:]
     /// Reduce Noise making the clean mic, or the reason it stopped (S-043).
     var noiseJob: NoiseJob?
+    /// The blurs (S-048), in source time, like the zooms.
+    var blurs = BlurTrack()
+    /// The blur selected on the timeline; its rectangle can be drawn on the canvas.
+    var selectedBlur: BlurRegion.ID?
     /// The caption selected on the timeline (S-040).
     var selectedCaption: Caption.ID?
     /// A double-click asked the inspector to put the cursor in the caption's text.
@@ -130,6 +134,7 @@ final class EditorModel {
         zooms = Self.zooms(for: project, sources: sources)
         captions = CaptionTrack.decode(project.captionsData) ?? CaptionTrack()
         audio = AudioMix.decode(project.audioData)
+        blurs = BlurTrack.decode(project.blursData)
         duration = edits.duration
         let built = sources.item(for: edits, style: renderStyle(for: style), mix: audio)
         slots = built.slots

@@ -128,6 +128,7 @@ extension EditorModel {
         if id != nil {
             selectedZoom = nil
             selectedSegment = nil
+            selectedBlur = nil
             section = .captions
         }
         editsCaptionText = id != nil && editText

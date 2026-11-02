@@ -80,12 +80,13 @@ extension EditorModel {
         case .none, .gradient, .color: nil
         }
         let path = zoomPath(for: style), cursor = cursorScene(for: style)
-        guard let url else { return RenderStyle(style: style, zooms: zooms, zoomPath: path, cursor: cursor, captions: captions) }
+        guard let url else { return RenderStyle(style: style, zooms: zooms, zoomPath: path, cursor: cursor, captions: captions,
+                                                 blurs: blurs) }
         if pictures[url.path] == nil, let sources {
             pictures[url.path] = Self.picture(at: url, maxPixels: max(sources.naturalSize.width, sources.naturalSize.height))
         }
         return RenderStyle(style: style, backgroundImage: pictures[url.path], zooms: zooms, zoomPath: path, cursor: cursor,
-                           captions: captions)
+                           captions: captions, blurs: blurs)
     }
 
     /// The cursor drawn from events.json (S-034); nil without a log.

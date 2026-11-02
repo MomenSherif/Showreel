@@ -55,6 +55,17 @@ extension Snapshot {
                                    },
                                    window: window,
                                    hide: { EditorModel.newest?.selectZoom(nil) })
+        // S-048, S-049: the seeded blur selected, its rectangle on the canvas.
+        let blurSelected = Surface(name: "editor-blur-selected", show: {
+                                       guard let editor = await openEditor() else { return }
+                                       editor.zoom = TimelineZoom()
+                                       editor.section = .background
+                                       editor.selectBlur(editor.blurs.region(at: 6)?.id)
+                                       editor.seek(to: 6)
+                                       await editor.seeksSettled()
+                                   },
+                                   window: window,
+                                   hide: { EditorModel.newest?.selectBlur(nil) })
         // S-018: the start being trimmed by 6 s, mid-drag.
         let trim = Surface(name: "editor-trim", show: {
                                let project = (try? model.context.fetch(FetchDescriptor<Project>()))?.first { $0.title == title }
@@ -220,6 +231,6 @@ extension Snapshot {
                     },
                     window: window,
                     hide: {})
-        } + [trim, split, crop, frame, aspect, savePreset, export, progress, done, zoomSelected, click, zoomed, captionsProgress, captionsFailed, captionSelected, audioMuted, noiseProgress]
+        } + [trim, split, crop, frame, aspect, savePreset, export, progress, done, zoomSelected, blurSelected, click, zoomed, captionsProgress, captionsFailed, captionSelected, audioMuted, noiseProgress]
     }
 }

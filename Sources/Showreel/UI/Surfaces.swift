@@ -36,6 +36,7 @@ enum Media {
     enum Track {
         static let clip = Color(light: 0x3D63C9, dark: 0x3558B8, highContrastLight: 0x2B4FB0, highContrastDark: 0x2B4FB0)
         static let zoom = Color(light: 0x7444D8, dark: 0x6A3DCB, highContrastLight: 0x5B2FBF, highContrastDark: 0x5B2FBF)
+        static let blur = Color(light: 0x9A4A14, dark: 0x8C4312, highContrastLight: 0x7E3B0F, highContrastDark: 0x7E3B0F)
         static let caption = Color(light: 0x0F7A6E, dark: 0x0D6E63, highContrastLight: 0x0A5F56, highContrastDark: 0x0A5F56)
         static let audio = Color(light: 0x2E7D32, dark: 0x2A7230, highContrastLight: 0x21632A, highContrastDark: 0x21632A)
         /// Text and symbols on any track fill.
