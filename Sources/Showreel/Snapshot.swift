@@ -233,6 +233,18 @@ enum Snapshot {
                              },
                              window: { window()?.attachedSheet },
                              hide: { EditorModel.newest?.showsExportSheet = false })
+        // S-037: an export 40% done after 10 s, in its popover.
+        let progress = Surface(name: "export-progress", show: {
+                                   guard let editor = await openEditor() else { return }
+                                   editor.export = .shown(for: editor, fraction: 0.4, elapsed: 10)
+                                   try? await Task.sleep(for: .seconds(0.3))
+                                   editor.showsExportPopover = true
+                               },
+                               window: { NSApp.windows.first { $0.className.contains("Popover") && $0.isVisible } },
+                               hide: {
+                                   EditorModel.newest?.showsExportPopover = false
+                                   EditorModel.newest?.export = nil
+                               })
         return InspectorSection.allCases.map { section in
             Surface(name: section == .background ? "editor" : "editor-\(section.rawValue)", show: {
                         let project = (try? model.context.fetch(FetchDescriptor<Project>()))?.first { $0.title == title }
@@ -242,7 +254,7 @@ enum Snapshot {
                     },
                     window: window,
                     hide: {})
-        } + [trim, split, crop, frame, aspect, savePreset, export, zoomSelected, click, zoomed]
+        } + [trim, split, crop, frame, aspect, savePreset, export, progress, zoomSelected, click, zoomed]
     }
 
     static func runIfRequested(model: AppModel, openSettings: OpenSettingsAction) {

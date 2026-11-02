@@ -145,3 +145,21 @@ public struct ExportSettings: Codable, Equatable, Sendable {
         data.flatMap { try? JSONDecoder().decode(ExportSettings.self, from: $0) }?.fitted() ?? ExportSettings()
     }
 }
+
+/// How long an export has left (S-037), from how long it ran and how far it got.
+public enum ExportETA {
+    /// Seconds left, or nil until there is enough to go on (a second and 2%).
+    public static func secondsLeft(elapsed: Double, fraction: Double) -> Double? {
+        guard elapsed >= 1, fraction >= 0.02, fraction < 1 else { return nil }
+        return elapsed / fraction * (1 - fraction)
+    }
+
+    /// "About 20 seconds left", "About a minute left", "About 3 minutes left".
+    public static func text(secondsLeft: Double?) -> String {
+        guard let s = secondsLeft else { return "Estimating time left…" }
+        if s < 5 { return "Less than 5 seconds left" }
+        if s < 55 { return "About \(Int((s / 5).rounded()) * 5) seconds left" }
+        let minutes = Int((s / 60).rounded())
+        return minutes <= 1 ? "About a minute left" : "About \(minutes) minutes left"
+    }
+}

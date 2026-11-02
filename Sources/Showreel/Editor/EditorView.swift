@@ -77,6 +77,14 @@ struct EditorView: View {
             if case .failed(let why) = editor.export?.state { Text(why) }
         }
         .focusedSceneValue(\.editor, editor)
+        // Looked up when asked, not captured: the closure can outlive the
+        // model it would capture (the self-test caught a stale one).
+        .confirmsClose { [id = project.uuid, title = project.title] in
+            guard let run = EditorModel.runningExport(of: id) else { return nil }
+            return CloseQuestion(title: "Stop Exporting “\(title)”?",
+                                 message: "Closing the window stops the export and deletes the unfinished file.",
+                                 confirm: "Stop Exporting", cancel: "Continue") { run.cancel() }
+        }
         .task { await editor.load() }
         .onAppear { editor.undoManager = undoManager }
         .onChange(of: undoManager) { _, manager in editor.undoManager = manager }
@@ -102,21 +110,7 @@ struct EditorView: View {
                 .help(editor.canRedo ? "Redo \(undoManager?.redoActionName ?? "") (⇧⌘Z)" : "Redo (⇧⌘Z)")
                 .disabled(!editor.canRedo)
         }
-        ToolbarItem(placement: .primaryAction) {
-            if let run = editor.export, run.isRunning {
-                ProgressView(value: run.fraction)
-                    .progressViewStyle(.circular)
-                    .controlSize(.small)
-                    .help("Exporting \(run.url.lastPathComponent), \(Int(run.fraction * 100))%")
-                    .accessibilityLabel("Exporting \(run.url.lastPathComponent)")
-            } else {
-                Button("Export…", systemImage: "square.and.arrow.up") { editor.showExportSheet() }
-                    .labelStyle(.titleOnly)
-                    .buttonStyle(.borderedProminent)
-                    .help("Export a video (⌘E)")
-                    .disabled(!editor.canExport)
-            }
-        }
+        ToolbarItem(placement: .primaryAction) { ExportToolbarItem(editor: editor) }
         ToolbarItem(placement: .primaryAction) {
             Button(editor.showsInspector ? "Hide Inspector" : "Show Inspector", systemImage: "sidebar.trailing") {
                 withMotion(Motion.ui) { editor.showsInspector.toggle() }

@@ -85,3 +85,13 @@ Fix: the group is `CommandGroup(after: .newItem)`, with a divider; the self-test
 that each File command is in the menu.
 Rule: anchor command groups only to placements the app really has, and have the self-test
 read the menu bar for every new command.
+
+## 2026-11-02 Closing the window during an export did not ask first
+Symptom: (found by the S-037 self-test before it shipped) closing an editor window while
+exporting closed it at once; the close guard's question never came.
+Cause: the guard's closure read the editor model through `@State` from an AppKit callback.
+Outside `body` it got a different `EditorModel` from the window's live one, with no export.
+Fix: the guard looks the running export up by project ID (`EditorModel.runningExport(of:)`)
+when the window asks.
+Rule: never let a closure handed to AppKit read a SwiftUI `@State` model later; pass an ID
+and look the object up, or keep the object in a reference AppKit owns.

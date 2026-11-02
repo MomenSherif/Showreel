@@ -566,7 +566,9 @@ a popover (it also opens by itself when the export starts) with "Exporting
 <file name>", a bar, "About 20 seconds left", and Cancel. The editor stays
 usable; edits made now are not in this export. Closing the window asks
 "Stop Exporting “<title>”?" (Stop Exporting, Continue).
-Status: todo
+Note: [manual] measured with the opt-in `SHOWREEL_PERF=1` test: a 1-minute
+2880 × 1800 recording exports at 1728 × 1080, 60 fps in 9.8 s (M-series Mac).
+Status: done
 
 ### S-038 Share or reveal the exported file
 As the user, when the export finishes I click Share, Show in Finder, or

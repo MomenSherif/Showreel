@@ -60,6 +60,8 @@ final class EditorModel {
     var showsExportSheet = false
     /// The export running now, or the last one (S-036).
     var export: ExportRun?
+    /// The export progress popover is open (S-037).
+    var showsExportPopover = false
     /// The timeline's zoom (S-017). Fit shows the whole recording.
     var zoom = TimelineZoom()
     /// The cut (S-018, S-019). Edits replace it; the files never change.
@@ -134,6 +136,12 @@ final class EditorModel {
     /// Every loaded editor, so Export… in the Library reaches an open one.
     private static var live: [Weak] = []
     private struct Weak { weak var editor: EditorModel?; init(_ e: EditorModel) { editor = e } }
+
+    /// The export running in an editor of the project `id` (S-037).
+    static func runningExport(of id: UUID) -> ExportRun? {
+        live.removeAll { $0.editor == nil }
+        return live.lazy.compactMap { $0.editor?.export }.first { $0.isRunning && $0.projectID == id }
+    }
 
     /// The loaded editor of the project `id`, if its window is open.
     static func open(_ id: UUID) -> EditorModel? {

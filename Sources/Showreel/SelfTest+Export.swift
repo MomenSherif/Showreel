@@ -59,5 +59,43 @@ extension SelfTest {
         check("the GIF has a frame for every 1/15 s", gifRun?.state == .finished && abs(frames - expected) <= 1,
               "\(frames) frames, \(expected) expected")
         editor.export = nil
+        await cancelExport(editor, in: folder)
+    }
+
+    /// S-037: while exporting, the popover shows and the editor still works;
+    /// closing the window asks first; Cancel deletes the unfinished file.
+    static func cancelExport(_ editor: EditorModel, in folder: URL) async {
+        let mov = folder.appending(path: "cancel.mov")
+        guard let run = editor.startExport(to: mov, settings: ExportSettings(format: .mov, resolution: .p2160, fps: 60, quality: .best)) else {
+            check("a 4K export starts", false)
+            return
+        }
+        check("the progress popover opens when an export starts", editor.showsExportPopover)
+        // Wait for the file to exist, so there is something to delete.
+        for _ in 0..<400 where run.isRunning && !FileManager.default.fileExists(atPath: mov.path) {
+            try? await Task.sleep(for: .milliseconds(5))
+        }
+        let before = editor.playhead.time
+        editor.seek(to: min(1, editor.duration))
+        await editor.seeksSettled()
+        check("the editor keeps working while it exports", editor.playhead.time != before || editor.duration < 1)
+
+        let window = NSApp.windows.first { $0.title == editor.project.title && $0.isVisible }
+        if let window, run.isRunning {
+            let closes = window.delegate?.windowShouldClose?(window) ?? true
+            check("closing the window asks before stopping the export", !closes && window.attachedSheet != nil,
+                  "closes \(closes), sheet \(window.attachedSheet != nil), delegate \(String(describing: window.delegate.map { type(of: $0) }))")
+            if let sheet = window.attachedSheet { window.endSheet(sheet, returnCode: .alertSecondButtonReturn) }
+        }
+        guard run.isRunning else {
+            print("INFO the 4K export finished before it could be cancelled; cancel checks skipped")
+            return
+        }
+        run.cancel()
+        await run.finished()
+        check("Cancel stops the export", run.state == .cancelled, "\(run.state)")
+        check("cancelling deletes the partial file", !FileManager.default.fileExists(atPath: mov.path))
+        check("the popover closes and Export… is back", !editor.showsExportPopover && editor.canExport)
+        editor.export = nil
     }
 }

@@ -57,3 +57,25 @@ struct ExportSettingsTests {
         #expect(ExportSettings.decode(nil) == ExportSettings())
     }
 }
+
+/// Time left while exporting (S-037).
+@Suite("Export time left")
+struct ExportETATests {
+    @Test func waitsForEnoughToGoOn() {
+        #expect(ExportETA.secondsLeft(elapsed: 0.5, fraction: 0.3) == nil)
+        #expect(ExportETA.secondsLeft(elapsed: 3, fraction: 0.01) == nil)
+        #expect(ExportETA.text(secondsLeft: nil) == "Estimating time left…")
+    }
+
+    @Test func extrapolatesTheRate() {
+        // A quarter done in 5 s: 15 s to go.
+        #expect(ExportETA.secondsLeft(elapsed: 5, fraction: 0.25) == 15)
+    }
+
+    @Test func roundsToFriendlySteps() {
+        #expect(ExportETA.text(secondsLeft: 3) == "Less than 5 seconds left")
+        #expect(ExportETA.text(secondsLeft: 18) == "About 20 seconds left")
+        #expect(ExportETA.text(secondsLeft: 58) == "About a minute left")
+        #expect(ExportETA.text(secondsLeft: 170) == "About 3 minutes left")
+    }
+}

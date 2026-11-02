@@ -13,26 +13,27 @@ struct ExporterTests {
 
     /// A 6-second screen.mov: a gradient with a white bar that moves right,
     /// so every second looks different.
-    static func makeScreen() async throws -> URL {
+    static func makeScreen(size: CGSize = source, seconds: Int = 6) async throws -> URL {
+        let source = size, w = Int(size.width), h = Int(size.height)
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("export-src-\(UUID().uuidString).mov")
         let writer = try AVAssetWriter(outputURL: url, fileType: .mov)
         let input = AVAssetWriterInput(mediaType: .video, outputSettings: [
-            AVVideoCodecKey: AVVideoCodecType.h264, AVVideoWidthKey: 320, AVVideoHeightKey: 200,
+            AVVideoCodecKey: AVVideoCodecType.h264, AVVideoWidthKey: w, AVVideoHeightKey: h,
             AVVideoCompressionPropertiesKey: [AVVideoAverageBitRateKey: 8_000_000],
         ])
         let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: input, sourcePixelBufferAttributes: [
-            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA, kCVPixelBufferWidthKey as String: 320,
-            kCVPixelBufferHeightKey as String: 200,
+            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA, kCVPixelBufferWidthKey as String: w,
+            kCVPixelBufferHeightKey as String: h,
         ])
         writer.add(input)
         #expect(writer.startWriting())
         writer.startSession(atSourceTime: .zero)
         let context = CIContext()
-        for i in 0..<180 {
+        for i in 0..<(seconds * 30) {
             while !input.isReadyForMoreMediaData { try await Task.sleep(for: .milliseconds(2)) }
             let t = Double(i) / 30
             let back = CIFilter(name: "CILinearGradient", parameters: [
-                "inputPoint0": CIVector(x: 0, y: 0), "inputPoint1": CIVector(x: 320, y: 200),
+                "inputPoint0": CIVector(x: 0, y: 0), "inputPoint1": CIVector(x: size.width, y: size.height),
                 "inputColor0": CIColor(red: 0.2, green: 0.4, blue: 0.9), "inputColor1": CIColor(red: 0.6, green: 0.2, blue: 0.6),
             ])!.outputImage!
             let bar = CIImage(color: .white).cropped(to: CGRect(x: 20 + t * 40, y: 60, width: 30, height: 80))
@@ -50,7 +51,7 @@ struct ExporterTests {
     }
 
     /// The screen drawn with a style, as the editor builds it.
-    static func composition(screen url: URL, fps: Int32 = 30) async throws -> (AVComposition, AVVideoComposition) {
+    static func composition(screen url: URL, fps: Int32 = 30, output: CGSize = output) async throws -> (AVComposition, AVVideoComposition) {
         let asset = AVURLAsset(url: url)
         let track = try #require(try await asset.loadTracks(withMediaType: .video).first)
         let range = try await track.load(.timeRange)
@@ -105,6 +106,23 @@ struct ExporterTests {
         // A different moment must not match as well: the test can fail.
         let other = try await Self.frame(of: exported, at: 1)
         #expect(SSIM.mean(preview, other) < ssim)
+    }
+
+    /// S-037 [manual]: a 1-minute 1080p/60 export takes under 30 seconds.
+    /// Opt in with SHOWREEL_PERF=1; it makes a 1-minute source first.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["SHOWREEL_PERF"] != nil))
+    func oneMinuteAt1080p60IsFast() async throws {
+        let src = try await Self.makeScreen(size: CGSize(width: 2880, height: 1800), seconds: 60)
+        defer { try? FileManager.default.removeItem(at: src) }
+        let size = CGSize(width: 1728, height: 1080)
+        let (asset, video) = try await Self.composition(screen: src, fps: 60, output: size)
+        let out = FileManager.default.temporaryDirectory.appendingPathComponent("export-perf-\(UUID().uuidString).mp4")
+        defer { try? FileManager.default.removeItem(at: out) }
+        let start = Date.now
+        try await Exporter.export(asset: asset, videoComposition: video, settings: ExportSettings(), to: out) { _ in }
+        let seconds = Date.now.timeIntervalSince(start)
+        print("PERF 1 min 1080p60 export: \(String(format: "%.1f", seconds)) s")
+        #expect(seconds < 30)
     }
 
     @Test func gifHasEveryFrameAndLoops() async throws {

@@ -16,20 +16,35 @@ final class ExportRun {
     }
 
     let url: URL
+    let projectID: UUID
     let settings: ExportSettings
     let size: CGSize
-    let started = Date.now
+    let started: Date
     private(set) var fraction = 0.0
     private(set) var state = State.running
     @ObservationIgnored fileprivate var task: Task<Void, Never>?
 
-    init(url: URL, settings: ExportSettings, size: CGSize) {
+    init(url: URL, projectID: UUID, settings: ExportSettings, size: CGSize, started: Date = .now) {
+        self.started = started
         self.url = url
+        self.projectID = projectID
         self.settings = settings
         self.size = size
     }
 
     var isRunning: Bool { state == .running }
+
+    /// A run that only shows a state, for snapshot mode: `fraction` done
+    /// after `elapsed` seconds, still running or finished.
+    static func shown(for editor: EditorModel, fraction: Double, elapsed: Double, state: State = .running) -> ExportRun {
+        let settings = editor.savedExportSettings
+        let run = ExportRun(url: URL(fileURLWithPath: "/tmp/\(editor.project.title).\(settings.format.fileExtension)"),
+                            projectID: editor.project.uuid, settings: settings,
+                            size: settings.outputSize(canvas: editor.canvasSize), started: .now - elapsed)
+        run.fraction = fraction
+        run.state = state
+        return run
+    }
 
     /// Stops the export; the engine deletes the partial file.
     func cancel() {
@@ -106,9 +121,11 @@ extension EditorModel {
         // An immutable copy, which AVFoundation documents as safe to read
         // from any thread: the reader works on it off the main thread.
         nonisolated(unsafe) let asset = composition.copy() as! AVComposition
-        let run = ExportRun(url: url, settings: settings, size: size)
+        let run = ExportRun(url: url, projectID: project.uuid, settings: settings, size: size)
         export = run
-        run.task = Task { [weak run] in
+        // The popover opens by itself, so the export is seen to start (S-037).
+        showsExportPopover = true
+        run.task = Task { [weak run, weak self] in
             do {
                 try await Exporter.export(asset: asset, videoComposition: video, settings: settings, to: url) { fraction in
                     Task { @MainActor in run?.report(fraction) }
@@ -116,6 +133,7 @@ extension EditorModel {
                 run?.end(.finished)
             } catch is CancellationError {
                 run?.end(.cancelled)
+                self?.showsExportPopover = false
             } catch {
                 run?.end(.failed(error.localizedDescription))
             }
